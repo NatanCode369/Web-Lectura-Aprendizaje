@@ -1,0 +1,19 @@
+{
+  "name": "lectura-activa-api",
+  "version": "1.0.0",
+  "description": "API REST para Lectura Activa",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "fastify": "^5.0.0",
+    "mongodb": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
