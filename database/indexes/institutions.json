@@ -1,0 +1,12 @@
+[
+  {
+    "collection": "institutions",
+    "key": { "allowedEmailDomains": 1 },
+    "options": { "name": "institutions_allowed_email_domains" }
+  },
+  {
+    "collection": "institutions",
+    "key": { "status": 1 },
+    "options": { "name": "institutions_status" }
+  }
+]
