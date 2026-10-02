@@ -4,7 +4,7 @@ import {
   buildNewUserDoc,
   validateProfileSize,
   activeUserFilter,
-} from '../src/modules/users/users.domain.js';
+} from '../../../lectura-activa/apps/api/src/modules/users/users.domain.js';
 
 describe('users.domain — pickEditableFields', () => {
   it('permite fullName', () => {
