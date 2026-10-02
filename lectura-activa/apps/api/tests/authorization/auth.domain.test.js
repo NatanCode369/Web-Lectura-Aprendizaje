@@ -6,7 +6,7 @@ import {
   isDomainAllowed,
   defaultRoleForNewUser,
   defaultStatus,
-} from '../../../lectura-activa/apps/api/src/modules/auth/auth.domain.js';
+} from '../../src/modules/auth/auth.domain.js';
 
 describe('auth.domain — extractDomain', () => {
   it('extrae el dominio y lo pasa a minúsculas', () => {

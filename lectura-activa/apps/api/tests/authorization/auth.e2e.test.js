@@ -18,7 +18,7 @@
  * 10. POST /internal/validate-domain con dominio inválido → 403
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it } from 'vitest';
 
 describe('auth+users — e2e (pendiente de activar)', () => {
   it.todo('GET /me sin token devuelve 401 UNAUTHENTICATED');
