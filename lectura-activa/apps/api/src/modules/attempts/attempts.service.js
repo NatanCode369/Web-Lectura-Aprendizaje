@@ -8,7 +8,7 @@ import {
   buildProgressEntry
 } from './attempts.domain.js';
 import { assertAssignmentIsOpen } from '../assignments/assignments.domain.js';
-import { getDb } from '../../config/db.js';
+import { getDb } from '../../shared/db.js';
 import { NotFoundError, ForbiddenError, ConflictError } from '../../shared/errors/index.js';
 import { logger } from '../../shared/logger/index.js';
 
