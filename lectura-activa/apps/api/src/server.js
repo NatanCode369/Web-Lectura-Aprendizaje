@@ -20,6 +20,14 @@ import { studentAssignmentsRoutes } from './modules/studentAssignments/studentAs
 import { attemptsRoutes } from './modules/attempts/attempts.routes.js';
 import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
 
+// Módulos integrados desde ft/2023146 (Adrián - Persona 3)
+import { buildUserRepository } from './modules/users/user.repository.js';
+import { buildReadingRepository } from './modules/readings/reading.repository.js';
+import { buildAuditRepository } from './modules/readings/audit.repository.js';
+import { buildReadingService } from './modules/readings/reading.service.js';
+import { buildAuth } from './shared/auth.js';
+import { registerReadingRoutes } from './modules/readings/reading.routes.js';
+
 export async function buildServer({ withDb = true } = {}) {
   const fastify = Fastify({
     loggerInstance: logger,
@@ -34,15 +42,15 @@ export async function buildServer({ withDb = true } = {}) {
   await fastify.register(helmet, { contentSecurityPolicy: false });
 
   await fastify.register(cors, {
-    origin: env.CORS_ORIGINS || '*', // Fallback por si aún no está en .env
-    credentials: false,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    origin: env.CORS_ORIGINS || '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
     exposedHeaders: ['x-request-id'],
   });
 
   await fastify.register(rateLimit, {
-    max: 100,
+    max: 120,
     timeWindow: '1 minute',
     errorResponseBuilder: (req) => ({
       error: {
@@ -53,7 +61,7 @@ export async function buildServer({ withDb = true } = {}) {
     }),
   });
 
-  // ---- Manejo de errores ----
+  // ---- Manejo de errores global ----
   fastify.setErrorHandler(errorHandler);
 
   fastify.setNotFoundHandler((req, reply) => {
@@ -66,17 +74,17 @@ export async function buildServer({ withDb = true } = {}) {
     });
   });
 
-  // ---- Conexión a DB (opcional para tests) ----
+  // ---- Conexión a Base de Datos (opcional para tests) ----
   let db = null;
   if (withDb) {
     db = await connectDb();
   }
 
   // ---- Health checks ----
-  fastify.get('/health', async () => ({ 
-    status: 'ok', 
+  fastify.get('/health', async () => ({
+    status: 'ok',
     service: 'lectura-activa-api',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   }));
 
   fastify.get('/ready', async (req, reply) => {
@@ -93,7 +101,7 @@ export async function buildServer({ withDb = true } = {}) {
     return { status: 'ready', db: dbOk };
   });
 
-  // ---- Rutas de negocio ----
+  // ---- Rutas de Negocio ----
   await fastify.register(authRoutes, { prefix: '/api/v1/auth', db });
   await fastify.register(usersRoutes, { prefix: '/api/v1/users', db });
   await fastify.register(groupsRoutes, { prefix: '/api/v1/groups', db });
@@ -102,9 +110,20 @@ export async function buildServer({ withDb = true } = {}) {
   await fastify.register(attemptsRoutes, { prefix: '/api/v1/attempts', db });
   await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics', db });
 
-  // ---- Cierre ordenado ----
+  // ---- Inyección y Rutas de Readings (ft/2023146) ----
+  const userRepository = buildUserRepository();
+  const readingRepository = buildReadingRepository();
+  const auditRepository = buildAuditRepository();
+  const readingService = buildReadingService({ readingRepository, auditRepository });
+  const auth = buildAuth({ userRepository });
+
+  await registerReadingRoutes(fastify, { auth, readingService, prefix: '/api/v1/readings' });
+
+  // ---- Cierre ordenado de conexiones ----
   fastify.addHook('onClose', async () => {
-    if (withDb) await closeDb();
+    if (withDb) {
+      await closeDb();
+    }
   });
 
   return fastify;
@@ -129,8 +148,10 @@ export async function start() {
 
   try {
     const port = Number(env.PORT ?? process.env.PORT ?? 3000);
-    await fastify.listen({ port, host: '0.0.0.0' });
-    logger.info(`✅ API escuchando en http://0.0.0.0:${port}`);
+    const host = env.HOST ?? process.env.HOST ?? '0.0.0.0';
+
+    await fastify.listen({ port, host });
+    logger.info(`✅ API escuchando en http://${host}:${port}`);
   } catch (err) {
     logger.error({ err }, 'No se pudo arrancar el servidor');
     process.exit(1);
@@ -143,8 +164,8 @@ export async function start() {
 const __filename = fileURLToPath(import.meta.url);
 
 // Verificación robusta para Windows y Linux/Mac
-const isMainModule = 
-  process.argv[1] === __filename || 
+const isMainModule =
+  process.argv[1] === __filename ||
   process.argv[1]?.replace(/\\/g, '/') === __filename ||
   process.argv[1]?.endsWith('server.js');
 
