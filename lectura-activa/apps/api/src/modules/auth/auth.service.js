@@ -11,7 +11,6 @@ import { buildNewUserDoc } from '../users/users.domain.js';
 import { institutionsRepo } from './auth.repository.js';
 import {
   extractDomain,
-  isDomainAllowed,
   normalizeEmail,
   defaultRoleForNewUser,
 } from './auth.domain.js';

@@ -4,7 +4,7 @@ import {
   buildNewUserDoc,
   validateProfileSize,
   activeUserFilter,
-} from '../src/modules/users/users.domain.js';
+} from '../../src/modules/users/users.domain.js';
 
 describe('users.domain — pickEditableFields', () => {
   it('permite fullName', () => {
