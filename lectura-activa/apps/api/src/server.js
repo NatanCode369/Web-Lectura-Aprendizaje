@@ -1,67 +1,40 @@
 import Fastify from 'fastify';
+import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
+import { randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+import { env } from './config/env.js';
+import { logger } from './shared/logger.js';
+import { connectDb, closeDb, pingDb } from './shared/db.js';
+import { errorHandler } from './shared/errors/errorHandler.js';
+import { requestId } from './shared/middleware/requestId.js';
+
+import { authRoutes } from './modules/auth/auth.routes.js';
+import { usersRoutes } from './modules/users/users.routes.js';
 import { groupsRoutes } from './modules/groups/groups.routes.js';
 import { assignmentsRoutes } from './modules/assignments/assignments.routes.js';
 import { studentAssignmentsRoutes } from './modules/studentAssignments/studentAssignments.routes.js';
 import { attemptsRoutes } from './modules/attempts/attempts.routes.js';
 import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
 
-import cors from '@fastify/cors';
-import helmet from '@fastify/helmet';
-import rateLimit from '@fastify/rate-limit';
-import { randomUUID } from 'node:crypto';
-
-import { env } from 'config/env.js';
-import { logger } from 'shared/logger.js';
-import { connectDb, closeDb, pingDb } from 'shared/db.js';
-import { errorHandler } from 'shared/errors/errorHandler.js';
-import { requestId } from 'shared/middleware/requestId.js';
-
-import { authRoutes } from 'modules/auth/auth.routes.js';
-import { usersRoutes } from 'modules/users/users.routes.js';
-
-const app = Fastify({
-  logger: true,
-});
-
-app.get('/health', async () => ({
-  status: 'ok',
-  service: 'lectura-activa-api',
-  timestamp: new Date().toISOString(),
-}));
-
-await app.register(groupsRoutes, { prefix: '/api/v1/groups' });
-await app.register(assignmentsRoutes, { prefix: '/api/v1/assignments' });
-await app.register(studentAssignmentsRoutes, { prefix: '/api/v1/student-assignments' });
-await app.register(attemptsRoutes, { prefix: '/api/v1/attempts' });
-await app.register(analyticsRoutes, { prefix: '/api/v1/analytics' });
-
-const port = Number(process.env.PORT ?? 3000);
-const host = process.env.HOST ?? '0.0.0.0';
-
-try {
-  await app.listen({ port, host });
-  console.log(`API started at http://${host}:${port}`);
-} catch (error) {
-  app.log.error(error);
-  process.exit(1);
-}
-
 export async function buildServer({ withDb = true } = {}) {
   const fastify = Fastify({
     loggerInstance: logger,
     genReqId: () => randomUUID(),
-    disableRequestLogging: false,
-    trustProxy: true, // Cloud Run va detrás de proxy
+    trustProxy: true, // Cloud Run va detrás de un proxy
   });
 
   // ---- Middleware transversal ----
   fastify.addHook('onRequest', requestId);
 
-  // ---- Plugins ----
+  // ---- Plugins de seguridad ----
   await fastify.register(helmet, { contentSecurityPolicy: false });
 
   await fastify.register(cors, {
-    origin: env.CORS_ORIGINS,
+    origin: env.CORS_ORIGINS || '*', // Fallback por si aún no está en .env
     credentials: false,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
@@ -100,7 +73,11 @@ export async function buildServer({ withDb = true } = {}) {
   }
 
   // ---- Health checks ----
-  fastify.get('/health', async () => ({ status: 'ok' }));
+  fastify.get('/health', async () => ({ 
+    status: 'ok', 
+    service: 'lectura-activa-api',
+    timestamp: new Date().toISOString()
+  }));
 
   fastify.get('/ready', async (req, reply) => {
     const dbOk = withDb ? await pingDb() : true;
@@ -118,11 +95,16 @@ export async function buildServer({ withDb = true } = {}) {
 
   // ---- Rutas de negocio ----
   await fastify.register(authRoutes, { prefix: '/api/v1/auth', db });
-  await fastify.register(usersRoutes, { prefix: '/api/v1', db });
+  await fastify.register(usersRoutes, { prefix: '/api/v1/users', db });
+  await fastify.register(groupsRoutes, { prefix: '/api/v1/groups', db });
+  await fastify.register(assignmentsRoutes, { prefix: '/api/v1/assignments', db });
+  await fastify.register(studentAssignmentsRoutes, { prefix: '/api/v1/student-assignments', db });
+  await fastify.register(attemptsRoutes, { prefix: '/api/v1/attempts', db });
+  await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics', db });
 
   // ---- Cierre ordenado ----
   fastify.addHook('onClose', async () => {
-    await closeDb();
+    if (withDb) await closeDb();
   });
 
   return fastify;
@@ -146,15 +128,29 @@ export async function start() {
   process.on('SIGINT', () => shutdown('SIGINT'));
 
   try {
-    await fastify.listen({ port: env.PORT, host: '0.0.0.0' });
-    logger.info(`API escuchando en el puerto ${env.PORT}`);
+    const port = Number(env.PORT ?? process.env.PORT ?? 3000);
+    await fastify.listen({ port, host: '0.0.0.0' });
+    logger.info(`✅ API escuchando en http://0.0.0.0:${port}`);
   } catch (err) {
     logger.error({ err }, 'No se pudo arrancar el servidor');
     process.exit(1);
   }
 }
 
-// Arranque directo: `node src/server.js`
-if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`) {
-  start();
+// ==========================================
+// ARRANQUE DEL SERVIDOR (Entry Point)
+// ==========================================
+const __filename = fileURLToPath(import.meta.url);
+
+// Verificación robusta para Windows y Linux/Mac
+const isMainModule = 
+  process.argv[1] === __filename || 
+  process.argv[1]?.replace(/\\/g, '/') === __filename ||
+  process.argv[1]?.endsWith('server.js');
+
+if (isMainModule) {
+  start().catch((err) => {
+    console.error('Fallo crítico al iniciar el servidor:', err);
+    process.exit(1);
+  });
 }
