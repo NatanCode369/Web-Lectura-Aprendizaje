@@ -1,10 +1,4 @@
 import Fastify from 'fastify';
-import { groupsRoutes } from './modules/groups/groups.routes.js';
-import { assignmentsRoutes } from './modules/assignments/assignments.routes.js';
-import { studentAssignmentsRoutes } from './modules/studentAssignments/studentAssignments.routes.js';
-import { attemptsRoutes } from './modules/attempts/attempts.routes.js';
-import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
-
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
@@ -18,40 +12,26 @@ import { requestId } from 'shared/middleware/requestId.js';
 
 import { authRoutes } from 'modules/auth/auth.routes.js';
 import { usersRoutes } from 'modules/users/users.routes.js';
+import { groupsRoutes } from 'modules/groups/groups.routes.js';
+import { assignmentsRoutes } from 'modules/assignments/assignments.routes.js';
+import { studentAssignmentsRoutes } from 'modules/studentAssignments/studentAssignments.routes.js';
+import { attemptsRoutes } from 'modules/attempts/attempts.routes.js';
+import { analyticsRoutes } from 'modules/analytics/analytics.routes.js';
 
-const app = Fastify({
-  logger: true,
-});
-
-app.get('/health', async () => ({
-  status: 'ok',
-  service: 'lectura-activa-api',
-  timestamp: new Date().toISOString(),
-}));
-
-await app.register(groupsRoutes, { prefix: '/api/v1/groups' });
-await app.register(assignmentsRoutes, { prefix: '/api/v1/assignments' });
-await app.register(studentAssignmentsRoutes, { prefix: '/api/v1/student-assignments' });
-await app.register(attemptsRoutes, { prefix: '/api/v1/attempts' });
-await app.register(analyticsRoutes, { prefix: '/api/v1/analytics' });
-
-const port = Number(process.env.PORT ?? 3000);
-const host = process.env.HOST ?? '0.0.0.0';
-
-try {
-  await app.listen({ port, host });
-  console.log(`API started at http://${host}:${port}`);
-} catch (error) {
-  app.log.error(error);
-  process.exit(1);
-}
+// Módulos integrados desde ft/2023146
+import { buildUserRepository } from './modules/users/user.repository.js';
+import { buildReadingRepository } from './modules/readings/reading.repository.js';
+import { buildAuditRepository } from './modules/readings/audit.repository.js';
+import { buildReadingService } from './modules/readings/reading.service.js';
+import { buildAuth } from './shared/auth.js';
+import { registerReadingRoutes } from './modules/readings/reading.routes.js';
 
 export async function buildServer({ withDb = true } = {}) {
   const fastify = Fastify({
     loggerInstance: logger,
     genReqId: () => randomUUID(),
     disableRequestLogging: false,
-    trustProxy: true, // Cloud Run va detrás de proxy
+    trustProxy: true,
   });
 
   // ---- Middleware transversal ----
@@ -61,15 +41,15 @@ export async function buildServer({ withDb = true } = {}) {
   await fastify.register(helmet, { contentSecurityPolicy: false });
 
   await fastify.register(cors, {
-    origin: env.CORS_ORIGINS,
-    credentials: false,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    origin: env.CORS_ORIGINS ?? env.corsOrigin,
+    credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
     exposedHeaders: ['x-request-id'],
   });
 
   await fastify.register(rateLimit, {
-    max: 100,
+    max: 120,
     timeWindow: '1 minute',
     errorResponseBuilder: (req) => ({
       error: {
@@ -80,7 +60,7 @@ export async function buildServer({ withDb = true } = {}) {
     }),
   });
 
-  // ---- Manejo de errores ----
+  // ---- Manejo de errores global ----
   fastify.setErrorHandler(errorHandler);
 
   fastify.setNotFoundHandler((req, reply) => {
@@ -93,14 +73,18 @@ export async function buildServer({ withDb = true } = {}) {
     });
   });
 
-  // ---- Conexión a DB (opcional para tests) ----
+  // ---- Conexión a Base de Datos (opcional para tests) ----
   let db = null;
   if (withDb) {
     db = await connectDb();
   }
 
-  // ---- Health checks ----
-  fastify.get('/health', async () => ({ status: 'ok' }));
+  // ---- Rutas de Health Check / Readiness ----
+  fastify.get('/health', async () => ({
+    status: 'ok',
+    service: 'lectura-activa-api',
+    timestamp: new Date().toISOString(),
+  }));
 
   fastify.get('/ready', async (req, reply) => {
     const dbOk = withDb ? await pingDb() : true;
@@ -116,13 +100,29 @@ export async function buildServer({ withDb = true } = {}) {
     return { status: 'ready', db: dbOk };
   });
 
-  // ---- Rutas de negocio ----
+  // ---- Rutas de Negocio ----
   await fastify.register(authRoutes, { prefix: '/api/v1/auth', db });
-  await fastify.register(usersRoutes, { prefix: '/api/v1', db });
+  await fastify.register(usersRoutes, { prefix: '/api/v1/users', db });
+  await fastify.register(groupsRoutes, { prefix: '/api/v1/groups', db });
+  await fastify.register(assignmentsRoutes, { prefix: '/api/v1/assignments', db });
+  await fastify.register(studentAssignmentsRoutes, { prefix: '/api/v1/student-assignments', db });
+  await fastify.register(attemptsRoutes, { prefix: '/api/v1/attempts', db });
+  await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics', db });
 
-  // ---- Cierre ordenado ----
+  // ---- Inyección y Rutas traídas de ft/2023146 ----
+  const userRepository = buildUserRepository();
+  const readingRepository = buildReadingRepository();
+  const auditRepository = buildAuditRepository();
+  const readingService = buildReadingService({ readingRepository, auditRepository });
+  const auth = buildAuth({ userRepository });
+
+  await registerReadingRoutes(fastify, { auth, readingService, prefix: '/api/v1/readings' });
+
+  // ---- Cierre ordenado de conexiones ----
   fastify.addHook('onClose', async () => {
-    await closeDb();
+    if (withDb) {
+      await closeDb();
+    }
   });
 
   return fastify;
@@ -146,8 +146,11 @@ export async function start() {
   process.on('SIGINT', () => shutdown('SIGINT'));
 
   try {
-    await fastify.listen({ port: env.PORT, host: '0.0.0.0' });
-    logger.info(`API escuchando en el puerto ${env.PORT}`);
+    const port = Number(env.PORT ?? process.env.PORT ?? 3000);
+    const host = env.HOST ?? process.env.HOST ?? '0.0.0.0';
+
+    await fastify.listen({ port, host });
+    logger.info(`API escuchando en http://${host}:${port}`);
   } catch (err) {
     logger.error({ err }, 'No se pudo arrancar el servidor');
     process.exit(1);
