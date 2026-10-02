@@ -1,0 +1,166 @@
+:root {
+  --navy: #0b1f4d;
+  --navy-dark: #081538;
+  --orange: #e8590c;
+  --orange-dark: #c94a08;
+  --error: #fecaca;
+  --radius: 16px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Roboto", system-ui, sans-serif;
+  color: #fff;
+}
+
+/* ---------- Fondo ---------- */
+.auth {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 1rem 0;
+  background:
+    linear-gradient(rgba(8, 21, 56, .35), rgba(8, 21, 56, .35)),
+    url("../assets/fondo-log-reg.jpg") center / cover no-repeat,
+    var(--navy);
+}
+
+.auth__brand { margin-bottom: 2rem; }
+.auth__logo { height: 56px; width: auto; }
+
+/* ---------- Grid de tarjetas ---------- */
+.auth__grid {
+  flex: 1;
+  width: 100%;
+  max-width: 960px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+/* ---------- Tarjetas de cristal ---------- */
+.card {
+  padding: 2rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, .25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .25);
+}
+
+.card--dark  { background: rgba(35, 45, 75, .65); }
+.card--light { background: rgba(255, 255, 255, .55); color: #1e293b; }
+
+.card__title {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+}
+
+.card__link {
+  display: block;
+  text-align: right;
+  color: #fff;
+  font-size: .85rem;
+  margin: .25rem 0 1.5rem;
+}
+
+/* ---------- Inputs con ícono ---------- */
+.input {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.input svg {
+  position: absolute;
+  left: .75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: #64748b;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.input input {
+  width: 100%;
+  padding: .8rem .75rem .8rem 2.5rem;
+  border: 0;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e293b;
+  font: inherit;
+  font-size: .95rem;
+}
+
+.input input:focus { outline: 2px solid var(--orange); }
+
+/* ---------- Botones ---------- */
+.btn {
+  display: block;
+  width: 100%;
+  padding: .85rem;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  color: #fff;
+}
+
+.btn--primary { background: var(--navy); }
+.btn--primary:hover { background: var(--navy-dark); }
+
+.btn--orange { background: var(--orange); }
+.btn--orange:hover { background: var(--orange-dark); }
+
+/* ---------- Bloque naranja ---------- */
+.promo {
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: rgba(232, 89, 12, .85);
+  color: #fff;
+}
+
+.promo h3 { font-size: 1.05rem; font-weight: 500; margin-bottom: .5rem; }
+.promo p  { font-size: .85rem; margin-bottom: 1rem; }
+
+/* ---------- Errores y pie ---------- */
+.form-error {
+  color: var(--error);
+  font-size: .9rem;
+  margin-bottom: 1rem;
+}
+
+.auth__footer {
+  width: 100%;
+  padding: 1rem;
+  margin-top: 2rem;
+  text-align: center;
+  font-size: .8rem;
+  border-top: 1px solid rgba(255, 255, 255, .3);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 800px) {
+  .auth__grid { grid-template-columns: 1fr; }
+}
+.card__text {
+  font-size: .95rem;
+  margin: -.75rem 0 1.5rem;
+  color: rgba(255, 255, 255, .85);
+}
+
+.form-success {
+  color: #bbf7d0;
+  font-size: .9rem;
+  margin-bottom: 1rem;
+}
