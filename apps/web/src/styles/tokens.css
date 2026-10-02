@@ -1,0 +1,12 @@
+﻿:root {
+  --color-primary: #2563eb;
+  --color-secondary: #64748b;
+  --color-success: #22c55e;
+  --color-error: #ef4444;
+  --color-bg: #f8fafc;
+  --font-family: system-ui, -apple-system, sans-serif;
+  --font-size-base: 16px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+}
