@@ -2,65 +2,162 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
-import { env } from './config/env.js';
-import { connectMongo, getDb, closeMongo } from './db/mongo.js';
-import { buildAuth } from './shared/auth.js';
-import { sendError } from './shared/http.js';
+import { randomUUID } from 'node:crypto';
+
+import { env } from 'config/env.js';
+import { logger } from 'shared/logger.js';
+import { connectDb, closeDb, pingDb } from 'shared/db.js';
+import { errorHandler } from 'shared/errors/errorHandler.js';
+import { requestId } from 'shared/middleware/requestId.js';
+
+import { authRoutes } from 'modules/auth/auth.routes.js';
+import { usersRoutes } from 'modules/users/users.routes.js';
+import { groupsRoutes } from 'modules/groups/groups.routes.js';
+import { assignmentsRoutes } from 'modules/assignments/assignments.routes.js';
+import { studentAssignmentsRoutes } from 'modules/studentAssignments/studentAssignments.routes.js';
+import { attemptsRoutes } from 'modules/attempts/attempts.routes.js';
+import { analyticsRoutes } from 'modules/analytics/analytics.routes.js';
+
+// Módulos integrados desde ft/2023146
 import { buildUserRepository } from './modules/users/user.repository.js';
 import { buildReadingRepository } from './modules/readings/reading.repository.js';
 import { buildAuditRepository } from './modules/readings/audit.repository.js';
 import { buildReadingService } from './modules/readings/reading.service.js';
+import { buildAuth } from './shared/auth.js';
 import { registerReadingRoutes } from './modules/readings/reading.routes.js';
 
-export async function buildServer() {
-  const app = Fastify({ logger: true, requestIdHeader: 'x-request-id', trustProxy: true });
+export async function buildServer({ withDb = true } = {}) {
+  const fastify = Fastify({
+    loggerInstance: logger,
+    genReqId: () => randomUUID(),
+    disableRequestLogging: false,
+    trustProxy: true,
+  });
 
-  await app.register(helmet);
-  await app.register(cors, { origin: env.corsOrigin, credentials: true });
-  await app.register(rateLimit, { max: 120, timeWindow: '1 minute' });
+  // ---- Middleware transversal ----
+  fastify.addHook('onRequest', requestId);
 
+  // ---- Plugins ----
+  await fastify.register(helmet, { contentSecurityPolicy: false });
+
+  await fastify.register(cors, {
+    origin: env.CORS_ORIGINS ?? env.corsOrigin,
+    credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
+    exposedHeaders: ['x-request-id'],
+  });
+
+  await fastify.register(rateLimit, {
+    max: 120,
+    timeWindow: '1 minute',
+    errorResponseBuilder: (req) => ({
+      error: {
+        code: 'RATE_LIMITED',
+        message: 'Demasiadas peticiones. Intenta de nuevo en unos segundos.',
+        requestId: req.id,
+      },
+    }),
+  });
+
+  // ---- Manejo de errores global ----
+  fastify.setErrorHandler(errorHandler);
+
+  fastify.setNotFoundHandler((req, reply) => {
+    reply.code(404).send({
+      error: {
+        code: 'NOT_FOUND',
+        message: 'Ruta no encontrada.',
+        requestId: req.id,
+      },
+    });
+  });
+
+  // ---- Conexión a Base de Datos (opcional para tests) ----
+  let db = null;
+  if (withDb) {
+    db = await connectDb();
+  }
+
+  // ---- Rutas de Health Check / Readiness ----
+  fastify.get('/health', async () => ({
+    status: 'ok',
+    service: 'lectura-activa-api',
+    timestamp: new Date().toISOString(),
+  }));
+
+  fastify.get('/ready', async (req, reply) => {
+    const dbOk = withDb ? await pingDb() : true;
+    if (!dbOk) {
+      return reply.code(503).send({
+        error: {
+          code: 'DB_NOT_READY',
+          message: 'MongoDB no responde.',
+          requestId: req.id,
+        },
+      });
+    }
+    return { status: 'ready', db: dbOk };
+  });
+
+  // ---- Rutas de Negocio ----
+  await fastify.register(authRoutes, { prefix: '/api/v1/auth', db });
+  await fastify.register(usersRoutes, { prefix: '/api/v1/users', db });
+  await fastify.register(groupsRoutes, { prefix: '/api/v1/groups', db });
+  await fastify.register(assignmentsRoutes, { prefix: '/api/v1/assignments', db });
+  await fastify.register(studentAssignmentsRoutes, { prefix: '/api/v1/student-assignments', db });
+  await fastify.register(attemptsRoutes, { prefix: '/api/v1/attempts', db });
+  await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics', db });
+
+  // ---- Inyección y Rutas traídas de ft/2023146 ----
   const userRepository = buildUserRepository();
   const readingRepository = buildReadingRepository();
   const auditRepository = buildAuditRepository();
   const readingService = buildReadingService({ readingRepository, auditRepository });
   const auth = buildAuth({ userRepository });
 
-  app.get('/health', async () => ({ status: 'ok' }));
-  app.get('/ready', async (_request, reply) => {
-    try {
-      await getDb().command({ ping: 1 });
-      return { status: 'ready' };
-    } catch {
-      return reply.code(503).send({ status: 'unready' });
+  await registerReadingRoutes(fastify, { auth, readingService, prefix: '/api/v1/readings' });
+
+  // ---- Cierre ordenado de conexiones ----
+  fastify.addHook('onClose', async () => {
+    if (withDb) {
+      await closeDb();
     }
   });
 
-  await registerReadingRoutes(app, { auth, readingService });
-
-  app.setNotFoundHandler((_request, reply) => reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Ruta no encontrada', requestId: reply.request.id } }));
-  app.setErrorHandler((error, request, reply) => sendError(reply, error, request.id));
-
-  return app;
+  return fastify;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  try {
-    await connectMongo();
-    const app = await buildServer();
-    await app.listen({ port: env.port, host: env.host });
+export async function start() {
+  const fastify = await buildServer({ withDb: true });
 
-    const shutdown = async (signal) => {
-      app.log.info({ signal }, 'Shutting down');
-      await app.close();
-      await closeMongo();
+  const shutdown = async (signal) => {
+    logger.info({ signal }, 'Apagando servidor...');
+    try {
+      await fastify.close();
       process.exit(0);
-    };
+    } catch (err) {
+      logger.error({ err }, 'Error durante el apagado');
+      process.exit(1);
+    }
+  };
 
-    process.on('SIGTERM', shutdown);
-    process.on('SIGINT', shutdown);
-  } catch (error) {
-    console.error(error);
-    await closeMongo();
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+
+  try {
+    const port = Number(env.PORT ?? process.env.PORT ?? 3000);
+    const host = env.HOST ?? process.env.HOST ?? '0.0.0.0';
+
+    await fastify.listen({ port, host });
+    logger.info(`API escuchando en http://${host}:${port}`);
+  } catch (err) {
+    logger.error({ err }, 'No se pudo arrancar el servidor');
     process.exit(1);
   }
+}
+
+// Arranque directo: `node src/server.js`
+if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`) {
+  start();
 }
