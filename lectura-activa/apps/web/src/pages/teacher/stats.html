@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estadísticas | Lectura Activa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <img src="../../assets/logo-kinal.jpg" alt="Logo" onerror="this.style.display='none'">
+      </div>
+      <div>
+        <p class="sidebar__title">Panel docente</p>
+        <nav class="nav">
+          <a href="./dashboard-teacher.html" class="nav__link">Inicio</a>
+          <a href="./reading-new.html" class="nav__link">Nueva lectura</a>
+          <a href="#" class="nav__link">Actividades</a>
+          <a href="./stats.html" class="nav__link is-active">Estadísticas</a>
+        </nav>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__crumb">Lectura Activa</span>
+        <div class="topbar__user">
+          <span>Docente</span>
+          <a href="../auth/login.html" class="topbar__logout">Cerrar sesión</a>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1>Estadísticas</h1>
+            <p>Progreso de tus grupos y resultados por lectura. Los datos son de ejemplo.</p>
+          </div>
+        </div>
+
+        <!-- Filtros -->
+        <section class="panel">
+          <div class="filters">
+            <div class="field">
+              <label for="filtro-lectura">Lectura</label>
+              <select id="filtro-lectura"></select>
+            </div>
+            <div class="field">
+              <label for="filtro-grupo">Grupo</label>
+              <select id="filtro-grupo">
+                <option value="todos">Todos los grupos</option>
+                <option value="4to A">4to A</option>
+                <option value="4to B">4to B</option>
+                <option value="4to C">4to C</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- Resumen -->
+        <section class="stats" aria-label="Resumen">
+          <article class="stat">
+            <p class="stat__label">Puntaje promedio</p>
+            <p class="stat__value" id="stat-promedio">—</p>
+          </article>
+          <article class="stat">
+            <p class="stat__label">Tiempo promedio</p>
+            <p class="stat__value" id="stat-tiempo">—</p>
+          </article>
+          <article class="stat">
+            <p class="stat__label">Estudiantes al día</p>
+            <p class="stat__value" id="stat-aldia">—</p>
+          </article>
+          <article class="stat">
+            <p class="stat__label">Estudiantes atrasados</p>
+            <p class="stat__value" id="stat-atrasados">—</p>
+          </article>
+        </section>
+
+        <!-- Progreso por grupo -->
+        <section class="panel">
+          <div class="panel__header">
+            <h2 class="panel__title">Progreso por grupo</h2>
+            <span class="panel__hint">Porcentaje de estudiantes al día</span>
+          </div>
+          <div class="progress-list" id="progreso-grupos"></div>
+        </section>
+
+        <!-- Detalle por estudiante -->
+        <section class="panel">
+          <div class="panel__header">
+            <h2 class="panel__title">Progreso por estudiante</h2>
+            <span class="panel__hint">Quién va al día, quién va atrasado y quién no ha empezado</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Estudiante</th>
+                  <th>Grupo</th>
+                  <th>Estado</th>
+                  <th>Puntaje</th>
+                  <th>Tiempo</th>
+                </tr>
+              </thead>
+              <tbody id="estudiantes-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Preguntas más falladas -->
+        <section class="panel">
+          <div class="panel__header">
+            <h2 class="panel__title">Preguntas más falladas</h2>
+            <span class="panel__hint">Calculado con todos los grupos</span>
+          </div>
+          <div class="bar-list" id="preguntas-list"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="./stats.js"></script>
+</body>
+</html>

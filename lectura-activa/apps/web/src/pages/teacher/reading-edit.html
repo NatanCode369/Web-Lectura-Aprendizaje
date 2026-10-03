@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editar lectura | Lectura Activa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <img src="../../assets/logo-kinal.jpg" alt="Logo" onerror="this.style.display='none'">
+      </div>
+      <div>
+        <p class="sidebar__title">Panel docente</p>
+        <nav class="nav">
+          <a href="./dashboard-teacher.html" class="nav__link">Inicio</a>
+          <a href="./reading-new.html" class="nav__link">Nueva lectura</a>
+          <a href="./activities-edit.html" class="nav__link">Actividades</a>
+          <a href="./stats.html" class="nav__link">Estadísticas</a>
+        </nav>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__crumb">Lectura Activa</span>
+        <div class="topbar__user">
+          <span>Docente</span>
+          <a href="../auth/login.html" class="topbar__logout">Cerrar sesión</a>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1>Editar lectura</h1>
+            <p>Modifica los datos de una lectura ya publicada.</p>
+          </div>
+          <span class="badge badge--ok">Publicada</span>
+        </div>
+
+        <p class="alert">
+          Los cambios que guardes no afectan las asignaciones que ya hiciste: los estudiantes
+          verán la versión que tenía la lectura cuando se asignó.
+        </p>
+
+        <form id="reading-edit-form" class="form">
+          <!-- 1. Datos de la lectura -->
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">Datos de la lectura</h2>
+            </div>
+
+            <div class="form__grid">
+              <div class="field">
+                <label for="titulo">Título</label>
+                <input type="text" id="titulo" name="titulo" value="La liebre y la tortuga" required>
+              </div>
+
+              <div class="field">
+                <label for="autor">Autor</label>
+                <input type="text" id="autor" name="autor" value="Esopo">
+              </div>
+
+              <div class="field">
+                <label for="nivel">Dificultad</label>
+                <select id="nivel" name="nivel" required>
+                  <option value="basico" selected>Básico</option>
+                  <option value="intermedio">Intermedio</option>
+                  <option value="avanzado">Avanzado</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="minutos">Tiempo estimado (minutos)</label>
+                <input type="number" id="minutos" name="minutos" min="1" max="30" value="3">
+              </div>
+
+              <div class="field field--full">
+                <label for="resumen">Resumen</label>
+                <textarea id="resumen" name="resumen">Una carrera que enseña que la constancia vence a la confianza excesiva.</textarea>
+              </div>
+
+              <div class="field field--full">
+                <label for="contenido">Contenido</label>
+                <textarea id="contenido" name="contenido" rows="8">Una liebre se burlaba de la lentitud de una tortuga.
+La tortuga la retó a una carrera y la liebre aceptó riendo.
+Confiada, la liebre se durmió a mitad del camino, y la tortuga, sin detenerse, llegó primero a la meta.</textarea>
+                <span class="field__hint">Recuerda que las lecturas deben ser muy cortas.</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. Actividades -->
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">Actividades</h2>
+              <a href="./activities-edit.html" class="btn btn--ghost btn--sm">Editar preguntas</a>
+            </div>
+
+            <div class="checklist">
+              <label class="check">
+                <input type="checkbox" name="actividades" value="trivia" checked>
+                <div>
+                  <p class="check__title">Preguntas tipo trivia</p>
+                  <p class="check__desc">Opción múltiple con puntaje.</p>
+                </div>
+              </label>
+
+              <label class="check">
+                <input type="checkbox" name="actividades" value="verdadero-falso" checked>
+                <div>
+                  <p class="check__title">Verdadero o falso rápido</p>
+                  <p class="check__desc">Afirmaciones sobre el texto.</p>
+                </div>
+              </label>
+            </div>
+          </section>
+
+          <!-- 3. Asignaciones existentes -->
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">Asignaciones existentes</h2>
+              <span class="panel__hint">Solo lectura</span>
+            </div>
+
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Grupo</th>
+                    <th>Inicio</th>
+                    <th>Entrega</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>4to A</td>
+                    <td>01/10/2026</td>
+                    <td>15/10/2026</td>
+                    <td><span class="badge badge--ok">En curso</span></td>
+                  </tr>
+                  <tr>
+                    <td>4to B</td>
+                    <td>05/10/2026</td>
+                    <td>20/10/2026</td>
+                    <td><span class="badge badge--draft">Programada</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <div class="form__actions">
+            <a href="./dashboard.html" class="btn btn--ghost">Cancelar</a>
+            <button type="submit" class="btn btn--orange">Guardar cambios</button>
+          </div>
+        </form>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
