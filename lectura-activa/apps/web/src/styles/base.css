@@ -6,7 +6,7 @@
    - Importa los tokens
    - Reset universal
    - Estilos de body
-   - Header compartido
+   - Header compartido (fondo azul oscuro)
    - Utilidades de accesibilidad
    - Estilos base de formularios y enlaces
    ============================================================ */
@@ -80,8 +80,8 @@ textarea {
    ============================================================ */
 
 .site-header {
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  background: #1e3a8a; /* ← Azul oscuro */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -98,78 +98,93 @@ textarea {
   justify-content: space-between;
 }
 
+/* Logo */
 .site-header__logo {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  font-weight: 700;
+  font-weight: 800;
   font-size: var(--font-size-lg);
-  color: var(--color-text);
+  color: #fff;
+  letter-spacing: -0.02em;
   transition: opacity var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .site-header__logo:hover {
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
-.site-header__logo-icon {
-  font-size: 1.5rem;
+.site-header__logo-text {
+  color: #fff;
 }
 
+/* Navegación */
 .site-header__nav-list {
   display: flex;
-  gap: var(--space-lg);
+  gap: var(--space-md);
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
 .site-header__nav-link {
+  display: inline-block;
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  padding: var(--space-xs) 0;
-  border-bottom: 2px solid transparent;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
   transition:
     color var(--transition-fast),
-    border-color var(--transition-fast);
+    background var(--transition-fast);
 }
 
 .site-header__nav-link:hover {
-  color: var(--color-text);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .site-header__nav-link[aria-current="page"] {
-  color: var(--color-primary);
-  font-weight: 600;
-  border-bottom-color: var(--color-primary);
+  color: #fff;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.18);
 }
 
+/* Usuario */
 .site-header__user {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  flex-shrink: 0;
 }
 
 .site-header__user-name {
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  font-weight: 600;
+  color: #fff;
 }
 
 .site-header__user-button {
-  background: var(--color-bg-soft);
-  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 50%;
   width: 2.5rem;
   height: 2.5rem;
   display: grid;
   place-items: center;
   font-size: 1.25rem;
-  color: var(--color-text);
-  transition: background var(--transition-fast);
+  color: #fff;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
-.site-header__user-button:hover {
-  background: var(--color-bg);
+.site-header__user-button:hover,
+.site-header__user-button:focus-visible {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+  outline: none;
 }
 
 /* ============================================================
@@ -235,11 +250,16 @@ textarea {
 @media (max-width: 640px) {
   .site-header__container {
     padding: var(--space-sm) var(--space-md);
-    gap: var(--space-md);
+    gap: var(--space-sm);
   }
 
   .site-header__nav-list {
-    gap: var(--space-md);
+    gap: var(--space-xs);
+  }
+
+  .site-header__nav-link {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.8125rem;
   }
 
   .site-header__user-name {
