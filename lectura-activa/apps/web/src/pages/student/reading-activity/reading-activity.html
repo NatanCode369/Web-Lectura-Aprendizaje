@@ -46,21 +46,19 @@
 
         <div class="site-header__user">
           <span class="site-header__user-name">Estudiante</span>
-          <button
-            type="button"
+          <a
+            href="../user-profile/user-profile.html"
             class="site-header__user-button"
-            aria-label="Menú de usuario"
+            aria-label="Ver mi perfil"
           >
             <span aria-hidden="true">👤</span>
-          </button>
+          </a>
         </div>
       </div>
     </header>
 
     <main id="main-content" class="activity">
-      <!-- ============================================================
-         BARRA DEL LECTOR: volver + título + temporizador
-         ============================================================ -->
+      <!-- Barra del lector -->
       <header class="activity__bar">
         <a href="../my-tasks/my-tasks.html" class="activity__back">
           <span aria-hidden="true">←</span>
@@ -77,13 +75,11 @@
           aria-label="Tiempo restante para completar la lectura"
         >
           <span class="activity__timer-icon" aria-hidden="true">⏱</span>
-          <span class="activity__timer-value" data-field="timer"> 20:00 </span>
+          <span class="activity__timer-value" data-field="timer">20:00</span>
         </div>
       </header>
 
-      <!-- ============================================================
-         AVISO DE TIEMPO EXTRA (oculto; el JS lo muestra al pasar a -0:01)
-         ============================================================ -->
+      <!-- Aviso de tiempo extra -->
       <div
         id="time-extra-notice"
         class="activity__notice activity__notice--warning"
@@ -96,9 +92,7 @@
         </span>
       </div>
 
-      <!-- ============================================================
-         PDF EMBEBIDO (protagonista)
-         ============================================================ -->
+      <!-- PDF embebido -->
       <div class="activity__pdf-wrapper">
         <iframe
           src="https://www.orimi.com/pdf-test.pdf"
@@ -108,9 +102,7 @@
         ></iframe>
       </div>
 
-      <!-- ============================================================
-         BARRA INFERIOR: ACCIONES
-         ============================================================ -->
+      <!-- Barra de acciones -->
       <div class="activity__actions">
         <button
           type="button"
@@ -134,15 +126,12 @@
             class="activity__action-count"
             data-field="activitiesCount"
             aria-hidden="true"
+            >3</span
           >
-            3
-          </span>
         </button>
       </div>
 
-      <!-- ============================================================
-         PANEL DE ACTIVIDADES (oculto por defecto)
-         ============================================================ -->
+      <!-- Panel de actividades -->
       <section
         id="activities-panel"
         class="activity__panel"
@@ -221,8 +210,8 @@
         </div>
       </section>
     </main>
-
-    <!--
+  </body>
+  <!--
     ============================================================
     NOTA PARA EL JS
 
@@ -304,5 +293,5 @@
        - POST /assignments/:id/start (si aún no ha empezado)
        - Guardar el tiempo restante actual
        - Redirigir a my-tasks.html
-  --></body>
+  -->
 </html>

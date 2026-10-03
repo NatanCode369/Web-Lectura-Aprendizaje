@@ -52,21 +52,18 @@
 
         <div class="site-header__user">
           <span class="site-header__user-name">Estudiante</span>
-          <button
-            type="button"
+          <a
+            href="../user-profile/user-profile.html"
             class="site-header__user-button"
-            aria-label="Menú de usuario"
+            aria-label="Ver mi perfil"
           >
             <span aria-hidden="true">👤</span>
-          </button>
+          </a>
         </div>
       </div>
     </header>
 
     <main id="main-content" class="catalog">
-      <!-- ============================================================
-         HERO
-         ============================================================ -->
       <section class="catalog__hero">
         <div class="catalog__hero-content">
           <h1 class="catalog__title">
@@ -74,15 +71,12 @@
             <span class="catalog__title-accent">lectura</span>
           </h1>
           <p class="catalog__subtitle">
-            Explora nuestro catálogo, encuentra historias que te atrapen y
-            aprende mientras disfrutas.
+            Lee, comprende y mejora tus habilidades lectoras mientras descubres
+            nuevas historias.
           </p>
         </div>
       </section>
 
-      <!-- ============================================================
-         BUSCADOR Y FILTROS
-         ============================================================ -->
       <section class="catalog__controls" aria-label="Buscador y filtros">
         <div class="catalog__search">
           <label for="search-input" class="visually-hidden"
@@ -130,16 +124,10 @@
         </div>
       </section>
 
-      <!-- ============================================================
-         CONTADOR DE RESULTADOS
-         ============================================================ -->
       <p class="catalog__count" aria-live="polite">
         <strong>6</strong> lecturas disponibles
       </p>
 
-      <!-- ============================================================
-         RESULTADOS
-         ============================================================ -->
       <section
         id="readings-container"
         class="catalog__results"
@@ -179,9 +167,8 @@
               <div class="reading-card__meta">
                 <span
                   class="reading-card__difficulty reading-card__difficulty--easy"
+                  >Fácil</span
                 >
-                  Fácil
-                </span>
                 <span class="reading-card__minutes">
                   <span aria-hidden="true">⏱</span> 15 min
                 </span>
@@ -204,9 +191,8 @@
               <div class="reading-card__meta">
                 <span
                   class="reading-card__difficulty reading-card__difficulty--hard"
+                  >Difícil</span
                 >
-                  Difícil
-                </span>
                 <span class="reading-card__minutes">
                   <span aria-hidden="true">⏱</span> 45 min
                 </span>
@@ -229,9 +215,8 @@
               <div class="reading-card__meta">
                 <span
                   class="reading-card__difficulty reading-card__difficulty--medium"
+                  >Medio</span
                 >
-                  Medio
-                </span>
                 <span class="reading-card__minutes">
                   <span aria-hidden="true">⏱</span> 30 min
                 </span>
@@ -254,9 +239,8 @@
               <div class="reading-card__meta">
                 <span
                   class="reading-card__difficulty reading-card__difficulty--medium"
+                  >Medio</span
                 >
-                  Medio
-                </span>
                 <span class="reading-card__minutes">
                   <span aria-hidden="true">⏱</span> 40 min
                 </span>
@@ -279,9 +263,8 @@
               <div class="reading-card__meta">
                 <span
                   class="reading-card__difficulty reading-card__difficulty--hard"
+                  >Difícil</span
                 >
-                  Difícil
-                </span>
                 <span class="reading-card__minutes">
                   <span aria-hidden="true">⏱</span> 60 min
                 </span>
@@ -304,9 +287,8 @@
               <div class="reading-card__meta">
                 <span
                   class="reading-card__difficulty reading-card__difficulty--easy"
+                  >Fácil</span
                 >
-                  Fácil
-                </span>
                 <span class="reading-card__minutes">
                   <span aria-hidden="true">⏱</span> 8 min
                 </span>

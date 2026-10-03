@@ -1,18 +1,4 @@
-/* ============================================================
-   Pantalla: Catálogo de lecturas
-   Dueño: Omar (Persona 5) — HTML + CSS
-   Fase: 1
-   API: GET /api/v1/readings
-
-   IMPORTANTE:
-   - Los estilos base (incluido el header) vienen de
-     ../../../styles/base.css (que importa tokens.css).
-   - Este archivo SOLO contiene estilos del catálogo.
-   ============================================================ */
-
-/* ============================================================
-   Layout principal
-   ============================================================ */
+/* Pantalla: Catálogo de lecturas — Dueño: Omar */
 
 .catalog {
   max-width: 1200px;
@@ -20,10 +6,7 @@
   padding: var(--space-xl) var(--space-lg) var(--space-2xl);
 }
 
-/* ============================================================
-   Hero
-   ============================================================ */
-
+/* Hero */
 .catalog__hero {
   position: relative;
   padding: var(--space-2xl) var(--space-lg);
@@ -34,7 +17,6 @@
   overflow: hidden;
 }
 
-/* Círculo decorativo */
 .catalog__hero::before {
   content: "";
   position: absolute;
@@ -93,10 +75,7 @@
   max-width: 520px;
 }
 
-/* ============================================================
-   Buscador y filtros
-   ============================================================ */
-
+/* Buscador y filtros */
 .catalog__controls {
   display: flex;
   flex-wrap: wrap;
@@ -165,10 +144,7 @@
   box-shadow: var(--shadow-glow);
 }
 
-/* ============================================================
-   Contador de resultados
-   ============================================================ */
-
+/* Contador */
 .catalog__count {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
@@ -180,10 +156,7 @@
   font-weight: 700;
 }
 
-/* ============================================================
-   Carrusel horizontal
-   ============================================================ */
-
+/* Carrusel */
 .catalog__carousel {
   position: relative;
   margin-bottom: var(--space-lg);
@@ -230,7 +203,6 @@
   padding: var(--space-sm) var(--space-xs) var(--space-md);
   margin: 0;
   list-style: none;
-
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
 }
@@ -252,16 +224,12 @@
   background: var(--color-text-muted);
 }
 
-/* ============================================================
-   Tarjeta de lectura
-   ============================================================ */
-
+/* Tarjeta de lectura */
 .reading-card {
   flex: 0 0 280px;
   width: 280px;
   min-height: 300px;
   scroll-snap-align: start;
-
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -269,12 +237,10 @@
   cursor: pointer;
   position: relative;
   overflow: hidden;
-
   transition:
     transform var(--transition-base),
     box-shadow var(--transition-base),
     border-color var(--transition-base);
-
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
@@ -284,7 +250,6 @@
   text-decoration: none;
 }
 
-/* Barra superior según dificultad */
 .reading-card::before {
   content: "";
   position: absolute;
@@ -334,12 +299,10 @@
   font-size: var(--font-size-sm);
   margin: 0;
   flex: 1;
-
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-
   transition: -webkit-line-clamp var(--transition-base);
 }
 
@@ -395,10 +358,7 @@
   font-style: italic;
 }
 
-/* ============================================================
-   Botones del carrusel
-   ============================================================ */
-
+/* Botones del carrusel */
 .catalog__carousel-button {
   position: absolute;
   top: 50%;
@@ -439,10 +399,7 @@
   right: var(--space-sm);
 }
 
-/* ============================================================
-   Responsive
-   ============================================================ */
-
+/* Responsive */
 @media (max-width: 768px) {
   .catalog__title {
     font-size: var(--font-size-3xl);
@@ -490,10 +447,7 @@
   }
 }
 
-/* ============================================================
-   Reducción de movimiento
-   ============================================================ */
-
+/* Reducción de movimiento */
 @media (prefers-reduced-motion: reduce) {
   .reading-card,
   .reading-card *,

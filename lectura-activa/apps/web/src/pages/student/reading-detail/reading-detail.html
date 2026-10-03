@@ -46,21 +46,19 @@
 
         <div class="site-header__user">
           <span class="site-header__user-name">Estudiante</span>
-          <button
-            type="button"
+          <a
+            href="../user-profile/user-profile.html"
             class="site-header__user-button"
-            aria-label="Menú de usuario"
+            aria-label="Ver mi perfil"
           >
             <span aria-hidden="true">👤</span>
-          </button>
+          </a>
         </div>
       </div>
     </header>
 
     <main id="main-content" class="detail">
-      <!-- ============================================================
-         BREADCRUMB
-         ============================================================ -->
+      <!-- Breadcrumb -->
       <nav class="detail__breadcrumb" aria-label="Ruta de navegación">
         <ol class="detail__breadcrumb-list">
           <li>
@@ -79,9 +77,7 @@
         </ol>
       </nav>
 
-      <!-- ============================================================
-         ESTADO DE CARGA (oculto por defecto)
-         ============================================================ -->
+      <!-- Estado de carga -->
       <div id="loading-state" class="detail__state" hidden>
         <div class="detail__skeleton">
           <div class="detail__skeleton-badge"></div>
@@ -94,9 +90,7 @@
         <p class="detail__state-text">Cargando lectura...</p>
       </div>
 
-      <!-- ============================================================
-         ESTADO DE ERROR (oculto por defecto)
-         ============================================================ -->
+      <!-- Estado de error -->
       <div id="error-state" class="detail__state" hidden>
         <div class="detail__state-icon" aria-hidden="true">⚠️</div>
         <h2 class="detail__state-title">No pudimos cargar la lectura</h2>
@@ -108,11 +102,8 @@
         </a>
       </div>
 
-      <!-- ============================================================
-         CONTENIDO PRINCIPAL (oculto hasta que cargue el JS)
-         ============================================================ -->
+      <!-- Contenido principal -->
       <div id="detail-content">
-        <!-- HERO -->
         <header class="detail__hero">
           <div class="detail__badges">
             <span
@@ -134,34 +125,32 @@
           <p class="detail__author" data-field="author">Por: Ana López</p>
         </header>
 
-        <!-- META -->
         <section class="detail__meta" aria-label="Información de la lectura">
           <div class="detail__meta-item">
             <span class="detail__meta-icon" aria-hidden="true">⏱</span>
             <span class="detail__meta-label">Duración</span>
-            <span class="detail__meta-value" data-field="estimatedMinutes">
-              15 min
-            </span>
+            <span class="detail__meta-value" data-field="estimatedMinutes"
+              >15 min</span
+            >
           </div>
 
           <div class="detail__meta-item">
             <span class="detail__meta-icon" aria-hidden="true">📝</span>
             <span class="detail__meta-label">Actividades</span>
-            <span class="detail__meta-value" data-field="activitiesCount">
-              3
-            </span>
+            <span class="detail__meta-value" data-field="activitiesCount"
+              >3</span
+            >
           </div>
 
           <div class="detail__meta-item">
             <span class="detail__meta-icon" aria-hidden="true">📖</span>
             <span class="detail__meta-label">Nivel</span>
-            <span class="detail__meta-value" data-field="level">
-              Principiante
-            </span>
+            <span class="detail__meta-value" data-field="level"
+              >Principiante</span
+            >
           </div>
         </section>
 
-        <!-- SOBRE ESTA LECTURA -->
         <section class="detail__section" aria-labelledby="about-title">
           <h2 class="detail__section-title" id="about-title">
             Sobre esta lectura
@@ -175,7 +164,6 @@
           </p>
         </section>
 
-        <!-- ACTIVIDADES INCLUIDAS -->
         <section class="detail__section" aria-labelledby="activities-title">
           <h2 class="detail__section-title" id="activities-title">
             Actividades incluidas
@@ -185,11 +173,6 @@
             data-field="activities"
             aria-label="Lista de actividades de la lectura"
           >
-            <!--
-            El JS debe generar los <li> dinámicamente desde
-            reading.activities. Este es solo un placeholder
-            para mostrar el diseño.
-          -->
             <li class="detail__activity">
               <span class="detail__activity-icon" aria-hidden="true">❓</span>
               <div class="detail__activity-content">
@@ -222,7 +205,6 @@
           </ul>
         </section>
 
-        <!-- CTA FINAL -->
         <section class="detail__cta">
           <div class="detail__cta-content">
             <h2 class="detail__cta-title" data-field="ctaTitle">
@@ -252,8 +234,8 @@
         </section>
       </div>
     </main>
-
-    <!--
+  </body>
+  <!--
     ============================================================
     NOTA PARA EL JS
 
@@ -337,5 +319,5 @@
 
     10. Manejar el caso "no autenticado":
         - 401 → redirigir a login
-  --></body>
+  -->
 </html>

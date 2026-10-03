@@ -47,21 +47,18 @@
 
         <div class="site-header__user">
           <span class="site-header__user-name">Estudiante</span>
-          <button
-            type="button"
+          <a
+            href="../user-profile/user-profile.html"
             class="site-header__user-button"
-            aria-label="Menú de usuario"
+            aria-label="Ver mi perfil"
           >
             <span aria-hidden="true">👤</span>
-          </button>
+          </a>
         </div>
       </div>
     </header>
 
     <main id="main-content" class="progress">
-      <!-- ============================================================
-         HERO
-         ============================================================ -->
       <header class="progress__hero">
         <h1 class="progress__title">Mi progreso</h1>
         <p class="progress__subtitle">
@@ -69,46 +66,36 @@
         </p>
       </header>
 
-      <!-- ============================================================
-         ESTADÍSTICAS GENERALES
-         ============================================================ -->
       <section class="progress__stats" aria-label="Resumen general">
         <div class="progress__stat">
           <span class="progress__stat-icon" aria-hidden="true">📚</span>
-          <span class="progress__stat-value" data-field="totalReadings">
-            8
-          </span>
+          <span class="progress__stat-value" data-field="totalReadings">8</span>
           <span class="progress__stat-label">Lecturas</span>
         </div>
 
         <div class="progress__stat progress__stat--success">
           <span class="progress__stat-icon" aria-hidden="true">✅</span>
-          <span class="progress__stat-value" data-field="completedReadings">
-            5
-          </span>
+          <span class="progress__stat-value" data-field="completedReadings"
+            >5</span
+          >
           <span class="progress__stat-label">Completadas</span>
         </div>
 
         <div class="progress__stat progress__stat--primary">
           <span class="progress__stat-icon" aria-hidden="true">🎯</span>
-          <span class="progress__stat-value" data-field="averageScore">
-            82
-          </span>
+          <span class="progress__stat-value" data-field="averageScore">82</span>
           <span class="progress__stat-label">Promedio</span>
         </div>
 
         <div class="progress__stat progress__stat--warning">
           <span class="progress__stat-icon" aria-hidden="true">⏱</span>
-          <span class="progress__stat-value" data-field="totalTime">
-            2h 30m
-          </span>
+          <span class="progress__stat-value" data-field="totalTime"
+            >2h 30m</span
+          >
           <span class="progress__stat-label">Tiempo total</span>
         </div>
       </section>
 
-      <!-- ============================================================
-         HISTORIAL DE LECTURAS COMPLETADAS
-         ============================================================ -->
       <section class="progress__section" aria-labelledby="history-title">
         <header class="progress__section-header">
           <h2 class="progress__section-title" id="history-title">Historial</h2>
@@ -122,11 +109,6 @@
           data-field="historyList"
           aria-label="Historial de lecturas completadas"
         >
-          <!--
-          El JS debe generar los <li> aquí dinámicamente.
-          Este es solo un placeholder para mostrar el diseño.
-        -->
-
           <!-- Item 1 -->
           <li>
             <a
@@ -137,9 +119,9 @@
             >
               <div class="progress__item-header">
                 <h3 class="progress__item-title">El principito</h3>
-                <span class="progress__item-score progress__item-score--high">
-                  92 / 100
-                </span>
+                <span class="progress__item-score progress__item-score--high"
+                  >92 / 100</span
+                >
               </div>
 
               <div class="progress__item-meta">
@@ -158,7 +140,6 @@
                   <span aria-hidden="true">👥</span>
                   Grupo 3°A
                 </span>
-
                 <span class="progress__item-action">
                   Ver resultados
                   <span aria-hidden="true">→</span>
@@ -177,9 +158,9 @@
             >
               <div class="progress__item-header">
                 <h3 class="progress__item-title">1984</h3>
-                <span class="progress__item-score progress__item-score--mid">
-                  78 / 100
-                </span>
+                <span class="progress__item-score progress__item-score--mid"
+                  >78 / 100</span
+                >
               </div>
 
               <div class="progress__item-meta">
@@ -198,7 +179,6 @@
                   <span aria-hidden="true">👥</span>
                   Grupo 3°A
                 </span>
-
                 <span class="progress__item-action">
                   Ver resultados
                   <span aria-hidden="true">→</span>
@@ -217,9 +197,9 @@
             >
               <div class="progress__item-header">
                 <h3 class="progress__item-title">Cien años de soledad</h3>
-                <span class="progress__item-score progress__item-score--high">
-                  85 / 100
-                </span>
+                <span class="progress__item-score progress__item-score--high"
+                  >85 / 100</span
+                >
               </div>
 
               <div class="progress__item-meta">
@@ -238,7 +218,6 @@
                   <span aria-hidden="true">👥</span>
                   Grupo 3°A
                 </span>
-
                 <span class="progress__item-action">
                   Ver resultados
                   <span aria-hidden="true">→</span>
@@ -257,9 +236,9 @@
             >
               <div class="progress__item-header">
                 <h3 class="progress__item-title">La casa de los espíritus</h3>
-                <span class="progress__item-score progress__item-score--mid">
-                  72 / 100
-                </span>
+                <span class="progress__item-score progress__item-score--mid"
+                  >72 / 100</span
+                >
               </div>
 
               <div class="progress__item-meta">
@@ -278,7 +257,6 @@
                   <span aria-hidden="true">👥</span>
                   Grupo 3°A
                 </span>
-
                 <span class="progress__item-action">
                   Ver resultados
                   <span aria-hidden="true">→</span>
@@ -297,9 +275,9 @@
             >
               <div class="progress__item-header">
                 <h3 class="progress__item-title">Don Quijote de la Mancha</h3>
-                <span class="progress__item-score progress__item-score--low">
-                  58 / 100
-                </span>
+                <span class="progress__item-score progress__item-score--low"
+                  >58 / 100</span
+                >
               </div>
 
               <div class="progress__item-meta">
@@ -318,7 +296,6 @@
                   <span aria-hidden="true">👥</span>
                   Grupo 3°A
                 </span>
-
                 <span class="progress__item-action">
                   Ver resultados
                   <span aria-hidden="true">→</span>
@@ -329,9 +306,7 @@
         </ul>
       </section>
 
-      <!-- ============================================================
-         ESTADO VACÍO (oculto; el JS lo muestra si no hay lecturas)
-         ============================================================ -->
+      <!-- Estado vacío -->
       <section class="progress__empty" hidden>
         <div class="progress__empty-icon" aria-hidden="true">📚</div>
         <h2 class="progress__empty-title">
@@ -345,8 +320,8 @@
         </a>
       </section>
     </main>
-
-    <!--
+  </body>
+  <!--
     ============================================================
     NOTA PARA EL JS
 
@@ -415,5 +390,5 @@
     8. Formatear tiempo:
        - Si < 60 min: "{min} min"
        - Si >= 60 min: "{h}h {m}m"
-  --></body>
+  -->
 </html>
