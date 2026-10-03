@@ -28,7 +28,7 @@ body {
 }
 
 .auth__brand { margin-bottom: 2rem; }
-.auth__logo { height: 56px; width: auto; }
+.auth__logo { height: 100px; width: auto; }
 
 /* ---------- Grid de tarjetas ---------- */
 .auth__grid {

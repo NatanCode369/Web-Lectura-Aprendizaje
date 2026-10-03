@@ -9,3 +9,4 @@ build/
 .vscode/
 .idea/
 coverage/
+/apps/web/nbproject/private/
