@@ -9,15 +9,7 @@
     />
     <title>Catálogo de lecturas — Lectura Activa</title>
 
-    <!--
-    NOTA: Los estilos base (reset, tipografía, tokens) vienen de:
-      ../../../styles/tokens.css  (dueño: José)
-      ../../../styles/base.css    (dueño: José)
-    Cuando estén disponibles, agregar aquí:
-      <link rel="stylesheet" href="../../../styles/tokens.css" />
-      <link rel="stylesheet" href="../../../styles/base.css" />
-  -->
-
+    <link rel="stylesheet" href="../../../styles/base.css" />
     <link rel="stylesheet" href="./catalog.css" />
   </head>
   <body>
@@ -30,7 +22,6 @@
           class="site-header__logo"
           aria-label="Lectura Activa - Inicio"
         >
-          <span class="site-header__logo-icon" aria-hidden="true">📚</span>
           <span class="site-header__logo-text">Lectura Activa</span>
         </a>
 
@@ -73,13 +64,25 @@
     </header>
 
     <main id="main-content" class="catalog">
-      <header class="catalog__header">
-        <h1 class="catalog__title">Catálogo de lecturas</h1>
-        <p class="catalog__subtitle">
-          Explora, busca y elige tu próxima lectura
-        </p>
-      </header>
+      <!-- ============================================================
+         HERO
+         ============================================================ -->
+      <section class="catalog__hero">
+        <div class="catalog__hero-content">
+          <h1 class="catalog__title">
+            Descubre tu próxima
+            <span class="catalog__title-accent">lectura</span>
+          </h1>
+          <p class="catalog__subtitle">
+            Explora nuestro catálogo, encuentra historias que te atrapen y
+            aprende mientras disfrutas.
+          </p>
+        </div>
+      </section>
 
+      <!-- ============================================================
+         BUSCADOR Y FILTROS
+         ============================================================ -->
       <section class="catalog__controls" aria-label="Buscador y filtros">
         <div class="catalog__search">
           <label for="search-input" class="visually-hidden"
@@ -90,7 +93,7 @@
             type="search"
             id="search-input"
             class="catalog__search-input"
-            placeholder="Buscar lecturas..."
+            placeholder="Buscar por título o descripción..."
             autocomplete="off"
             aria-describedby="search-help"
           />
@@ -127,28 +130,21 @@
         </div>
       </section>
 
+      <!-- ============================================================
+         CONTADOR DE RESULTADOS
+         ============================================================ -->
+      <p class="catalog__count" aria-live="polite">
+        <strong>6</strong> lecturas disponibles
+      </p>
+
+      <!-- ============================================================
+         RESULTADOS
+         ============================================================ -->
       <section
         id="readings-container"
         class="catalog__results"
-        aria-live="polite"
         aria-busy="false"
       >
-        <!--
-        NOTA: Estas tarjetas son estáticas (HTML hardcodeado) para que la
-        pantalla se vea sin JavaScript. El JS que haga otra persona debe:
-
-        1. Escuchar el evento 'input' en #search-input
-        2. Escuchar 'change' en #filter-difficulty y #filter-duration
-        3. Hacer fetch a GET /api/v1/readings con los query params
-        4. Renderizar dinámicamente las tarjetas dentro de #readings-grid
-        5. Reemplazar estas tarjetas estáticas por las del API
-
-        Cada tarjeta usa:
-        - <a href="..."> → navegación al detalle (funciona sin JS)
-        - data-id → identificador de la lectura (para el JS)
-        - aria-label → descripción accesible
-      -->
-
         <div id="catalog-carousel" class="catalog__carousel">
           <button
             type="button"
@@ -156,6 +152,7 @@
             class="catalog__carousel-button catalog__carousel-button--prev"
             aria-label="Ver lecturas anteriores"
             aria-controls="readings-grid"
+            hidden
           >
             <span aria-hidden="true">←</span>
           </button>
@@ -170,7 +167,7 @@
             <!-- Tarjeta 1 -->
             <a
               href="../reading-detail/reading-detail.html?id=fake_001"
-              class="reading-card"
+              class="reading-card reading-card--easy"
               data-id="fake_001"
               aria-label="Leer El principito"
             >
@@ -195,7 +192,7 @@
             <!-- Tarjeta 2 -->
             <a
               href="../reading-detail/reading-detail.html?id=fake_002"
-              class="reading-card"
+              class="reading-card reading-card--hard"
               data-id="fake_002"
               aria-label="Leer 1984"
             >
@@ -220,7 +217,7 @@
             <!-- Tarjeta 3 -->
             <a
               href="../reading-detail/reading-detail.html?id=fake_003"
-              class="reading-card"
+              class="reading-card reading-card--medium"
               data-id="fake_003"
               aria-label="Leer Cien años de soledad"
             >
@@ -245,7 +242,7 @@
             <!-- Tarjeta 4 -->
             <a
               href="../reading-detail/reading-detail.html?id=fake_004"
-              class="reading-card"
+              class="reading-card reading-card--medium"
               data-id="fake_004"
               aria-label="Leer La casa de los espíritus"
             >
@@ -270,7 +267,7 @@
             <!-- Tarjeta 5 -->
             <a
               href="../reading-detail/reading-detail.html?id=fake_005"
-              class="reading-card"
+              class="reading-card reading-card--hard"
               data-id="fake_005"
               aria-label="Leer Don Quijote de la Mancha"
             >
@@ -295,7 +292,7 @@
             <!-- Tarjeta 6 -->
             <a
               href="../reading-detail/reading-detail.html?id=fake_006"
-              class="reading-card"
+              class="reading-card reading-card--easy"
               data-id="fake_006"
               aria-label="Leer El Principito (corto)"
             >
@@ -324,16 +321,12 @@
             class="catalog__carousel-button catalog__carousel-button--next"
             aria-label="Ver más lecturas"
             aria-controls="readings-grid"
+            hidden
           >
             <span aria-hidden="true">→</span>
           </button>
         </div>
       </section>
     </main>
-
-    <!--
-    NOTA: No se incluye <script> porque el JS lo maneja otra persona.
-    Cuando esté listo, agregar:
-      <script type="module" src="./catalog.js"></script>
-  --></body>
+  </body>
 </html>
