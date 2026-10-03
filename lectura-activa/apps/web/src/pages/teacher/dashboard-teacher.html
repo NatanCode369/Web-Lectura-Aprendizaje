@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel docente | Lectura Activa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <img src="../../assets/logo-kinal.jpg" alt="Logo" onerror="this.style.display='none'">
+      </div>
+      <div>
+        <p class="sidebar__title">Panel docente</p>
+        <nav class="nav">
+          <a href="./dashboard-teacher.html" class="nav__link is-active">Inicio</a>
+          <a href="./reading-new.html" class="nav__link">Nueva lectura</a>
+          <a href="./activities-edit.html" class="nav__link">Actividades</a>
+          <a href="./stats.html" class="nav__link">Estadísticas</a>
+        </nav>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__crumb">Lectura Activa</span>
+        <div class="topbar__user">
+          <span>Docente</span>
+          <a href="../auth/login.html" class="topbar__logout">Cerrar sesión</a>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1>Panel del docente</h1>
+            <p>Resumen de tus grupos y lecturas. Los números son de ejemplo.</p>
+          </div>
+          <a href="./reading-new.html" class="btn btn--orange">+ Nueva lectura</a>
+        </div>
+
+        <section class="stats" aria-label="Resumen">
+          <article class="stat">
+            <p class="stat__label">Grupos</p>
+            <p class="stat__value" id="stat-grupos">3</p>
+          </article>
+          <article class="stat">
+            <p class="stat__label">Lecturas activas</p>
+            <p class="stat__value" id="stat-lecturas">5</p>
+          </article>
+          <article class="stat">
+            <p class="stat__label">Estudiantes conectados</p>
+            <p class="stat__value" id="stat-conectados">24</p>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="panel__header">
+            <h2 class="panel__title">Mis lecturas</h2>
+            <a href="./reading-new.html" class="btn btn--primary btn--sm">Agregar</a>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Título</th>
+                  <th>Nivel</th>
+                  <th>Duración</th>
+                  <th>Estado</th>
+                  <th>Grupos</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="lecturas-body">
+                <tr>
+                  <td>La liebre y la tortuga</td>
+                  <td>Básico</td>
+                  <td>3 min</td>
+                  <td><span class="badge badge--ok">Publicada</span></td>
+                  <td>2</td>
+                  <td>
+                    <div class="table__actions">
+                      <a href="./reading-edit.html" class="btn btn--ghost btn--sm">Editar</a>
+                      <a href="./stats.html" class="btn btn--ghost btn--sm">Estadísticas</a>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>El león y el ratón</td>
+                  <td>Básico</td>
+                  <td>2 min</td>
+                  <td><span class="badge badge--ok">Publicada</span></td>
+                  <td>1</td>
+                  <td>
+                    <div class="table__actions">
+                      <a href="./reading-edit.html" class="btn btn--ghost btn--sm">Editar</a>
+                      <a href="./stats.html" class="btn btn--ghost btn--sm">Estadísticas</a>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>La zorra y las uvas</td>
+                  <td>Intermedio</td>
+                  <td>3 min</td>
+                  <td><span class="badge badge--draft">Borrador</span></td>
+                  <td>0</td>
+                  <td>
+                    <div class="table__actions">
+                      <a href="./reading-edit.html" class="btn btn--ghost btn--sm">Editar</a>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__header">
+            <h2 class="panel__title">Progreso de mis grupos</h2>
+            <span class="panel__hint">Estudiantes que van al día</span>
+          </div>
+
+          <div class="progress-list">
+            <div>
+              <div class="progress__row"><span>4to A</span><span>75%</span></div>
+              <div class="progress"><div class="progress__bar" style="width: 75%"></div></div>
+            </div>
+            <div>
+              <div class="progress__row"><span>4to B</span><span>40%</span></div>
+              <div class="progress"><div class="progress__bar" style="width: 40%"></div></div>
+            </div>
+            <div>
+              <div class="progress__row"><span>4to C</span><span>90%</span></div>
+              <div class="progress"><div class="progress__bar" style="width: 90%"></div></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
