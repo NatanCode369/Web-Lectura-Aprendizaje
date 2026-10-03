@@ -44,7 +44,6 @@
         </div>
 
         <form id="reading-form" class="form">
-          <!-- 1. Datos de la lectura -->
           <section class="panel">
             <div class="panel__header">
               <h2 class="panel__title">1. Datos de la lectura</h2>
@@ -103,7 +102,6 @@
             </div>
           </section>
 
-          <!-- 2. Actividades -->
           <section class="panel">
             <div class="panel__header">
               <h2 class="panel__title">2. Actividades</h2>
@@ -127,33 +125,32 @@
                 </div>
               </label>
 
-              <label class="check check--disabled">
-                <input type="checkbox" name="actividades" value="detective" disabled>
+              <label class="check">
+                <input type="checkbox" name="actividades" value="detective" checked>
                 <div>
-                  <p class="check__title">Detective de palabras <span class="badge badge--soon">Próximamente</span></p>
+                  <p class="check__title">Detective de palabras</p>
                   <p class="check__desc">Encontrar sinónimos en el texto.</p>
                 </div>
               </label>
 
-              <label class="check check--disabled">
-                <input type="checkbox" name="actividades" value="ordenar" disabled>
+              <label class="check">
+                <input type="checkbox" name="actividades" value="ordenar" checked>
                 <div>
-                  <p class="check__title">Ordena la historia <span class="badge badge--soon">Próximamente</span></p>
+                  <p class="check__title">Ordena la historia</p>
                   <p class="check__desc">Arrastrar los hechos al orden correcto.</p>
                 </div>
               </label>
 
-              <label class="check check--disabled">
-                <input type="checkbox" name="actividades" value="mapa" disabled>
+              <label class="check">
+                <input type="checkbox" name="actividades" value="mapa" checked>
                 <div>
-                  <p class="check__title">Mapa mental <span class="badge badge--soon">Próximamente</span></p>
+                  <p class="check__title">Mapa mental</p>
                   <p class="check__desc">Unir conceptos con líneas.</p>
                 </div>
               </label>
             </div>
           </section>
 
-          <!-- 3. Asignación -->
           <section class="panel">
             <div class="panel__header">
               <h2 class="panel__title">3. Asignación (opcional)</h2>
@@ -183,7 +180,7 @@
           </section>
 
           <div class="form__actions">
-            <a href="./dashboard.html" class="btn btn--ghost">Cancelar</a>
+            <a href="./dashboard-teacher.html" class="btn btn--ghost">Cancelar</a>
             <button type="button" class="btn btn--primary">Guardar borrador</button>
             <button type="submit" class="btn btn--orange">Publicar lectura</button>
           </div>
@@ -193,7 +190,6 @@
   </div>
 
   <script>
-    // Muestra el campo de texto o el de PDF según el formato elegido
     const radios = document.querySelectorAll('input[name="formato"]');
     const cajaTexto = document.getElementById('formato-texto');
     const cajaPdf = document.getElementById('formato-pdf');

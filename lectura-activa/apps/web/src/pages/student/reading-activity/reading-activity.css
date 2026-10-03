@@ -521,3 +521,30 @@
     transform: none;
   }
 }
+/* ============ PANTALLA DE TIEMPO AGOTADO ============ */
+.activity__timeout {
+  max-width: 520px;
+  margin: 80px auto;
+  padding: 48px 32px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.activity__timeout-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+}
+
+.activity__timeout-title {
+  color: #1e3a8a;
+  font-size: 1.75rem;
+  margin-bottom: 16px;
+}
+
+.activity__timeout-msg {
+  color: #64748b;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}

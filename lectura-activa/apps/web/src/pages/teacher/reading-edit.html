@@ -50,7 +50,6 @@
         </p>
 
         <form id="reading-edit-form" class="form">
-          <!-- 1. Datos de la lectura -->
           <section class="panel">
             <div class="panel__header">
               <h2 class="panel__title">Datos de la lectura</h2>
@@ -96,7 +95,6 @@ Confiada, la liebre se durmió a mitad del camino, y la tortuga, sin detenerse, 
             </div>
           </section>
 
-          <!-- 2. Actividades -->
           <section class="panel">
             <div class="panel__header">
               <h2 class="panel__title">Actividades</h2>
@@ -119,10 +117,33 @@ Confiada, la liebre se durmió a mitad del camino, y la tortuga, sin detenerse, 
                   <p class="check__desc">Afirmaciones sobre el texto.</p>
                 </div>
               </label>
+
+              <label class="check">
+                <input type="checkbox" name="actividades" value="detective" checked>
+                <div>
+                  <p class="check__title">Detective de palabras</p>
+                  <p class="check__desc">Encontrar sinónimos en el texto.</p>
+                </div>
+              </label>
+
+              <label class="check">
+                <input type="checkbox" name="actividades" value="ordenar" checked>
+                <div>
+                  <p class="check__title">Ordena la historia</p>
+                  <p class="check__desc">Arrastrar los hechos al orden correcto.</p>
+                </div>
+              </label>
+
+              <label class="check">
+                <input type="checkbox" name="actividades" value="mapa" checked>
+                <div>
+                  <p class="check__title">Mapa mental</p>
+                  <p class="check__desc">Unir conceptos con líneas.</p>
+                </div>
+              </label>
             </div>
           </section>
 
-          <!-- 3. Asignaciones existentes -->
           <section class="panel">
             <div class="panel__header">
               <h2 class="panel__title">Asignaciones existentes</h2>
@@ -158,7 +179,7 @@ Confiada, la liebre se durmió a mitad del camino, y la tortuga, sin detenerse, 
           </section>
 
           <div class="form__actions">
-            <a href="./dashboard.html" class="btn btn--ghost">Cancelar</a>
+            <a href="./dashboard-teacher.html" class="btn btn--ghost">Cancelar</a>
             <button type="submit" class="btn btn--orange">Guardar cambios</button>
           </div>
         </form>
