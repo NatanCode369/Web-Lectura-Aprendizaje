@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Actividades Lúdicas | Lectura Activa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Enlace al archivo CSS general -->
+  <link rel="stylesheet" href="../../styles/auth.css">
+</head>
+<body class="activity-view-body">
+  <div class="activity-container">
+    
+    <!-- HEADER / MARCA -->
+    <header class="activity-topbar">
+      <div class="brand-wrapper">
+        <img src="../../assets/logo-kinal.png" alt="Logo Kinal" class="auth__logo logo-small" onerror="this.style.display='none'">
+        <span>Lectura Activa - Módulo Estudiante</span>
+      </div>
+      <div class="progress-indicator">Progreso: Fase de Retos</div>
+    </header>
+
+    <!-- CONTENEDOR PRINCIPAL DE RETOS LÚDICOS -->
+    <main class="activity-content-grid">
+
+      <!-- 1. DETECTIVE DE PALABRAS -->
+      <section class="activity-panel">
+        <div class="panel-header">
+          <span class="badge-cyan">Reto 1</span>
+          <h2>Detective de Palabras</h2>
+        </div>
+        <p class="panel-desc">Encuentra el sinónimo correcto en el texto antes de que el tiempo se agote.</p>
+        <div class="mock-box">
+          <p class="mock-text">“El protagonista sintió una profunda <em>melancolía</em> al mirar el viejo puerto.”</p>
+          <div class="mock-options-row">
+            <span class="option-pill selected">Tristeza</span>
+            <span class="option-pill">Alegría</span>
+            <span class="option-pill">Enojo</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. ORDENA LA HISTORIA (DRAG & DROP) -->
+      <section class="activity-panel">
+        <div class="panel-header">
+          <span class="badge-cyan">Reto 2</span>
+          <h2>Ordena la Historia</h2>
+        </div>
+        <p class="panel-desc">Arrastra y coloca los eventos en el orden cronológico en el que sucedieron.</p>
+        <div class="mock-box">
+          <ul class="drag-list">
+            <li class="drag-item"><span>1.</span> El viajero llega a la isla misteriosa.</li>
+            <li class="drag-item"><span>2.</span> Encuentra un cofre oculto en la cueva.</li>
+            <li class="drag-item"><span>3.</span> Descubre el secreto del mapa antiguo.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 3. VERDADERO O FALSO RÁPIDO (TINDER SWIPE) -->
+      <section class="activity-panel">
+        <div class="panel-header">
+          <span class="badge-cyan">Reto 3</span>
+          <h2>Verdadero o Falso Rápido</h2>
+        </div>
+        <p class="panel-desc">Desliza o presiona según la afirmación extraída del texto.</p>
+        <div class="mock-box tinder-card-mock">
+          <p class="statement-text">“El personaje principal logró escapar gracias a la ayuda del guardián.”</p>
+          <div class="tinder-actions">
+            <button class="btn-swipe false-btn">❌ Falso</button>
+            <button class="btn-swipe true-btn">✔️ Verdadero</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. MAPA MENTAL INTERACTIVO -->
+      <section class="activity-panel">
+        <div class="panel-header">
+          <span class="badge-cyan">Reto 4</span>
+          <h2>Mapa Mental Interactivo</h2>
+        </div>
+        <p class="panel-desc">Une mediante líneas los conceptos clave con su respectiva definición.</p>
+        <div class="mock-box mindmap-box">
+          <div class="map-node">Concepto: Conflicto</div>
+          <div class="map-line-mock"></div>
+          <div class="map-node target">Definición: Oposición de intereses</div>
+        </div>
+      </section>
+
+      <!-- 5. SOPA DE LETRAS Y AHORCADO -->
+      <section class="activity-panel full-width">
+        <div class="panel-header">
+          <span class="badge-cyan">Reto 5</span>
+          <h2>Sopa de Letras & Ahorcado Literario</h2>
+        </div>
+        <p class="panel-desc">Localiza las palabras clave ocultas y completa el término secreto del autor.</p>
+        
+        <div class="dual-game-container">
+          <!-- Sopa de Letras Visual -->
+          <div class="mini-game-box">
+            <h3>Sopa de Letras</h3>
+            <div class="wordsearch-grid-preview">
+              <span>L</span><span>E</span><span>C</span><span>T</span><span>U</span><span>R</span><span>A</span>
+              <span>X</span><span>A</span><span>V</span><span>E</span><span>N</span><span>T</span><span>U</span>
+              <span>R</span><span>A</span><span>M</span><span>I</span><span>S</span><span>T</span><span>O</span>
+            </div>
+          </div>
+
+          <!-- Ahorcado Visual -->
+          <div class="mini-game-box">
+            <h3>Ahorcado</h3>
+            <div class="hangman-display-preview">
+              <span class="letter-space">N</span>
+              <span class="letter-space">O</span>
+              <span class="letter-space">V</span>
+              <span class="letter-space">E</span>
+              <span class="letter-space">L</span>
+              <span class="letter-space">A</span>
+            </div>
+            <p class="mini-hint">Pista: Género literario principal.</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="auth__footer">
+      © 2026 Lectura Activa. Todos los derechos reservados.
+    </footer>
+  </div>
+</body>
+</html>
