@@ -1,18 +1,4 @@
-/* ============================================================
-   Pantalla: Detalle de lectura
-   Dueño: Omar (Persona 5) — HTML + CSS
-   Fase: 1
-   API: GET /api/v1/readings/:id
-
-   IMPORTANTE:
-   - Los estilos base (incluido el header) vienen de
-     ../../../styles/base.css (que importa tokens.css).
-   - Este archivo SOLO contiene estilos de esta pantalla.
-   ============================================================ */
-
-/* ============================================================
-   Layout principal
-   ============================================================ */
+/* Pantalla: Detalle de lectura — Dueño: Omar */
 
 .detail {
   max-width: 800px;
@@ -20,10 +6,7 @@
   padding: var(--space-xl) var(--space-lg) var(--space-2xl);
 }
 
-/* ============================================================
-   Breadcrumb
-   ============================================================ */
-
+/* Breadcrumb */
 .detail__breadcrumb {
   margin-bottom: var(--space-lg);
 }
@@ -53,10 +36,7 @@
   font-weight: 600;
 }
 
-/* ============================================================
-   Hero
-   ============================================================ */
-
+/* Hero */
 .detail__hero {
   margin-bottom: var(--space-xl);
 }
@@ -122,10 +102,7 @@
   margin: 0;
 }
 
-/* ============================================================
-   Meta
-   ============================================================ */
-
+/* Meta */
 .detail__meta {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -159,10 +136,7 @@
   color: var(--color-text);
 }
 
-/* ============================================================
-   Secciones
-   ============================================================ */
-
+/* Secciones */
 .detail__section {
   margin-bottom: var(--space-2xl);
 }
@@ -181,10 +155,7 @@
   margin: 0;
 }
 
-/* ============================================================
-   Lista de actividades
-   ============================================================ */
-
+/* Lista de actividades */
 .detail__activities {
   list-style: none;
   margin: 0;
@@ -242,10 +213,7 @@
   line-height: 1.5;
 }
 
-/* ============================================================
-   CTA final
-   ============================================================ */
-
+/* CTA */
 .detail__cta {
   padding: var(--space-xl);
   background: linear-gradient(
@@ -320,10 +288,7 @@
   color: var(--color-primary);
 }
 
-/* ============================================================
-   Estados (carga y error)
-   ============================================================ */
-
+/* Estados */
 .detail__state {
   text-align: center;
   padding: var(--space-2xl) var(--space-lg);
@@ -360,10 +325,7 @@
   opacity: 0.9;
 }
 
-/* ============================================================
-   Skeleton loading
-   ============================================================ */
-
+/* Skeleton */
 .detail__skeleton {
   max-width: 600px;
   margin: 0 auto var(--space-lg);
@@ -428,10 +390,7 @@
   }
 }
 
-/* ============================================================
-   Responsive
-   ============================================================ */
-
+/* Responsive */
 @media (max-width: 768px) {
   .detail__title {
     font-size: var(--font-size-3xl);
@@ -474,10 +433,7 @@
   }
 }
 
-/* ============================================================
-   Reducción de movimiento
-   ============================================================ */
-
+/* Reducción de movimiento */
 @media (prefers-reduced-motion: reduce) {
   .detail__activity,
   .detail__cta-button,

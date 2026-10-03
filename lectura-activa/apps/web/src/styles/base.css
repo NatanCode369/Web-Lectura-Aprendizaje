@@ -1,22 +1,8 @@
-﻿/* ============================================================
-   Estilos base — Lectura Activa
-   Dueño: José (Persona 6) + Omar (Persona 5)
-   Fase: 1
-
-   - Importa los tokens
-   - Reset universal
-   - Estilos de body
-   - Header compartido (fondo azul oscuro)
-   - Utilidades de accesibilidad
-   - Estilos base de formularios y enlaces
-   ============================================================ */
+﻿/* Estilos base — Lectura Activa */
 
 @import "tokens.css";
 
-/* ============================================================
-   Reset
-   ============================================================ */
-
+/* Reset */
 *,
 *::before,
 *::after {
@@ -30,10 +16,7 @@ html {
   text-size-adjust: 100%;
 }
 
-/* ============================================================
-   Body
-   ============================================================ */
-
+/* Body */
 body {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
@@ -44,10 +27,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ============================================================
-   Elementos base
-   ============================================================ */
-
+/* Elementos base */
 img,
 svg,
 video {
@@ -75,12 +55,9 @@ textarea {
   color: inherit;
 }
 
-/* ============================================================
-   Header compartido
-   ============================================================ */
-
+/* Header compartido */
 .site-header {
-  background: #1e3a8a; /* ← Azul oscuro */
+  background: #1e3a8a;
   border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   position: sticky;
   top: 0;
@@ -175,6 +152,7 @@ textarea {
   place-items: center;
   font-size: 1.25rem;
   color: #fff;
+  text-decoration: none;
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast);
@@ -187,11 +165,7 @@ textarea {
   outline: none;
 }
 
-/* ============================================================
-   Accesibilidad
-   ============================================================ */
-
-/* Solo visible para lectores de pantalla */
+/* Accesibilidad */
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -204,7 +178,6 @@ textarea {
   border: 0;
 }
 
-/* Skip link (aparece solo con Tab) */
 .skip-link {
   position: absolute;
   top: -100px;
@@ -221,17 +194,13 @@ textarea {
   top: var(--space-md);
 }
 
-/* Focus visible consistente */
 :focus-visible {
   outline: 3px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
 
-/* ============================================================
-   Reducción de movimiento
-   ============================================================ */
-
+/* Reducción de movimiento */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -243,10 +212,7 @@ textarea {
   }
 }
 
-/* ============================================================
-   Responsive: header en móvil
-   ============================================================ */
-
+/* Header en móvil */
 @media (max-width: 640px) {
   .site-header__container {
     padding: var(--space-sm) var(--space-md);
