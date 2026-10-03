@@ -1,133 +1,363 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Actividades Lúdicas | Lectura Activa</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <!-- Enlace al archivo CSS general -->
-  <link rel="stylesheet" href="../../styles/auth.css">
-</head>
-<body class="activity-view-body">
-  <div class="activity-container">
-    
-    <!-- HEADER / MARCA -->
-    <header class="activity-topbar">
-      <div class="brand-wrapper">
-        <img src="../../assets/logo-kinal.png" alt="Logo Kinal" class="auth__logo logo-small" onerror="this.style.display='none'">
-        <span>Lectura Activa - Módulo Estudiante</span>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Resultados de la lectura — Lectura Activa"
+    />
+    <title>Resultados — Lectura Activa</title>
+
+    <link rel="stylesheet" href="../../../styles/base.css" />
+    <link rel="stylesheet" href="./feedback.css" />
+  </head>
+  <body>
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
+    <header class="site-header">
+      <div class="site-header__container">
+        <a
+          href="/"
+          class="site-header__logo"
+          aria-label="Lectura Activa - Inicio"
+        >
+          <span class="site-header__logo-text">Lectura Activa</span>
+        </a>
+
+        <nav class="site-header__nav" aria-label="Navegación principal">
+          <ul class="site-header__nav-list">
+            <li>
+              <a href="../catalog/catalog.html" class="site-header__nav-link"
+                >Catálogo</a
+              >
+            </li>
+            <li>
+              <a href="../my-tasks/my-tasks.html" class="site-header__nav-link"
+                >Mis tareas</a
+              >
+            </li>
+            <li>
+              <a
+                href="../my-progress/my-progress.html"
+                class="site-header__nav-link"
+                >Mi progreso</a
+              >
+            </li>
+          </ul>
+        </nav>
+
+        <div class="site-header__user">
+          <span class="site-header__user-name">Estudiante</span>
+          <a
+            href="../user-profile/user-profile.html"
+            class="site-header__user-button"
+            aria-label="Ver mi perfil"
+          >
+            <span aria-hidden="true">👤</span>
+          </a>
+        </div>
       </div>
-      <div class="progress-indicator">Progreso: Fase de Retos</div>
     </header>
 
-    <!-- CONTENEDOR PRINCIPAL DE RETOS LÚDICOS -->
-    <main class="activity-content-grid">
-
-      <!-- 1. DETECTIVE DE PALABRAS -->
-      <section class="activity-panel">
-        <div class="panel-header">
-          <span class="badge-cyan">Reto 1</span>
-          <h2>Detective de Palabras</h2>
+    <main id="main-content" class="feedback">
+      <!-- Estado de carga -->
+      <div id="loading-state" class="feedback__state" hidden>
+        <div class="feedback__skeleton">
+          <div class="feedback__skeleton-badge"></div>
+          <div class="feedback__skeleton-title"></div>
+          <div class="feedback__skeleton-meta"></div>
+          <div class="feedback__skeleton-block"></div>
+          <div class="feedback__skeleton-block"></div>
         </div>
-        <p class="panel-desc">Encuentra el sinónimo correcto en el texto antes de que el tiempo se agote.</p>
-        <div class="mock-box">
-          <p class="mock-text">“El protagonista sintió una profunda <em>melancolía</em> al mirar el viejo puerto.”</p>
-          <div class="mock-options-row">
-            <span class="option-pill selected">Tristeza</span>
-            <span class="option-pill">Alegría</span>
-            <span class="option-pill">Enojo</span>
+        <p class="feedback__state-text">Cargando resultados...</p>
+      </div>
+
+      <!-- Estado de error -->
+      <div id="error-state" class="feedback__state" hidden>
+        <div class="feedback__state-icon" aria-hidden="true">⚠️</div>
+        <h2 class="feedback__state-title">No pudimos cargar los resultados</h2>
+        <p class="feedback__state-text" data-field="errorMessage">
+          Vuelve a tu progreso e intenta de nuevo.
+        </p>
+        <a
+          href="../my-progress/my-progress.html"
+          class="feedback__state-button"
+        >
+          Volver a mi progreso
+        </a>
+      </div>
+
+      <!-- Contenido principal -->
+      <div id="feedback-content">
+        <header class="feedback__hero">
+          <div class="feedback__hero-icon" aria-hidden="true">🎉</div>
+          <h1 class="feedback__hero-title">¡Completaste la lectura!</h1>
+          <p class="feedback__hero-subtitle" data-field="readingTitle">
+            El principito
+          </p>
+        </header>
+
+        <section class="feedback__summary" aria-label="Resumen de resultados">
+          <div class="feedback__score-card">
+            <span class="feedback__score-label">Puntaje</span>
+            <span class="feedback__score-value" data-field="score">92</span>
+            <span class="feedback__score-max">/ 100</span>
           </div>
-        </div>
-      </section>
 
-      <!-- 2. ORDENA LA HISTORIA (DRAG & DROP) -->
-      <section class="activity-panel">
-        <div class="panel-header">
-          <span class="badge-cyan">Reto 2</span>
-          <h2>Ordena la Historia</h2>
-        </div>
-        <p class="panel-desc">Arrastra y coloca los eventos en el orden cronológico en el que sucedieron.</p>
-        <div class="mock-box">
-          <ul class="drag-list">
-            <li class="drag-item"><span>1.</span> El viajero llega a la isla misteriosa.</li>
-            <li class="drag-item"><span>2.</span> Encuentra un cofre oculto en la cueva.</li>
-            <li class="drag-item"><span>3.</span> Descubre el secreto del mapa antiguo.</li>
+          <div class="feedback__meta-card">
+            <span class="feedback__meta-icon" aria-hidden="true">⏱</span>
+            <span class="feedback__meta-label">Tiempo</span>
+            <span class="feedback__meta-value" data-field="timeSpent"
+              >12 min</span
+            >
+          </div>
+
+          <div class="feedback__meta-card">
+            <span class="feedback__meta-icon" aria-hidden="true">📅</span>
+            <span class="feedback__meta-label">Completada</span>
+            <span class="feedback__meta-value" data-field="completedAt"
+              >22/09/2026</span
+            >
+          </div>
+        </section>
+
+        <section class="feedback__progress-section" aria-label="Nivel de logro">
+          <div
+            class="feedback__progress-bar"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="92"
+            data-field="scoreProgressBar"
+          >
+            <div
+              class="feedback__progress-fill"
+              data-field="scoreProgressFill"
+              style="width: 92%"
+            ></div>
+          </div>
+
+          <p class="feedback__motivation" data-field="motivation">
+            ¡Excelente trabajo! Dominas esta lectura.
+          </p>
+        </section>
+
+        <section class="feedback__section" aria-labelledby="details-title">
+          <header class="feedback__section-header">
+            <h2 class="feedback__section-title" id="details-title">
+              Detalle de actividades
+            </h2>
+            <p class="feedback__section-count">
+              <span data-field="correctCount">3</span> de
+              <span data-field="totalCount">3</span> correctas
+            </p>
+          </header>
+
+          <ul
+            class="feedback__list"
+            data-field="activitiesList"
+            aria-label="Resultados por actividad"
+          >
+            <!-- Actividad correcta -->
+            <li class="feedback__activity feedback__activity--correct">
+              <header class="feedback__activity-header">
+                <span class="feedback__activity-status" aria-hidden="true"
+                  >✅</span
+                >
+                <h3 class="feedback__activity-title">
+                  ¿Quién es el protagonista de la historia?
+                </h3>
+              </header>
+
+              <div class="feedback__activity-body">
+                <p class="feedback__activity-answer">
+                  <strong>Tu respuesta:</strong>
+                  <span>El principito</span>
+                </p>
+
+                <p
+                  class="feedback__activity-result feedback__activity-result--correct"
+                >
+                  <span aria-hidden="true">✓</span>
+                  Correcto
+                </p>
+              </div>
+            </li>
+
+            <!-- Actividad incorrecta -->
+            <li class="feedback__activity feedback__activity--wrong">
+              <header class="feedback__activity-header">
+                <span class="feedback__activity-status" aria-hidden="true"
+                  >❌</span
+                >
+                <h3 class="feedback__activity-title">
+                  ¿De dónde viene el principito?
+                </h3>
+              </header>
+
+              <div class="feedback__activity-body">
+                <p class="feedback__activity-answer">
+                  <strong>Tu respuesta:</strong>
+                  <span>De la Tierra</span>
+                </p>
+
+                <p
+                  class="feedback__activity-answer feedback__activity-answer--correct"
+                >
+                  <strong>Respuesta correcta:</strong>
+                  <span>De otro planeta</span>
+                </p>
+
+                <div class="feedback__activity-feedback">
+                  <span
+                    class="feedback__activity-feedback-icon"
+                    aria-hidden="true"
+                    >💬</span
+                  >
+                  <p class="feedback__activity-feedback-text">
+                    El principito viene del asteroide B-612, un planeta muy
+                    pequeño donde vivía solo con una rosa.
+                  </p>
+                </div>
+              </div>
+            </li>
+
+            <!-- Actividad correcta -->
+            <li class="feedback__activity feedback__activity--correct">
+              <header class="feedback__activity-header">
+                <span class="feedback__activity-status" aria-hidden="true"
+                  >✅</span
+                >
+                <h3 class="feedback__activity-title">
+                  ¿Qué le enseña el principito al piloto?
+                </h3>
+              </header>
+
+              <div class="feedback__activity-body">
+                <p class="feedback__activity-answer">
+                  <strong>Tu respuesta:</strong>
+                  <span>Sobre el amor y la amistad</span>
+                </p>
+
+                <p
+                  class="feedback__activity-result feedback__activity-result--correct"
+                >
+                  <span aria-hidden="true">✓</span>
+                  Correcto
+                </p>
+              </div>
+            </li>
           </ul>
-        </div>
-      </section>
+        </section>
 
-      <!-- 3. VERDADERO O FALSO RÁPIDO (TINDER SWIPE) -->
-      <section class="activity-panel">
-        <div class="panel-header">
-          <span class="badge-cyan">Reto 3</span>
-          <h2>Verdadero o Falso Rápido</h2>
-        </div>
-        <p class="panel-desc">Desliza o presiona según la afirmación extraída del texto.</p>
-        <div class="mock-box tinder-card-mock">
-          <p class="statement-text">“El personaje principal logró escapar gracias a la ayuda del guardián.”</p>
-          <div class="tinder-actions">
-            <button class="btn-swipe false-btn">❌ Falso</button>
-            <button class="btn-swipe true-btn">✔️ Verdadero</button>
-          </div>
-        </div>
-      </section>
+        <section class="feedback__actions" aria-label="Acciones disponibles">
+          <a
+            href="../my-tasks/my-tasks.html"
+            class="feedback__action feedback__action--primary"
+          >
+            <span aria-hidden="true">←</span>
+            Volver a Mis tareas
+          </a>
 
-      <!-- 4. MAPA MENTAL INTERACTIVO -->
-      <section class="activity-panel">
-        <div class="panel-header">
-          <span class="badge-cyan">Reto 4</span>
-          <h2>Mapa Mental Interactivo</h2>
-        </div>
-        <p class="panel-desc">Une mediante líneas los conceptos clave con su respectiva definición.</p>
-        <div class="mock-box mindmap-box">
-          <div class="map-node">Concepto: Conflicto</div>
-          <div class="map-line-mock"></div>
-          <div class="map-node target">Definición: Oposición de intereses</div>
-        </div>
-      </section>
-
-      <!-- 5. SOPA DE LETRAS Y AHORCADO -->
-      <section class="activity-panel full-width">
-        <div class="panel-header">
-          <span class="badge-cyan">Reto 5</span>
-          <h2>Sopa de Letras & Ahorcado Literario</h2>
-        </div>
-        <p class="panel-desc">Localiza las palabras clave ocultas y completa el término secreto del autor.</p>
-        
-        <div class="dual-game-container">
-          <!-- Sopa de Letras Visual -->
-          <div class="mini-game-box">
-            <h3>Sopa de Letras</h3>
-            <div class="wordsearch-grid-preview">
-              <span>L</span><span>E</span><span>C</span><span>T</span><span>U</span><span>R</span><span>A</span>
-              <span>X</span><span>A</span><span>V</span><span>E</span><span>N</span><span>T</span><span>U</span>
-              <span>R</span><span>A</span><span>M</span><span>I</span><span>S</span><span>T</span><span>O</span>
-            </div>
-          </div>
-
-          <!-- Ahorcado Visual -->
-          <div class="mini-game-box">
-            <h3>Ahorcado</h3>
-            <div class="hangman-display-preview">
-              <span class="letter-space">N</span>
-              <span class="letter-space">O</span>
-              <span class="letter-space">V</span>
-              <span class="letter-space">E</span>
-              <span class="letter-space">L</span>
-              <span class="letter-space">A</span>
-            </div>
-            <p class="mini-hint">Pista: Género literario principal.</p>
-          </div>
-        </div>
-      </section>
-
+          <a
+            href="../my-progress/my-progress.html"
+            class="feedback__action feedback__action--secondary"
+          >
+            Ver mi progreso
+            <span aria-hidden="true">→</span>
+          </a>
+        </section>
+      </div>
     </main>
+  </body>
+  <!--
+    ============================================================
+    NOTA PARA EL JS
 
-    <footer class="auth__footer">
-      © 2026 Lectura Activa. Todos los derechos reservados.
-    </footer>
-  </div>
-</body>
+    El JS debe:
+
+    1. Leer ?id= de la URL (id del studentAssignment).
+    2. Mostrar #loading-state mientras carga.
+    3. Hacer fetch a GET /api/v1/assignments/:id (con JWT).
+    4. Si falla:
+       - Ocultar #loading-state y #feedback-content
+       - Mostrar #error-state con mensaje según el código:
+         * 401 → Redirigir a login
+         * 403 → "No tienes permiso para ver estos resultados"
+         * 404 → "Resultados no encontrados"
+         * 500 → "Algo salió mal, intenta de nuevo"
+    5. Si funciona:
+       - Ocultar #loading-state y #error-state
+       - Mostrar #feedback-content
+       - Rellenar los data-field:
+
+         * [data-field="readingTitle"] → studentAssignment.readingTitle
+         * [data-field="score"] → studentAssignment.score
+         * [data-field="timeSpent"] → formatear timeSpentSeconds
+           (ej: "12 min" o "1h 5m")
+         * [data-field="completedAt"] → formatear completedAt (DD/MM/YYYY)
+         * [data-field="correctCount"] → contar intentos con score máximo
+         * [data-field="totalCount"] → cantidad total de actividades
+
+       - Rellenar la barra de progreso del puntaje:
+         * [data-field="scoreProgressBar"].aria-valuenow → score
+         * [data-field="scoreProgressFill"].style.width → score + "%"
+         * Cambiar clase según score:
+           - score >= 80: sin clase especial (verde)
+           - 60 <= score < 80: .feedback__progress-fill--mid (amarillo)
+           - score < 60: .feedback__progress-fill--low (rojo)
+
+       - Rellenar el mensaje motivacional:
+         * score >= 90: "¡Excelente trabajo! Dominas esta lectura."
+         * 70-89: "¡Muy bien! Vas por buen camino."
+         * 50-69: "Buen intento. Repasa las respuestas incorrectas."
+         * < 50: "No te desanimes. Revisa la lectura con calma."
+
+    6. Generar los <li> dentro de [data-field="activitiesList"]:
+       Para cada actividad en studentAssignment.activityProgress:
+
+       SI es correcta (score máximo):
+       <li class="feedback__activity feedback__activity--correct">
+         <header class="feedback__activity-header">
+           <span class="feedback__activity-status">✅</span>
+           <h3 class="feedback__activity-title">{prompt}</h3>
+         </header>
+         <div class="feedback__activity-body">
+           <p class="feedback__activity-answer">
+             <strong>Tu respuesta:</strong>
+             <span>{answer}</span>
+           </p>
+           <p class="feedback__activity-result feedback__activity-result--correct">
+             ✓ Correcto
+           </p>
+         </div>
+       </li>
+
+       SI es incorrecta:
+       <li class="feedback__activity feedback__activity--wrong">
+         <header class="feedback__activity-header">
+           <span class="feedback__activity-status">❌</span>
+           <h3 class="feedback__activity-title">{prompt}</h3>
+         </header>
+         <div class="feedback__activity-body">
+           <p class="feedback__activity-answer">
+             <strong>Tu respuesta:</strong>
+             <span>{answer}</span>
+           </p>
+           <p class="feedback__activity-answer feedback__activity-answer--correct">
+             <strong>Respuesta correcta:</strong>
+             <span>{correctAnswer}</span>
+           </p>
+           [SI hay feedback pedagógico:]
+           <div class="feedback__activity-feedback">
+             <span class="feedback__activity-feedback-icon">💬</span>
+             <p class="feedback__activity-feedback-text">{feedback}</p>
+           </div>
+         </div>
+       </li>
+
+    7. Actualizar el <title> de la pestaña:
+       document.title = `Resultados: ${readingTitle} — Lectura Activa`;
+  -->
 </html>

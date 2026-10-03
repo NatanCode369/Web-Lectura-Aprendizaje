@@ -1,18 +1,4 @@
-/* ============================================================
-   Pantalla: Mi progreso
-   Dueño: Omar (Persona 5) — HTML + CSS
-   Fase: 2
-   API: GET /api/v1/me/progress
-
-   IMPORTANTE:
-   - Los estilos base (incluido el header) vienen de
-     ../../../styles/base.css (que importa tokens.css).
-   - Este archivo SOLO contiene estilos de esta pantalla.
-   ============================================================ */
-
-/* ============================================================
-   Layout principal
-   ============================================================ */
+/* Pantalla: Mi progreso — Dueño: Omar */
 
 .progress {
   max-width: 1000px;
@@ -20,10 +6,7 @@
   padding: var(--space-xl) var(--space-lg) var(--space-2xl);
 }
 
-/* ============================================================
-   Hero
-   ============================================================ */
-
+/* Hero */
 .progress__hero {
   margin-bottom: var(--space-xl);
 }
@@ -43,10 +26,7 @@
   margin: 0;
 }
 
-/* ============================================================
-   Estadísticas generales
-   ============================================================ */
-
+/* Estadísticas generales */
 .progress__stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -104,10 +84,7 @@
   font-weight: 500;
 }
 
-/* ============================================================
-   Sección historial
-   ============================================================ */
-
+/* Sección historial */
 .progress__section {
   margin-bottom: var(--space-xl);
 }
@@ -145,10 +122,7 @@
   gap: var(--space-md);
 }
 
-/* ============================================================
-   Item del historial
-   ============================================================ */
-
+/* Item del historial */
 .progress__item {
   display: block;
   background: var(--color-surface);
@@ -233,7 +207,6 @@
   gap: var(--space-xs);
 }
 
-/* Footer del item: grupo + acción */
 .progress__item-footer {
   display: flex;
   align-items: center;
@@ -271,10 +244,7 @@
   gap: var(--space-sm);
 }
 
-/* ============================================================
-   Estado vacío
-   ============================================================ */
-
+/* Estado vacío */
 .progress__empty {
   text-align: center;
   padding: var(--space-2xl) var(--space-lg);
@@ -314,10 +284,7 @@
   opacity: 0.9;
 }
 
-/* ============================================================
-   Responsive
-   ============================================================ */
-
+/* Responsive */
 @media (max-width: 768px) {
   .progress__title {
     font-size: var(--font-size-2xl);
@@ -359,10 +326,7 @@
   }
 }
 
-/* ============================================================
-   Reducción de movimiento
-   ============================================================ */
-
+/* Reducción de movimiento */
 @media (prefers-reduced-motion: reduce) {
   .progress__stat,
   .progress__item,

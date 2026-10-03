@@ -1,6 +1,6 @@
-﻿:root {
-  /* Colores */
+﻿/* Tokens de diseño — Lectura Activa */
 
+:root {
   /* Colores principales */
   --color-primary: #2563eb;
   --color-secondary: #64748b;
@@ -12,24 +12,29 @@
   --color-text-muted: #64748b;
 
   /* Colores de fondo */
-  --color-bg: #f0f7ff; /* ← Celeste minimalista */
-  --color-bg-soft: #e6f0fb; /* ← Celeste más suave para hovers */
-  --color-surface: #ffffff; /* ← Blanco para tarjetas/inputs */
+  --color-bg: #f0f7ff;
+  --color-bg-soft: #e6f0fb;
+  --color-surface: #ffffff;
 
   /* Colores de borde */
-  --color-border: #dbeafe; /* ← Borde celeste suave */
+  --color-border: #dbeafe;
+
+  /* Colores de dificultad */
+  --color-easy: #22c55e;
+  --color-medium: #f39c12;
+  --color-hard: #ef4444;
 
   /* Tipografía */
-
   --font-family: system-ui, -apple-system, sans-serif;
   --font-size-base: 16px;
   --font-size-sm: 0.875rem;
   --font-size-lg: 1.125rem;
   --font-size-xl: 1.5rem;
   --font-size-2xl: 2rem;
+  --font-size-3xl: 2.5rem;
+  --font-size-4xl: 3rem;
 
   /* Espaciados */
-
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
@@ -38,34 +43,20 @@
   --space-2xl: 48px;
 
   /* Radios */
-
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
 
   /* Sombras */
-
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.12);
-
-  /*  Transiciones */
-
-  --transition-fast: 150ms ease;
-  --transition-base: 250ms ease;
+  --shadow-glow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 
   /* Gradientes */
   --gradient-hero: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
 
-  /* Colores de dificultad */
-  --color-easy: #22c55e;
-  --color-medium: #f39c12;
-  --color-hard: #ef4444;
-
-  /* Tipografía grande */
-  --font-size-3xl: 2.5rem;
-  --font-size-4xl: 3rem;
-
-  /* Sombras extra */
-  --shadow-glow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+  /* Transiciones */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
 }
