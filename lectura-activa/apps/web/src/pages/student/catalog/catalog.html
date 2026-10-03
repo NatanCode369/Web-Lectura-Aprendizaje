@@ -64,6 +64,7 @@
     </header>
 
     <main id="main-content" class="catalog">
+      <!-- HERO -->
       <section class="catalog__hero">
         <div class="catalog__hero-content">
           <h1 class="catalog__title">
@@ -77,6 +78,8 @@
         </div>
       </section>
 
+      <!-- BUSCADOR Y FILTROS -->
+=======
       <section class="catalog__controls" aria-label="Buscador y filtros">
         <div class="catalog__search">
           <label for="search-input" class="visually-hidden"
@@ -103,9 +106,9 @@
             >
             <select id="filter-difficulty" class="catalog__select">
               <option value="">Todas las dificultades</option>
-              <option value="easy">Fácil</option>
-              <option value="medium">Medio</option>
-              <option value="hard">Difícil</option>
+              <option value="facil">Fácil</option>
+              <option value="medio">Medio</option>
+              <option value="avanzado">Avanzado</option>
             </select>
           </div>
 
@@ -124,9 +127,13 @@
         </div>
       </section>
 
+      <!-- CONTADOR -->
+=======
       <p class="catalog__count" aria-live="polite">
         <strong>6</strong> lecturas disponibles
       </p>
+
+      <!-- RESULTADOS -->
 
       <section
         id="readings-container"
@@ -152,7 +159,6 @@
             aria-label="Lecturas disponibles"
             tabindex="0"
           >
-            <!-- Tarjeta 1 -->
             <a
               href="../reading-detail/reading-detail.html?id=fake_001"
               class="reading-card reading-card--easy"
@@ -165,6 +171,9 @@
                 y le enseña lecciones sobre la vida, el amor y la amistad.
               </p>
               <div class="reading-card__meta">
+                <span class="reading-card__difficulty reading-card__difficulty--easy">
+                  Fácil
+                </span>
                 <span
                   class="reading-card__difficulty reading-card__difficulty--easy"
                   >Fácil</span
@@ -176,7 +185,6 @@
               <p class="reading-card__author">Por: Ana López</p>
             </a>
 
-            <!-- Tarjeta 2 -->
             <a
               href="../reading-detail/reading-detail.html?id=fake_002"
               class="reading-card reading-card--hard"
@@ -189,6 +197,9 @@
                 incluso el pensamiento, y la lucha de un hombre por la libertad.
               </p>
               <div class="reading-card__meta">
+                <span class="reading-card__difficulty reading-card__difficulty--hard">
+                  Difícil
+                </span>
                 <span
                   class="reading-card__difficulty reading-card__difficulty--hard"
                   >Difícil</span
@@ -200,7 +211,6 @@
               <p class="reading-card__author">Por: Luis Pérez</p>
             </a>
 
-            <!-- Tarjeta 3 -->
             <a
               href="../reading-detail/reading-detail.html?id=fake_003"
               class="reading-card reading-card--medium"
@@ -213,6 +223,9 @@
                 realismo mágico y personajes inolvidables.
               </p>
               <div class="reading-card__meta">
+                <span class="reading-card__difficulty reading-card__difficulty--medium">
+                  Medio
+                </span>
                 <span
                   class="reading-card__difficulty reading-card__difficulty--medium"
                   >Medio</span
@@ -224,7 +237,6 @@
               <p class="reading-card__author">Por: Gabriel García Márquez</p>
             </a>
 
-            <!-- Tarjeta 4 -->
             <a
               href="../reading-detail/reading-detail.html?id=fake_004"
               class="reading-card reading-card--medium"
@@ -237,6 +249,9 @@
                 con elementos mágicos y políticos.
               </p>
               <div class="reading-card__meta">
+                <span class="reading-card__difficulty reading-card__difficulty--medium">
+                  Medio
+                </span>
                 <span
                   class="reading-card__difficulty reading-card__difficulty--medium"
                   >Medio</span
@@ -248,7 +263,6 @@
               <p class="reading-card__author">Por: Isabel Allende</p>
             </a>
 
-            <!-- Tarjeta 5 -->
             <a
               href="../reading-detail/reading-detail.html?id=fake_005"
               class="reading-card reading-card--hard"
@@ -261,6 +275,9 @@
                 andante y vive todo tipo de peripecias.
               </p>
               <div class="reading-card__meta">
+                <span class="reading-card__difficulty reading-card__difficulty--hard">
+                  Difícil
+                </span>
                 <span
                   class="reading-card__difficulty reading-card__difficulty--hard"
                   >Difícil</span
@@ -272,7 +289,6 @@
               <p class="reading-card__author">Por: Miguel de Cervantes</p>
             </a>
 
-            <!-- Tarjeta 6 -->
             <a
               href="../reading-detail/reading-detail.html?id=fake_006"
               class="reading-card reading-card--easy"
@@ -285,6 +301,9 @@
                 Saint-Exupéry.
               </p>
               <div class="reading-card__meta">
+                <span class="reading-card__difficulty reading-card__difficulty--easy">
+                  Fácil
+                </span>
                 <span
                   class="reading-card__difficulty reading-card__difficulty--easy"
                   >Fácil</span

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editar actividades | Lectura Activa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles/dashboard.css">
+  <link rel="stylesheet" href="../../styles/activities-edit.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <img src="../../assets/logo-kinal.jpg" alt="Logo" onerror="this.style.display='none'">
+      </div>
+      <div>
+        <p class="sidebar__title">Panel docente</p>
+        <nav class="nav">
+          <a href="./dashboard-teacher.html" class="nav__link">Inicio</a>
+          <a href="./reading-new.html" class="nav__link">Nueva lectura</a>
+          <a href="./activities-edit.html" class="nav__link is-active">Actividades</a>
+          <a href="./stats.html" class="nav__link">Estadísticas</a>
+        </nav>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__crumb">Lectura Activa</span>
+        <div class="topbar__user">
+          <span>Docente</span>
+          <a href="../auth/login.html" class="topbar__logout">Cerrar sesión</a>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1>Editar actividades</h1>
+            <p>Configura las 5 actividades que verán tus estudiantes al terminar la lectura.</p>
+          </div>
+        </div>
+
+        <section class="panel">
+          <div class="field">
+            <label for="lectura">Lectura</label>
+            <select id="lectura"></select>
+          </div>
+        </section>
+
+        <p id="mensaje" class="alert" role="status" hidden></p>
+
+        <form id="activities-form" class="form" novalidate>
+
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">1. Preguntas tipo trivia</h2>
+              <span class="panel__hint">Opción múltiple: marca la respuesta correcta</span>
+            </div>
+            <div id="lista-trivia" class="q-list"></div>
+            <button type="button" class="btn btn--ghost btn--sm" id="add-trivia">+ Agregar pregunta</button>
+          </section>
+
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">2. Verdadero o falso</h2>
+              <span class="panel__hint">Afirmaciones sobre el texto</span>
+            </div>
+            <div id="lista-vf" class="q-list"></div>
+            <button type="button" class="btn btn--ghost btn--sm" id="add-vf">+ Agregar afirmación</button>
+          </section>
+
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">3. Detective de palabras</h2>
+              <span class="panel__hint">Palabra objetivo y sinónimos</span>
+            </div>
+            <div class="field">
+              <label for="detective-target">Palabra objetivo</label>
+              <input type="text" id="detective-target" class="q-item__input" placeholder="Ej. velocidad">
+            </div>
+            <div class="field">
+              <label for="detective-synonyms">Sinónimos (separados por coma)</label>
+              <input type="text" id="detective-synonyms" class="q-item__input" placeholder="Ej. rapidez, celeridad">
+            </div>
+            <div class="field">
+              <label for="detective-distractors">Distractores (separados por coma)</label>
+              <input type="text" id="detective-distractors" class="q-item__input" placeholder="Ej. lentitud, calma">
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">4. Ordena la historia</h2>
+              <span class="panel__hint">Eventos en orden correcto</span>
+            </div>
+            <div id="lista-eventos" class="q-list"></div>
+            <button type="button" class="btn btn--ghost btn--sm" id="add-evento">+ Agregar evento</button>
+          </section>
+
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">5. Mapa mental</h2>
+              <span class="panel__hint">Parejas de conceptos</span>
+            </div>
+            <div id="lista-parejas" class="q-list"></div>
+            <button type="button" class="btn btn--ghost btn--sm" id="add-pareja">+ Agregar pareja</button>
+          </section>
+
+          <div class="form__actions">
+            <a href="./dashboard-teacher.html" class="btn btn--ghost">Cancelar</a>
+            <button type="submit" class="btn btn--orange">Guardar actividades</button>
+          </div>
+        </form>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const LECTURAS = [
+      { id: 'liebre-tortuga', titulo: 'La liebre y la tortuga' },
+      { id: 'leon-raton', titulo: 'El león y el ratón' },
+      { id: 'zorra-uvas', titulo: 'La zorra y las uvas' }
+    ];
+
+    function cargarActividades(lecturaId) {
+      const guardadas = localStorage.getItem(`actividades_${lecturaId}`);
+      if (guardadas) return JSON.parse(guardadas);
+      return {
+        trivia: [{ pregunta: '', opciones: ['', '', '', ''], correcta: 0 }],
+        verdaderoFalso: [{ afirmacion: '', respuesta: true }],
+        detective: { target: '', synonyms: [], distractors: [] },
+        order: ['', '', '', ''],
+        mindMap: [{ a: '', b: '' }]
+      };
+    }
+
+    function guardarActividades(lecturaId, actividades) {
+      localStorage.setItem(`actividades_${lecturaId}`, JSON.stringify(actividades));
+    }
+
+    const $lectura = document.getElementById('lectura');
+    const $listaTrivia = document.getElementById('lista-trivia');
+    const $listaVF = document.getElementById('lista-vf');
+    const $listaEventos = document.getElementById('lista-eventos');
+    const $listaParejas = document.getElementById('lista-parejas');
+    const $mensaje = document.getElementById('mensaje');
+
+    let actividades = null;
+    let lecturaActual = null;
+
+    $lectura.innerHTML = LECTURAS.map(l => `<option value="${l.id}">${l.titulo}</option>`).join('');
+
+    function renderTrivia() {
+      $listaTrivia.innerHTML = actividades.trivia.map((q, i) => `
+        <div class="q-item">
+          <div class="q-item__header">
+            <span class="q-item__label">Pregunta ${i + 1}</span>
+            <button type="button" class="q-item__remove" data-tipo="trivia" data-index="${i}">Quitar</button>
+          </div>
+          <input class="q-item__input" type="text" value="${q.pregunta}" placeholder="Pregunta" data-tipo="trivia" data-index="${i}" data-field="pregunta">
+          ${q.opciones.map((op, j) => `
+            <div class="q-item__option">
+              <input type="radio" name="trivia-${i}" ${q.correcta === j ? 'checked' : ''} data-tipo="trivia" data-index="${i}" data-opcion="${j}">
+              <input type="text" value="${op}" data-tipo="trivia" data-index="${i}" data-opcion="${j}" data-field="opcion" placeholder="Opción ${j + 1}">
+            </div>
+          `).join('')}
+        </div>
+      `).join('');
+    }
+
+    function renderVF() {
+      $listaVF.innerHTML = actividades.verdaderoFalso.map((v, i) => `
+        <div class="q-item">
+          <div class="q-item__header">
+            <span class="q-item__label">Afirmación ${i + 1}</span>
+            <button type="button" class="q-item__remove" data-tipo="vf" data-index="${i}">Quitar</button>
+          </div>
+          <textarea class="q-item__input" data-tipo="vf" data-index="${i}" data-field="afirmacion" placeholder="Afirmación">${v.afirmacion}</textarea>
+          <div class="q-item__vf">
+            <label><input type="radio" name="vf-${i}" ${v.respuesta === true ? 'checked' : ''} data-tipo="vf" data-index="${i}" data-respuesta="true"> Verdadero</label>
+            <label><input type="radio" name="vf-${i}" ${v.respuesta === false ? 'checked' : ''} data-tipo="vf" data-index="${i}" data-respuesta="false"> Falso</label>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderEventos() {
+      $listaEventos.innerHTML = actividades.order.map((ev, i) => `
+        <div class="q-item">
+          <div class="q-item__header">
+            <span class="q-item__label">Evento ${i + 1}</span>
+            <button type="button" class="q-item__remove" data-tipo="order" data-index="${i}">Quitar</button>
+          </div>
+          <input class="q-item__input" type="text" value="${ev}" placeholder="Evento" data-tipo="order" data-index="${i}" data-field="evento">
+        </div>
+      `).join('');
+    }
+
+    function renderParejas() {
+      $listaParejas.innerHTML = actividades.mindMap.map((p, i) => `
+        <div class="q-item">
+          <div class="q-item__header">
+            <span class="q-item__label">Pareja ${i + 1}</span>
+            <button type="button" class="q-item__remove" data-tipo="mindmap" data-index="${i}">Quitar</button>
+          </div>
+          <div class="q-item__option">
+            <input type="text" value="${p.a}" placeholder="Concepto A" data-tipo="mindmap" data-index="${i}" data-field="a">
+            <input type="text" value="${p.b}" placeholder="Concepto B" data-tipo="mindmap" data-index="${i}" data-field="b">
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderTodo() {
+      renderTrivia();
+      renderVF();
+      renderEventos();
+      renderParejas();
+      document.getElementById('detective-target').value = actividades.detective.target || '';
+      document.getElementById('detective-synonyms').value = (actividades.detective.synonyms || []).join(', ');
+      document.getElementById('detective-distractors').value = (actividades.detective.distractors || []).join(', ');
+    }
+
+    function cambiarLectura() {
+      lecturaActual = $lectura.value;
+      actividades = cargarActividades(lecturaActual);
+      renderTodo();
+    }
+
+    $lectura.addEventListener('change', cambiarLectura);
+
+    document.addEventListener('input', (e) => {
+      const el = e.target;
+      const tipo = el.dataset.tipo;
+      if (!tipo) return;
+      const index = Number(el.dataset.index);
+
+      if (tipo === 'trivia') {
+        if (el.dataset.field === 'pregunta') actividades.trivia[index].pregunta = el.value;
+        if (el.dataset.field === 'opcion') actividades.trivia[index].opciones[el.dataset.opcion] = el.value;
+      }
+      if (tipo === 'vf' && el.dataset.field === 'afirmacion') {
+        actividades.verdaderoFalso[index].afirmacion = el.value;
+      }
+      if (tipo === 'order') actividades.order[index] = el.value;
+      if (tipo === 'mindmap') {
+        if (el.dataset.field === 'a') actividades.mindMap[index].a = el.value;
+        if (el.dataset.field === 'b') actividades.mindMap[index].b = el.value;
+      }
+    });
+
+    document.addEventListener('change', (e) => {
+      const el = e.target;
+      if (el.type !== 'radio') return;
+      if (el.dataset.tipo === 'trivia') actividades.trivia[el.dataset.index].correcta = Number(el.dataset.opcion);
+      if (el.dataset.tipo === 'vf') actividades.verdaderoFalso[el.dataset.index].respuesta = el.dataset.respuesta === 'true';
+    });
+
+    document.getElementById('detective-target').addEventListener('input', (e) => actividades.detective.target = e.target.value);
+    document.getElementById('detective-synonyms').addEventListener('input', (e) => actividades.detective.synonyms = e.target.value.split(',').map(s => s.trim()).filter(Boolean));
+    document.getElementById('detective-distractors').addEventListener('input', (e) => actividades.detective.distractors = e.target.value.split(',').map(s => s.trim()).filter(Boolean));
+
+    document.getElementById('add-trivia').addEventListener('click', () => {
+      actividades.trivia.push({ pregunta: '', opciones: ['', '', '', ''], correcta: 0 });
+      renderTrivia();
+    });
+    document.getElementById('add-vf').addEventListener('click', () => {
+      actividades.verdaderoFalso.push({ afirmacion: '', respuesta: true });
+      renderVF();
+    });
+    document.getElementById('add-evento').addEventListener('click', () => {
+      actividades.order.push('');
+      renderEventos();
+    });
+    document.getElementById('add-pareja').addEventListener('click', () => {
+      actividades.mindMap.push({ a: '', b: '' });
+      renderParejas();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.classList.contains('q-item__remove')) return;
+      const tipo = e.target.dataset.tipo;
+      const index = Number(e.target.dataset.index);
+      if (tipo === 'trivia') { actividades.trivia.splice(index, 1); renderTrivia(); }
+      if (tipo === 'vf') { actividades.verdaderoFalso.splice(index, 1); renderVF(); }
+      if (tipo === 'order') { actividades.order.splice(index, 1); renderEventos(); }
+      if (tipo === 'mindmap') { actividades.mindMap.splice(index, 1); renderParejas(); }
+    });
+
+    document.getElementById('activities-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      guardarActividades(lecturaActual, actividades);
+      $mensaje.textContent = '✅ Actividades guardadas correctamente.';
+      $mensaje.hidden = false;
+      setTimeout(() => $mensaje.hidden = true, 3000);
+    });
+
+    cambiarLectura();
+  </script>
+</body>
+</html>

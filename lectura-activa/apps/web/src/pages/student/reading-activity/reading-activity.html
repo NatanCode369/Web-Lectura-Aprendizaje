@@ -14,38 +14,19 @@
 
     <header class="site-header">
       <div class="site-header__container">
-        <a
-          href="/"
-          class="site-header__logo"
-          aria-label="Lectura Activa - Inicio"
-        >
+        <a href="/" class="site-header__logo" aria-label="Lectura Activa - Inicio">
           <span class="site-header__logo-text">Lectura Activa</span>
         </a>
-
         <nav class="site-header__nav" aria-label="Navegación principal">
           <ul class="site-header__nav-list">
-            <li>
-              <a href="../catalog/catalog.html" class="site-header__nav-link"
-                >Catálogo</a
-              >
-            </li>
-            <li>
-              <a href="../my-tasks/my-tasks.html" class="site-header__nav-link"
-                >Mis tareas</a
-              >
-            </li>
-            <li>
-              <a
-                href="../my-progress/my-progress.html"
-                class="site-header__nav-link"
-                >Mi progreso</a
-              >
-            </li>
+            <li><a href="../catalog/catalog.html" class="site-header__nav-link">Catálogo</a></li>
+            <li><a href="../my-tasks/my-tasks.html" class="site-header__nav-link">Mis tareas</a></li>
+            <li><a href="../my-progress/my-progress.html" class="site-header__nav-link">Mi progreso</a></li>
           </ul>
         </nav>
-
         <div class="site-header__user">
           <span class="site-header__user-name">Estudiante</span>
+          <button type="button" class="site-header__user-button" aria-label="Menú de usuario">
           <a
             href="../user-profile/user-profile.html"
             class="site-header__user-button"
@@ -58,6 +39,51 @@
     </header>
 
     <main id="main-content" class="activity">
+
+      <!-- VISTA 1: PDF -->
+      <section id="view-reading" class="activity__view">
+        <header class="activity__bar">
+          <h1 class="activity__title" data-field="title">Lectura</h1>
+          <div
+            class="activity__timer"
+            data-field="timerContainer"
+            role="timer"
+            aria-live="polite"
+            aria-label="Tiempo restante"
+          >
+            <span class="activity__timer-icon" aria-hidden="true">⏱</span>
+            <span class="activity__timer-value" data-field="timer">20:00</span>
+          </div>
+        </header>
+
+        <div id="time-extra-notice" class="activity__notice activity__notice--warning" hidden role="status">
+          <span class="activity__notice-icon" aria-hidden="true">⚠️</span>
+          <span class="activity__notice-text">Estás en tiempo extra. Envía pronto tus respuestas.</span>
+        </div>
+
+        <div class="activity__pdf-wrapper">
+          <iframe
+            src="https://www.orimi.com/pdf-test.pdf"
+            title="Lectura"
+            class="activity__pdf"
+            data-field="pdf"
+          ></iframe>
+        </div>
+
+        <div class="activity__actions">
+          <button type="button" class="activity__action activity__action--activities" id="activities-toggle">
+            <span aria-hidden="true">📝</span>
+            <span>Ver actividades</span>
+            <span class="activity__action-count" data-field="activitiesCount" aria-hidden="true">0</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- VISTA 2: ACTIVIDADES -->
+      <section id="view-activities" class="activity__view" hidden>
+        <header class="activity__bar activity__bar--activities">
+          <h2 class="activity__title">Actividades</h2>
+          <p class="activity__panel-progress activity__panel-progress--inline">
       <!-- Barra del lector -->
       <header class="activity__bar">
         <a href="../my-tasks/my-tasks.html" class="activity__back">
@@ -144,72 +170,238 @@
           </h2>
           <p class="activity__panel-progress">
             Actividad <span data-field="panelCurrent">1</span> de
-            <span data-field="panelTotal">3</span>
+            <span data-field="panelTotal">0</span>
           </p>
         </header>
 
-        <div
-          class="activity__panel-content"
-          data-field="activityContent"
-          aria-live="polite"
-        >
-          <div class="activity__question">
-            <h3 class="activity__question-text">
-              ¿Quién es el protagonista de la historia?
-            </h3>
-
-            <fieldset class="activity__options">
-              <legend class="visually-hidden">Selecciona una opción</legend>
-
-              <label class="activity__option">
-                <input type="radio" name="activity-1" value="opt_a" />
-                <span class="activity__option-text">El piloto</span>
-              </label>
-
-              <label class="activity__option">
-                <input type="radio" name="activity-1" value="opt_b" />
-                <span class="activity__option-text">El principito</span>
-              </label>
-
-              <label class="activity__option">
-                <input type="radio" name="activity-1" value="opt_c" />
-                <span class="activity__option-text">La rosa</span>
-              </label>
-            </fieldset>
-          </div>
-        </div>
+        <div class="activity__panel-content" data-field="activityContent" aria-live="polite"></div>
 
         <footer class="activity__panel-nav">
-          <button
-            type="button"
-            class="activity__nav-button activity__nav-button--prev"
-            id="activity-prev"
-            disabled
-          >
-            <span aria-hidden="true">←</span>
-            Anterior
+          <button type="button" class="activity__nav-button activity__nav-button--prev" id="activity-prev" disabled>
+            <span aria-hidden="true">←</span> Anterior
           </button>
-
-          <button
-            type="button"
-            class="activity__nav-button activity__nav-button--next"
-            id="activity-next"
-          >
-            Siguiente
-            <span aria-hidden="true">→</span>
+          <button type="button" class="activity__nav-button activity__nav-button--next" id="activity-next">
+            Siguiente <span aria-hidden="true">→</span>
           </button>
         </footer>
 
         <div class="activity__submit-wrapper" hidden data-field="submitWrapper">
-          <button type="button" class="activity__submit" id="activity-submit">
-            Enviar respuestas
-          </button>
-          <p class="activity__submit-note">
-            Una vez enviadas, no podrás modificarlas.
-          </p>
+          <button type="button" class="activity__submit" id="activity-submit">Enviar respuestas</button>
+          <p class="activity__submit-note">Una vez enviadas, no podrás modificarlas.</p>
         </div>
       </section>
+
     </main>
+
+    <script>
+      // ============================================================
+      // LECTURA DESDE URL Y LOCALSTORAGE
+      // ============================================================
+      const params = new URLSearchParams(window.location.search);
+      const lecturaId = params.get('id') || 'liebre-tortuga';
+
+      const actividadesGuardadas = localStorage.getItem(`actividades_${lecturaId}`);
+      const actividadesDocente = actividadesGuardadas ? JSON.parse(actividadesGuardadas) : null;
+
+      let actividadesList = [];
+
+      if (actividadesDocente) {
+        if (actividadesDocente.trivia?.length) {
+          actividadesDocente.trivia.forEach(t => {
+            if (t.pregunta && t.opciones?.some(o => o)) {
+              actividadesList.push({
+                type: 'multiple_choice',
+                question: t.pregunta,
+                options: t.opciones,
+                correct: t.correcta
+              });
+            }
+          });
+        }
+        if (actividadesDocente.verdaderoFalso?.length) {
+          actividadesDocente.verdaderoFalso.forEach(v => {
+            if (v.afirmacion) {
+              actividadesList.push({
+                type: 'true_false',
+                question: v.afirmacion,
+                correct: v.respuesta
+              });
+            }
+          });
+        }
+      }
+
+      if (actividadesList.length === 0) {
+        actividadesList = [
+          { type: 'multiple_choice', question: '¿Quién es el protagonista?', options: ['El piloto', 'El principito', 'La rosa'], correct: 1 }
+        ];
+      }
+
+      const reading = {
+        title: 'Lectura',
+        timeLimitSeconds: 1200,
+        activities: actividadesList
+      };
+
+      // ============================================================
+      // VISTAS
+      // ============================================================
+      const $viewReading = document.getElementById('view-reading');
+      const $viewActivities = document.getElementById('view-activities');
+
+      document.getElementById('activities-toggle').addEventListener('click', () => {
+        $viewReading.hidden = true;
+        $viewActivities.hidden = false;
+        currentActivity = 0;
+        renderActivity();
+      });
+
+      // ============================================================
+      // TEMPORIZADOR
+      // ============================================================
+      const $timer = document.querySelector('[data-field="timer"]');
+      const $timerContainer = document.querySelector('[data-field="timerContainer"]');
+      const $timeExtraNotice = document.getElementById('time-extra-notice');
+
+      let remainingTime = reading.timeLimitSeconds;
+      let extraNoticeShown = false;
+
+      function formatTime(seconds) {
+        const isNegative = seconds < 0;
+        const abs = Math.abs(seconds);
+        const mm = String(Math.floor(abs / 60)).padStart(2, '0');
+        const ss = String(abs % 60).padStart(2, '0');
+        return (isNegative ? '-' : '') + `${mm}:${ss}`;
+      }
+
+      function updateTimer() {
+        remainingTime--;
+        $timer.textContent = formatTime(remainingTime);
+
+        const pct = remainingTime / reading.timeLimitSeconds;
+        $timerContainer.classList.remove('activity__timer--warning', 'activity__timer--danger', 'activity__timer--over');
+
+        if (remainingTime < 0) {
+          $timerContainer.classList.add('activity__timer--over');
+          if (!extraNoticeShown) {
+            $timeExtraNotice.hidden = false;
+            extraNoticeShown = true;
+          }
+        } else if (pct <= 0.10) {
+          $timerContainer.classList.add('activity__timer--danger');
+        } else if (pct <= 0.25) {
+          $timerContainer.classList.add('activity__timer--warning');
+        }
+
+        if (remainingTime === 0) {
+          clearInterval(intervalo);
+          mostrarTiempoAgotado();
+        }
+      }
+
+      $timer.textContent = formatTime(remainingTime);
+      const intervalo = setInterval(updateTimer, 1000);
+
+      function mostrarTiempoAgotado() {
+        const $main = document.querySelector('.activity');
+        $main.innerHTML = `
+          <div class="activity__timeout">
+            <div class="activity__timeout-icon">⏰</div>
+            <h2 class="activity__timeout-title">¡Se acabó el tiempo!</h2>
+            <p class="activity__timeout-msg">
+              El tiempo asignado para esta lectura ha terminado. Tus respuestas fueron enviadas automáticamente.
+            </p>
+            <a href="../catalog/catalog.html" class="btn btn--primary">Volver al catálogo</a>
+          </div>
+        `;
+      }
+
+      // ============================================================
+      // ACTIVIDADES
+      // ============================================================
+      let currentActivity = 0;
+      const answers = {};
+
+      const $activityContent = document.querySelector('[data-field="activityContent"]');
+      const $panelCurrent = document.querySelector('[data-field="panelCurrent"]');
+      const $panelTotal = document.querySelector('[data-field="panelTotal"]');
+      const $activitiesCount = document.querySelector('[data-field="activitiesCount"]');
+      const $prevBtn = document.getElementById('activity-prev');
+      const $nextBtn = document.getElementById('activity-next');
+      const $submitWrapper = document.querySelector('[data-field="submitWrapper"]');
+
+      $panelTotal.textContent = reading.activities.length;
+      $activitiesCount.textContent = reading.activities.length;
+
+      function renderActivity() {
+        const act = reading.activities[currentActivity];
+        $panelCurrent.textContent = currentActivity + 1;
+
+        if (act.type === 'multiple_choice') {
+          $activityContent.innerHTML = `
+            <div class="activity__question">
+              <h3 class="activity__question-text">${act.question}</h3>
+              <fieldset class="activity__options">
+                <legend class="visually-hidden">Selecciona una opción</legend>
+                ${act.options.map((opt, i) => `
+                  <label class="activity__option">
+                    <input type="radio" name="activity-${currentActivity}" value="${i}" ${answers[currentActivity] == i ? 'checked' : ''}>
+                    <span class="activity__option-text">${opt}</span>
+                  </label>
+                `).join('')}
+              </fieldset>
+            </div>
+          `;
+        } else if (act.type === 'true_false') {
+          $activityContent.innerHTML = `
+            <div class="activity__question">
+              <h3 class="activity__question-text">${act.question}</h3>
+              <fieldset class="activity__options">
+                <legend class="visually-hidden">Selecciona verdadero o falso</legend>
+                <label class="activity__option">
+                  <input type="radio" name="activity-${currentActivity}" value="true" ${answers[currentActivity] === true ? 'checked' : ''}>
+                  <span class="activity__option-text">Verdadero</span>
+                </label>
+                <label class="activity__option">
+                  <input type="radio" name="activity-${currentActivity}" value="false" ${answers[currentActivity] === false ? 'checked' : ''}>
+                  <span class="activity__option-text">Falso</span>
+                </label>
+              </fieldset>
+            </div>
+          `;
+        }
+
+        $prevBtn.disabled = currentActivity === 0;
+        const isLast = currentActivity === reading.activities.length - 1;
+        $nextBtn.hidden = isLast;
+        $submitWrapper.hidden = !isLast;
+
+        $activityContent.querySelectorAll('input[type="radio"]').forEach(input => {
+          input.addEventListener('change', () => {
+            const val = input.value;
+            answers[currentActivity] = act.type === 'true_false' ? val === 'true' : Number(val);
+          });
+        });
+      }
+
+      $prevBtn.addEventListener('click', () => {
+        if (currentActivity > 0) { currentActivity--; renderActivity(); }
+      });
+
+      $nextBtn.addEventListener('click', () => {
+        if (currentActivity < reading.activities.length - 1) { currentActivity++; renderActivity(); }
+      });
+
+      document.getElementById('activity-submit').addEventListener('click', () => {
+        localStorage.setItem(`resultado_${lecturaId}`, JSON.stringify({
+          respuestas: answers,
+          fecha: new Date().toISOString()
+        }));
+        window.location.href = '../my-tasks/my-tasks.html';
+      });
+    </script>
+  </body>
+</html>
   </body>
   <!--
     ============================================================
