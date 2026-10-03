@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Catálogo de lecturas disponibles para estudiantes de Lectura Activa"
+    />
+    <title>Catálogo de lecturas — Lectura Activa</title>
+
+    <!--
+    NOTA: Los estilos base (reset, tipografía, tokens) vienen de:
+      ../../../styles/tokens.css  (dueño: José)
+      ../../../styles/base.css    (dueño: José)
+    Cuando estén disponibles, agregar aquí:
+      <link rel="stylesheet" href="../../../styles/tokens.css" />
+      <link rel="stylesheet" href="../../../styles/base.css" />
+  -->
+
+    <link rel="stylesheet" href="./catalog.css" />
+  </head>
+  <body>
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
+    <header class="site-header">
+      <div class="site-header__container">
+        <a
+          href="/"
+          class="site-header__logo"
+          aria-label="Lectura Activa - Inicio"
+        >
+          <span class="site-header__logo-icon" aria-hidden="true">📚</span>
+          <span class="site-header__logo-text">Lectura Activa</span>
+        </a>
+
+        <nav class="site-header__nav" aria-label="Navegación principal">
+          <ul class="site-header__nav-list">
+            <li>
+              <a
+                href="./catalog.html"
+                class="site-header__nav-link"
+                aria-current="page"
+                >Catálogo</a
+              >
+            </li>
+            <li>
+              <a href="../my-tasks/my-tasks.html" class="site-header__nav-link"
+                >Mis tareas</a
+              >
+            </li>
+            <li>
+              <a
+                href="../my-progress/my-progress.html"
+                class="site-header__nav-link"
+                >Mi progreso</a
+              >
+            </li>
+          </ul>
+        </nav>
+
+        <div class="site-header__user">
+          <span class="site-header__user-name">Estudiante</span>
+          <button
+            type="button"
+            class="site-header__user-button"
+            aria-label="Menú de usuario"
+          >
+            <span aria-hidden="true">👤</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" class="catalog">
+      <header class="catalog__header">
+        <h1 class="catalog__title">Catálogo de lecturas</h1>
+        <p class="catalog__subtitle">
+          Explora, busca y elige tu próxima lectura
+        </p>
+      </header>
+
+      <section class="catalog__controls" aria-label="Buscador y filtros">
+        <div class="catalog__search">
+          <label for="search-input" class="visually-hidden"
+            >Buscar lecturas</label
+          >
+          <span class="catalog__search-icon" aria-hidden="true">🔍</span>
+          <input
+            type="search"
+            id="search-input"
+            class="catalog__search-input"
+            placeholder="Buscar lecturas..."
+            autocomplete="off"
+            aria-describedby="search-help"
+          />
+          <span id="search-help" class="visually-hidden">
+            Escribe para buscar por título o descripción
+          </span>
+        </div>
+
+        <div class="catalog__filters">
+          <div class="catalog__filter">
+            <label for="filter-difficulty" class="visually-hidden"
+              >Filtrar por dificultad</label
+            >
+            <select id="filter-difficulty" class="catalog__select">
+              <option value="">Todas las dificultades</option>
+              <option value="easy">Fácil</option>
+              <option value="medium">Medio</option>
+              <option value="hard">Difícil</option>
+            </select>
+          </div>
+
+          <div class="catalog__filter">
+            <label for="filter-duration" class="visually-hidden"
+              >Filtrar por duración</label
+            >
+            <select id="filter-duration" class="catalog__select">
+              <option value="">Todas las duraciones</option>
+              <option value="10">Menos de 10 min</option>
+              <option value="20">Menos de 20 min</option>
+              <option value="30">Menos de 30 min</option>
+              <option value="60">Menos de 60 min</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="readings-container"
+        class="catalog__results"
+        aria-live="polite"
+        aria-busy="false"
+      >
+        <!--
+        NOTA: Estas tarjetas son estáticas (HTML hardcodeado) para que la
+        pantalla se vea sin JavaScript. El JS que haga otra persona debe:
+
+        1. Escuchar el evento 'input' en #search-input
+        2. Escuchar 'change' en #filter-difficulty y #filter-duration
+        3. Hacer fetch a GET /api/v1/readings con los query params
+        4. Renderizar dinámicamente las tarjetas dentro de #readings-grid
+        5. Reemplazar estas tarjetas estáticas por las del API
+
+        Cada tarjeta usa:
+        - <a href="..."> → navegación al detalle (funciona sin JS)
+        - data-id → identificador de la lectura (para el JS)
+        - aria-label → descripción accesible
+      -->
+
+        <div id="catalog-carousel" class="catalog__carousel">
+          <button
+            type="button"
+            id="carousel-prev"
+            class="catalog__carousel-button catalog__carousel-button--prev"
+            aria-label="Ver lecturas anteriores"
+            aria-controls="readings-grid"
+          >
+            <span aria-hidden="true">←</span>
+          </button>
+
+          <div
+            id="readings-grid"
+            class="catalog__grid"
+            role="region"
+            aria-label="Lecturas disponibles"
+            tabindex="0"
+          >
+            <!-- Tarjeta 1 -->
+            <a
+              href="../reading-detail/reading-detail.html?id=fake_001"
+              class="reading-card"
+              data-id="fake_001"
+              aria-label="Leer El principito"
+            >
+              <h2 class="reading-card__title">El principito</h2>
+              <p class="reading-card__summary">
+                Un piloto conoce a un pequeño príncipe que viene de otro planeta
+                y le enseña lecciones sobre la vida, el amor y la amistad.
+              </p>
+              <div class="reading-card__meta">
+                <span
+                  class="reading-card__difficulty reading-card__difficulty--easy"
+                >
+                  Fácil
+                </span>
+                <span class="reading-card__minutes">
+                  <span aria-hidden="true">⏱</span> 15 min
+                </span>
+              </div>
+              <p class="reading-card__author">Por: Ana López</p>
+            </a>
+
+            <!-- Tarjeta 2 -->
+            <a
+              href="../reading-detail/reading-detail.html?id=fake_002"
+              class="reading-card"
+              data-id="fake_002"
+              aria-label="Leer 1984"
+            >
+              <h2 class="reading-card__title">1984</h2>
+              <p class="reading-card__summary">
+                Una distopía sobre un régimen totalitario que controla todo,
+                incluso el pensamiento, y la lucha de un hombre por la libertad.
+              </p>
+              <div class="reading-card__meta">
+                <span
+                  class="reading-card__difficulty reading-card__difficulty--hard"
+                >
+                  Difícil
+                </span>
+                <span class="reading-card__minutes">
+                  <span aria-hidden="true">⏱</span> 45 min
+                </span>
+              </div>
+              <p class="reading-card__author">Por: Luis Pérez</p>
+            </a>
+
+            <!-- Tarjeta 3 -->
+            <a
+              href="../reading-detail/reading-detail.html?id=fake_003"
+              class="reading-card"
+              data-id="fake_003"
+              aria-label="Leer Cien años de soledad"
+            >
+              <h2 class="reading-card__title">Cien años de soledad</h2>
+              <p class="reading-card__summary">
+                La historia de la familia Buendía en el pueblo de Macondo, con
+                realismo mágico y personajes inolvidables.
+              </p>
+              <div class="reading-card__meta">
+                <span
+                  class="reading-card__difficulty reading-card__difficulty--medium"
+                >
+                  Medio
+                </span>
+                <span class="reading-card__minutes">
+                  <span aria-hidden="true">⏱</span> 30 min
+                </span>
+              </div>
+              <p class="reading-card__author">Por: Gabriel García Márquez</p>
+            </a>
+
+            <!-- Tarjeta 4 -->
+            <a
+              href="../reading-detail/reading-detail.html?id=fake_004"
+              class="reading-card"
+              data-id="fake_004"
+              aria-label="Leer La casa de los espíritus"
+            >
+              <h2 class="reading-card__title">La casa de los espíritus</h2>
+              <p class="reading-card__summary">
+                La saga de la familia Trueba a lo largo de varias generaciones,
+                con elementos mágicos y políticos.
+              </p>
+              <div class="reading-card__meta">
+                <span
+                  class="reading-card__difficulty reading-card__difficulty--medium"
+                >
+                  Medio
+                </span>
+                <span class="reading-card__minutes">
+                  <span aria-hidden="true">⏱</span> 40 min
+                </span>
+              </div>
+              <p class="reading-card__author">Por: Isabel Allende</p>
+            </a>
+
+            <!-- Tarjeta 5 -->
+            <a
+              href="../reading-detail/reading-detail.html?id=fake_005"
+              class="reading-card"
+              data-id="fake_005"
+              aria-label="Leer Don Quijote de la Mancha"
+            >
+              <h2 class="reading-card__title">Don Quijote de la Mancha</h2>
+              <p class="reading-card__summary">
+                Las aventuras de un hidalgo que decide convertirse en caballero
+                andante y vive todo tipo de peripecias.
+              </p>
+              <div class="reading-card__meta">
+                <span
+                  class="reading-card__difficulty reading-card__difficulty--hard"
+                >
+                  Difícil
+                </span>
+                <span class="reading-card__minutes">
+                  <span aria-hidden="true">⏱</span> 60 min
+                </span>
+              </div>
+              <p class="reading-card__author">Por: Miguel de Cervantes</p>
+            </a>
+
+            <!-- Tarjeta 6 -->
+            <a
+              href="../reading-detail/reading-detail.html?id=fake_006"
+              class="reading-card"
+              data-id="fake_006"
+              aria-label="Leer El Principito (corto)"
+            >
+              <h2 class="reading-card__title">El Principito (corto)</h2>
+              <p class="reading-card__summary">
+                Versión corta para lectores principiantes del clásico de
+                Saint-Exupéry.
+              </p>
+              <div class="reading-card__meta">
+                <span
+                  class="reading-card__difficulty reading-card__difficulty--easy"
+                >
+                  Fácil
+                </span>
+                <span class="reading-card__minutes">
+                  <span aria-hidden="true">⏱</span> 8 min
+                </span>
+              </div>
+              <p class="reading-card__author">Por: Ana López</p>
+            </a>
+          </div>
+
+          <button
+            type="button"
+            id="carousel-next"
+            class="catalog__carousel-button catalog__carousel-button--next"
+            aria-label="Ver más lecturas"
+            aria-controls="readings-grid"
+          >
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!--
+    NOTA: No se incluye <script> porque el JS lo maneja otra persona.
+    Cuando esté listo, agregar:
+      <script type="module" src="./catalog.js"></script>
+  --></body>
+</html>
