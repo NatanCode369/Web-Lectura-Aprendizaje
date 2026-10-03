@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Mis tareas — Lecturas asignadas por el docente"
+    />
+    <title>Mis tareas — Lectura Activa</title>
+
+    <link rel="stylesheet" href="../../../styles/base.css" />
+    <link rel="stylesheet" href="./my-tasks.css" />
+  </head>
+  <body>
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
+    <header class="site-header">
+      <div class="site-header__container">
+        <a
+          href="/"
+          class="site-header__logo"
+          aria-label="Lectura Activa - Inicio"
+        >
+          <span class="site-header__logo-text">Lectura Activa</span>
+        </a>
+
+        <nav class="site-header__nav" aria-label="Navegación principal">
+          <ul class="site-header__nav-list">
+            <li>
+              <a href="../catalog/catalog.html" class="site-header__nav-link"
+                >Catálogo</a
+              >
+            </li>
+            <li>
+              <a
+                href="./my-tasks.html"
+                class="site-header__nav-link"
+                aria-current="page"
+                >Mis tareas</a
+              >
+            </li>
+            <li>
+              <a
+                href="../my-progress/my-progress.html"
+                class="site-header__nav-link"
+                >Mi progreso</a
+              >
+            </li>
+          </ul>
+        </nav>
+
+        <div class="site-header__user">
+          <span class="site-header__user-name">Estudiante</span>
+          <button
+            type="button"
+            class="site-header__user-button"
+            aria-label="Menú de usuario"
+          >
+            <span aria-hidden="true">👤</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" class="tasks">
+      <!-- ============================================================
+         HERO
+         ============================================================ -->
+      <header class="tasks__hero">
+        <h1 class="tasks__title">Mis tareas</h1>
+        <p class="tasks__subtitle">
+          Revisa las lecturas asignadas por tu docente
+        </p>
+      </header>
+
+      <!-- ============================================================
+         ESTADÍSTICAS (también son filtros)
+         ============================================================ -->
+      <section class="tasks__stats" aria-label="Filtrar tareas por estado">
+        <button
+          type="button"
+          class="tasks__stat tasks__stat--pending"
+          data-filter="pending"
+          aria-pressed="false"
+        >
+          <span class="tasks__stat-icon" aria-hidden="true">📝</span>
+          <span class="tasks__stat-number">3</span>
+          <span class="tasks__stat-label">Pendientes</span>
+        </button>
+
+        <button
+          type="button"
+          class="tasks__stat tasks__stat--in-progress"
+          data-filter="in_progress"
+          aria-pressed="false"
+        >
+          <span class="tasks__stat-icon" aria-hidden="true">⏳</span>
+          <span class="tasks__stat-number">1</span>
+          <span class="tasks__stat-label">En progreso</span>
+        </button>
+
+        <button
+          type="button"
+          class="tasks__stat tasks__stat--completed"
+          data-filter="completed"
+          aria-pressed="false"
+        >
+          <span class="tasks__stat-icon" aria-hidden="true">✅</span>
+          <span class="tasks__stat-number">2</span>
+          <span class="tasks__stat-label">Completadas</span>
+        </button>
+      </section>
+
+      <!-- ============================================================
+         LISTA DE TAREAS
+         ============================================================ -->
+      <div class="tasks__list">
+        <!-- ============================================================
+           SECCIÓN: PENDIENTES
+           ============================================================ -->
+        <section
+          class="tasks__group"
+          aria-labelledby="group-pending-title"
+          data-status="pending"
+        >
+          <h2 class="tasks__group-title" id="group-pending-title">
+            Pendientes
+            <span class="tasks__group-count">3</span>
+          </h2>
+
+          <ul class="tasks__group-list">
+            <!-- Tarea 1 -->
+            <li>
+              <a
+                href="../reading-activity/reading-activity.html?id=fake_001"
+                class="task-card task-card--pending"
+                data-id="fake_001"
+                aria-label="Empezar a leer El principito"
+              >
+                <div class="task-card__header">
+                  <span
+                    class="task-card__status task-card__status--pending"
+                    aria-hidden="true"
+                    >●</span
+                  >
+                  <h3 class="task-card__title">El principito</h3>
+                  <span class="task-card__due task-card__due--soon">
+                    Vence: 15/10/2026 18:00
+                  </span>
+                </div>
+
+                <p class="task-card__summary">
+                  Un piloto conoce a un pequeño príncipe que viene de otro
+                  planeta y le enseña lecciones sobre la vida, el amor y la
+                  amistad.
+                </p>
+
+                <div class="task-card__meta">
+                  <span class="task-card__group">Grupo: 3°A</span>
+                  <span class="task-card__minutes">
+                    <span aria-hidden="true">⏱</span> 15 min
+                  </span>
+                </div>
+
+                <span class="task-card__action">
+                  Empezar a leer
+                  <span aria-hidden="true">→</span>
+                </span>
+              </a>
+            </li>
+
+            <!-- Tarea 2 -->
+            <li>
+              <a
+                href="../reading-activity/reading-activity.html?id=fake_002"
+                class="task-card task-card--pending"
+                data-id="fake_002"
+                aria-label="Empezar a leer 1984"
+              >
+                <div class="task-card__header">
+                  <span
+                    class="task-card__status task-card__status--pending"
+                    aria-hidden="true"
+                    >●</span
+                  >
+                  <h3 class="task-card__title">1984</h3>
+                  <span class="task-card__due"> Vence: 20/10/2026 23:59 </span>
+                </div>
+
+                <p class="task-card__summary">
+                  Una distopía sobre un régimen totalitario que controla todo,
+                  incluso el pensamiento, y la lucha de un hombre por la
+                  libertad.
+                </p>
+
+                <div class="task-card__meta">
+                  <span class="task-card__group">Grupo: 3°A</span>
+                  <span class="task-card__minutes">
+                    <span aria-hidden="true">⏱</span> 45 min
+                  </span>
+                </div>
+
+                <span class="task-card__action">
+                  Empezar a leer
+                  <span aria-hidden="true">→</span>
+                </span>
+              </a>
+            </li>
+
+            <!-- Tarea 3 -->
+            <li>
+              <a
+                href="../reading-activity/reading-activity.html?id=fake_003"
+                class="task-card task-card--pending"
+                data-id="fake_003"
+                aria-label="Empezar a leer La casa de los espíritus"
+              >
+                <div class="task-card__header">
+                  <span
+                    class="task-card__status task-card__status--pending"
+                    aria-hidden="true"
+                    >●</span
+                  >
+                  <h3 class="task-card__title">La casa de los espíritus</h3>
+                  <span class="task-card__due"> Vence: 25/10/2026 18:00 </span>
+                </div>
+
+                <p class="task-card__summary">
+                  La saga de la familia Trueba a lo largo de varias
+                  generaciones, con elementos mágicos y políticos.
+                </p>
+
+                <div class="task-card__meta">
+                  <span class="task-card__group">Grupo: 3°A</span>
+                  <span class="task-card__minutes">
+                    <span aria-hidden="true">⏱</span> 40 min
+                  </span>
+                </div>
+
+                <span class="task-card__action">
+                  Empezar a leer
+                  <span aria-hidden="true">→</span>
+                </span>
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <!-- ============================================================
+           SECCIÓN: EN PROGRESO
+           ============================================================ -->
+        <section
+          class="tasks__group"
+          aria-labelledby="group-progress-title"
+          data-status="in_progress"
+        >
+          <h2 class="tasks__group-title" id="group-progress-title">
+            En progreso
+            <span class="tasks__group-count">1</span>
+          </h2>
+
+          <ul class="tasks__group-list">
+            <!-- Tarea en progreso -->
+            <li>
+              <a
+                href="../reading-activity/reading-activity.html?id=fake_004"
+                class="task-card task-card--in-progress"
+                data-id="fake_004"
+                aria-label="Continuar leyendo Don Quijote de la Mancha"
+              >
+                <div class="task-card__header">
+                  <span
+                    class="task-card__status task-card__status--in-progress"
+                    aria-hidden="true"
+                    >◐</span
+                  >
+                  <h3 class="task-card__title">Don Quijote de la Mancha</h3>
+                  <span class="task-card__due"> Vence: 25/10/2026 23:59 </span>
+                </div>
+
+                <p class="task-card__summary">
+                  Las aventuras de un hidalgo que decide convertirse en
+                  caballero andante y vive todo tipo de peripecias.
+                </p>
+
+                <div class="task-card__meta">
+                  <span class="task-card__group">Grupo: 3°A</span>
+                  <span class="task-card__minutes">
+                    <span aria-hidden="true">⏱</span> 60 min
+                  </span>
+                </div>
+
+                <span class="task-card__action">
+                  Continuar leyendo
+                  <span aria-hidden="true">→</span>
+                </span>
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <!-- ============================================================
+           SECCIÓN: COMPLETADAS
+           ============================================================ -->
+        <section
+          class="tasks__group"
+          aria-labelledby="group-completed-title"
+          data-status="completed"
+        >
+          <h2 class="tasks__group-title" id="group-completed-title">
+            Completadas
+            <span class="tasks__group-count">2</span>
+          </h2>
+
+          <ul class="tasks__group-list">
+            <!-- Tarea completada 1 -->
+            <li>
+              <a
+                href="../feedback/feedback.html?id=fake_005"
+                class="task-card task-card--completed"
+                data-id="fake_005"
+                aria-label="Ver resultados de Cien años de soledad"
+              >
+                <div class="task-card__header">
+                  <span
+                    class="task-card__status task-card__status--completed"
+                    aria-hidden="true"
+                    >✓</span
+                  >
+                  <h3 class="task-card__title">Cien años de soledad</h3>
+                  <span class="task-card__score">85 / 100</span>
+                </div>
+
+                <p class="task-card__summary">
+                  La historia de la familia Buendía en el pueblo de Macondo, con
+                  realismo mágico y personajes inolvidables.
+                </p>
+
+                <div class="task-card__meta">
+                  <span class="task-card__group">Grupo: 3°A</span>
+                  <span class="task-card__completed-date">
+                    Completada el 28/09/2026 14:30
+                  </span>
+                </div>
+
+                <span class="task-card__action">
+                  Ver resultados
+                  <span aria-hidden="true">→</span>
+                </span>
+              </a>
+            </li>
+
+            <!-- Tarea completada 2 -->
+            <li>
+              <a
+                href="../feedback/feedback.html?id=fake_006"
+                class="task-card task-card--completed"
+                data-id="fake_006"
+                aria-label="Ver resultados de El Principito (corto)"
+              >
+                <div class="task-card__header">
+                  <span
+                    class="task-card__status task-card__status--completed"
+                    aria-hidden="true"
+                    >✓</span
+                  >
+                  <h3 class="task-card__title">El Principito (corto)</h3>
+                  <span class="task-card__score">92 / 100</span>
+                </div>
+
+                <p class="task-card__summary">
+                  Versión corta para lectores principiantes del clásico de
+                  Saint-Exupéry.
+                </p>
+
+                <div class="task-card__meta">
+                  <span class="task-card__group">Grupo: 3°A</span>
+                  <span class="task-card__completed-date">
+                    Completada el 22/09/2026 10:15
+                  </span>
+                </div>
+
+                <span class="task-card__action">
+                  Ver resultados
+                  <span aria-hidden="true">→</span>
+                </span>
+              </a>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- ============================================================
+         ESTADO VACÍO (oculto; el JS lo muestra si no hay tareas)
+         ============================================================ -->
+      <section class="tasks__empty" hidden>
+        <div class="tasks__empty-icon" aria-hidden="true">📚</div>
+        <h2 class="tasks__empty-title">No tienes tareas asignadas aún</h2>
+        <p class="tasks__empty-text">
+          Cuando tu docente te asigne una lectura, aparecerá aquí.
+        </p>
+        <a href="../catalog/catalog.html" class="tasks__empty-button">
+          Explorar el catálogo
+        </a>
+      </section>
+    </main>
+
+    <!--
+    NOTA: No se incluye <script> porque el JS lo maneja otra persona.
+    Cuando esté listo, agregar:
+      <script type="module" src="./my-tasks.js"></script>
+
+    El JS debe:
+    1. Hacer fetch a GET /api/v1/assignments
+    2. Separar las tareas por status: pending, in_progress, completed
+    3. Actualizar los contadores en .tasks__stat-number y .tasks__group-count
+    4. Renderizar las tarjetas dentro de cada .tasks__group-list
+    5. Mostrar .tasks__empty si no hay tareas
+    6. Formatear fechas con formato "DD/MM/YYYY HH:MM" usando Date:
+       - Vence: DD/MM/YYYY HH:MM (desde dueAt)
+       - Completada el DD/MM/YYYY HH:MM (desde completedAt)
+    7. Agregar la clase .task-card__due--soon si dueAt está a menos
+       de 3 días de la fecha actual
+    8. Escuchar clicks en .tasks__stat:
+       - Leer data-filter
+       - Alternar aria-pressed="true"/"false"
+       - Ocultar las .tasks__group que no coincidan con data-status
+       - Si el botón ya estaba activo, mostrar todos los grupos
+  --></body>
+</html>
