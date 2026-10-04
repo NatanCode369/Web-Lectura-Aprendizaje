@@ -12,26 +12,15 @@
   <body>
     <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
 
-    <header class="site-header">
+    <header class="site-header site-header--minimal">
       <div class="site-header__container">
-        <a href="/" class="site-header__logo" aria-label="Lectura Activa - Inicio">
+        <span class="site-header__logo">
           <span class="site-header__logo-text">Lectura Activa</span>
-        </a>
-        <nav class="site-header__nav" aria-label="Navegación principal">
-          <ul class="site-header__nav-list">
-            <li><a href="../catalog/catalog.html" class="site-header__nav-link">Catálogo</a></li>
-            <li><a href="../my-tasks/my-tasks.html" class="site-header__nav-link">Mis tareas</a></li>
-            <li><a href="../my-progress/my-progress.html" class="site-header__nav-link">Mi progreso</a></li>
-          </ul>
-        </nav>
+        </span>
+
         <div class="site-header__user">
           <span class="site-header__user-name">Estudiante</span>
-          <button type="button" class="site-header__user-button" aria-label="Menú de usuario">
-          <a
-            href="../user-profile/user-profile.html"
-            class="site-header__user-button"
-            aria-label="Ver mi perfil"
-          >
+          <a href="../user-profile/user-profile.html" class="site-header__user-button" aria-label="Ver mi perfil">
             <span aria-hidden="true">👤</span>
           </a>
         </div>
@@ -40,40 +29,29 @@
 
     <main id="main-content" class="activity">
 
-      <!-- VISTA 1: PDF -->
+      <!-- VISTA 1: PDF con temporizador de lectura -->
       <section id="view-reading" class="activity__view">
         <header class="activity__bar">
           <h1 class="activity__title" data-field="title">Lectura</h1>
-          <div
-            class="activity__timer"
-            data-field="timerContainer"
-            role="timer"
-            aria-live="polite"
-            aria-label="Tiempo restante"
-          >
+          <div class="activity__timer" data-field="timerContainer" role="timer" aria-live="polite" aria-label="Tiempo restante de lectura">
             <span class="activity__timer-icon" aria-hidden="true">⏱</span>
-            <span class="activity__timer-value" data-field="timer">20:00</span>
+            <span class="activity__timer-value" data-field="timer">15:00</span>
           </div>
         </header>
 
         <div id="time-extra-notice" class="activity__notice activity__notice--warning" hidden role="status">
           <span class="activity__notice-icon" aria-hidden="true">⚠️</span>
-          <span class="activity__notice-text">Estás en tiempo extra. Envía pronto tus respuestas.</span>
+          <span class="activity__notice-text">Queda poco tiempo. Apresúrate o haz clic en "Empezar actividades".</span>
         </div>
 
         <div class="activity__pdf-wrapper">
-          <iframe
-            src="https://www.orimi.com/pdf-test.pdf"
-            title="Lectura"
-            class="activity__pdf"
-            data-field="pdf"
-          ></iframe>
+          <iframe src="https://www.orimi.com/pdf-test.pdf" title="Lectura" class="activity__pdf" data-field="pdf"></iframe>
         </div>
 
         <div class="activity__actions">
           <button type="button" class="activity__action activity__action--activities" id="activities-toggle">
             <span aria-hidden="true">📝</span>
-            <span>Ver actividades</span>
+            <span>Empezar actividades</span>
             <span class="activity__action-count" data-field="activitiesCount" aria-hidden="true">0</span>
           </button>
         </div>
@@ -84,91 +62,6 @@
         <header class="activity__bar activity__bar--activities">
           <h2 class="activity__title">Actividades</h2>
           <p class="activity__panel-progress activity__panel-progress--inline">
-      <!-- Barra del lector -->
-      <header class="activity__bar">
-        <a href="../my-tasks/my-tasks.html" class="activity__back">
-          <span aria-hidden="true">←</span>
-          Volver
-        </a>
-
-        <h1 class="activity__title" data-field="title">El principito</h1>
-
-        <div
-          class="activity__timer"
-          data-field="timerContainer"
-          role="timer"
-          aria-live="polite"
-          aria-label="Tiempo restante para completar la lectura"
-        >
-          <span class="activity__timer-icon" aria-hidden="true">⏱</span>
-          <span class="activity__timer-value" data-field="timer">20:00</span>
-        </div>
-      </header>
-
-      <!-- Aviso de tiempo extra -->
-      <div
-        id="time-extra-notice"
-        class="activity__notice activity__notice--warning"
-        hidden
-        role="status"
-      >
-        <span class="activity__notice-icon" aria-hidden="true">⚠️</span>
-        <span class="activity__notice-text">
-          Estás en tiempo extra. Envía pronto tus respuestas.
-        </span>
-      </div>
-
-      <!-- PDF embebido -->
-      <div class="activity__pdf-wrapper">
-        <iframe
-          src="https://www.orimi.com/pdf-test.pdf"
-          title="Lectura: El principito"
-          class="activity__pdf"
-          data-field="pdf"
-        ></iframe>
-      </div>
-
-      <!-- Barra de acciones -->
-      <div class="activity__actions">
-        <button
-          type="button"
-          class="activity__action activity__action--save"
-          id="save-and-exit"
-        >
-          <span aria-hidden="true">💾</span>
-          Guardar y salir
-        </button>
-
-        <button
-          type="button"
-          class="activity__action activity__action--activities"
-          id="activities-toggle"
-          aria-expanded="false"
-          aria-controls="activities-panel"
-        >
-          <span aria-hidden="true">📝</span>
-          <span data-field="toggleText">Ver actividades</span>
-          <span
-            class="activity__action-count"
-            data-field="activitiesCount"
-            aria-hidden="true"
-            >3</span
-          >
-        </button>
-      </div>
-
-      <!-- Panel de actividades -->
-      <section
-        id="activities-panel"
-        class="activity__panel"
-        aria-labelledby="activities-panel-title"
-        hidden
-      >
-        <header class="activity__panel-header">
-          <h2 class="activity__panel-title" id="activities-panel-title">
-            Actividades
-          </h2>
-          <p class="activity__panel-progress">
             Actividad <span data-field="panelCurrent">1</span> de
             <span data-field="panelTotal">0</span>
           </p>
@@ -191,299 +84,29 @@
         </div>
       </section>
 
+      <!-- VISTA 3: PANTALLA DE RESUMEN -->
+      <section id="view-summary" class="activity__view" hidden>
+        <div class="activity__summary">
+          <div class="activity__summary-icon" aria-hidden="true">📖</div>
+          <h2 class="activity__summary-title">¡Terminaste de leer!</h2>
+          <p class="activity__summary-time">
+            Tiempo usado: <strong data-field="summaryTime">00:00</strong>
+          </p>
+          <p class="activity__summary-answers">
+            Respondiste <strong data-field="summaryAnswers">0 de 0</strong> actividades
+          </p>
+
+          <div class="activity__summary-actions">
+            <a href="#" id="go-to-feedback" class="activity__summary-button">
+              Ver retroalimentación
+              <span aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
     </main>
 
-    <script>
-      // ============================================================
-      // LECTURA DESDE URL Y LOCALSTORAGE
-      // ============================================================
-      const params = new URLSearchParams(window.location.search);
-      const lecturaId = params.get('id') || 'liebre-tortuga';
-
-      const actividadesGuardadas = localStorage.getItem(`actividades_${lecturaId}`);
-      const actividadesDocente = actividadesGuardadas ? JSON.parse(actividadesGuardadas) : null;
-
-      let actividadesList = [];
-
-      if (actividadesDocente) {
-        if (actividadesDocente.trivia?.length) {
-          actividadesDocente.trivia.forEach(t => {
-            if (t.pregunta && t.opciones?.some(o => o)) {
-              actividadesList.push({
-                type: 'multiple_choice',
-                question: t.pregunta,
-                options: t.opciones,
-                correct: t.correcta
-              });
-            }
-          });
-        }
-        if (actividadesDocente.verdaderoFalso?.length) {
-          actividadesDocente.verdaderoFalso.forEach(v => {
-            if (v.afirmacion) {
-              actividadesList.push({
-                type: 'true_false',
-                question: v.afirmacion,
-                correct: v.respuesta
-              });
-            }
-          });
-        }
-      }
-
-      if (actividadesList.length === 0) {
-        actividadesList = [
-          { type: 'multiple_choice', question: '¿Quién es el protagonista?', options: ['El piloto', 'El principito', 'La rosa'], correct: 1 }
-        ];
-      }
-
-      const reading = {
-        title: 'Lectura',
-        timeLimitSeconds: 1200,
-        activities: actividadesList
-      };
-
-      // ============================================================
-      // VISTAS
-      // ============================================================
-      const $viewReading = document.getElementById('view-reading');
-      const $viewActivities = document.getElementById('view-activities');
-
-      document.getElementById('activities-toggle').addEventListener('click', () => {
-        $viewReading.hidden = true;
-        $viewActivities.hidden = false;
-        currentActivity = 0;
-        renderActivity();
-      });
-
-      // ============================================================
-      // TEMPORIZADOR
-      // ============================================================
-      const $timer = document.querySelector('[data-field="timer"]');
-      const $timerContainer = document.querySelector('[data-field="timerContainer"]');
-      const $timeExtraNotice = document.getElementById('time-extra-notice');
-
-      let remainingTime = reading.timeLimitSeconds;
-      let extraNoticeShown = false;
-
-      function formatTime(seconds) {
-        const isNegative = seconds < 0;
-        const abs = Math.abs(seconds);
-        const mm = String(Math.floor(abs / 60)).padStart(2, '0');
-        const ss = String(abs % 60).padStart(2, '0');
-        return (isNegative ? '-' : '') + `${mm}:${ss}`;
-      }
-
-      function updateTimer() {
-        remainingTime--;
-        $timer.textContent = formatTime(remainingTime);
-
-        const pct = remainingTime / reading.timeLimitSeconds;
-        $timerContainer.classList.remove('activity__timer--warning', 'activity__timer--danger', 'activity__timer--over');
-
-        if (remainingTime < 0) {
-          $timerContainer.classList.add('activity__timer--over');
-          if (!extraNoticeShown) {
-            $timeExtraNotice.hidden = false;
-            extraNoticeShown = true;
-          }
-        } else if (pct <= 0.10) {
-          $timerContainer.classList.add('activity__timer--danger');
-        } else if (pct <= 0.25) {
-          $timerContainer.classList.add('activity__timer--warning');
-        }
-
-        if (remainingTime === 0) {
-          clearInterval(intervalo);
-          mostrarTiempoAgotado();
-        }
-      }
-
-      $timer.textContent = formatTime(remainingTime);
-      const intervalo = setInterval(updateTimer, 1000);
-
-      function mostrarTiempoAgotado() {
-        const $main = document.querySelector('.activity');
-        $main.innerHTML = `
-          <div class="activity__timeout">
-            <div class="activity__timeout-icon">⏰</div>
-            <h2 class="activity__timeout-title">¡Se acabó el tiempo!</h2>
-            <p class="activity__timeout-msg">
-              El tiempo asignado para esta lectura ha terminado. Tus respuestas fueron enviadas automáticamente.
-            </p>
-            <a href="../catalog/catalog.html" class="btn btn--primary">Volver al catálogo</a>
-          </div>
-        `;
-      }
-
-      // ============================================================
-      // ACTIVIDADES
-      // ============================================================
-      let currentActivity = 0;
-      const answers = {};
-
-      const $activityContent = document.querySelector('[data-field="activityContent"]');
-      const $panelCurrent = document.querySelector('[data-field="panelCurrent"]');
-      const $panelTotal = document.querySelector('[data-field="panelTotal"]');
-      const $activitiesCount = document.querySelector('[data-field="activitiesCount"]');
-      const $prevBtn = document.getElementById('activity-prev');
-      const $nextBtn = document.getElementById('activity-next');
-      const $submitWrapper = document.querySelector('[data-field="submitWrapper"]');
-
-      $panelTotal.textContent = reading.activities.length;
-      $activitiesCount.textContent = reading.activities.length;
-
-      function renderActivity() {
-        const act = reading.activities[currentActivity];
-        $panelCurrent.textContent = currentActivity + 1;
-
-        if (act.type === 'multiple_choice') {
-          $activityContent.innerHTML = `
-            <div class="activity__question">
-              <h3 class="activity__question-text">${act.question}</h3>
-              <fieldset class="activity__options">
-                <legend class="visually-hidden">Selecciona una opción</legend>
-                ${act.options.map((opt, i) => `
-                  <label class="activity__option">
-                    <input type="radio" name="activity-${currentActivity}" value="${i}" ${answers[currentActivity] == i ? 'checked' : ''}>
-                    <span class="activity__option-text">${opt}</span>
-                  </label>
-                `).join('')}
-              </fieldset>
-            </div>
-          `;
-        } else if (act.type === 'true_false') {
-          $activityContent.innerHTML = `
-            <div class="activity__question">
-              <h3 class="activity__question-text">${act.question}</h3>
-              <fieldset class="activity__options">
-                <legend class="visually-hidden">Selecciona verdadero o falso</legend>
-                <label class="activity__option">
-                  <input type="radio" name="activity-${currentActivity}" value="true" ${answers[currentActivity] === true ? 'checked' : ''}>
-                  <span class="activity__option-text">Verdadero</span>
-                </label>
-                <label class="activity__option">
-                  <input type="radio" name="activity-${currentActivity}" value="false" ${answers[currentActivity] === false ? 'checked' : ''}>
-                  <span class="activity__option-text">Falso</span>
-                </label>
-              </fieldset>
-            </div>
-          `;
-        }
-
-        $prevBtn.disabled = currentActivity === 0;
-        const isLast = currentActivity === reading.activities.length - 1;
-        $nextBtn.hidden = isLast;
-        $submitWrapper.hidden = !isLast;
-
-        $activityContent.querySelectorAll('input[type="radio"]').forEach(input => {
-          input.addEventListener('change', () => {
-            const val = input.value;
-            answers[currentActivity] = act.type === 'true_false' ? val === 'true' : Number(val);
-          });
-        });
-      }
-
-      $prevBtn.addEventListener('click', () => {
-        if (currentActivity > 0) { currentActivity--; renderActivity(); }
-      });
-
-      $nextBtn.addEventListener('click', () => {
-        if (currentActivity < reading.activities.length - 1) { currentActivity++; renderActivity(); }
-      });
-
-      document.getElementById('activity-submit').addEventListener('click', () => {
-        localStorage.setItem(`resultado_${lecturaId}`, JSON.stringify({
-          respuestas: answers,
-          fecha: new Date().toISOString()
-        }));
-        window.location.href = '../my-tasks/my-tasks.html';
-      });
-    </script>
+    <script type="module" src="./reading-activity.js"></script>
   </body>
-</html>
-  </body>
-  <!--
-    ============================================================
-    NOTA PARA EL JS
-
-    El JS debe:
-
-    1. Leer ?id= de la URL y hacer fetch a GET /readings/:id
-    2. Rellenar:
-       - [data-field="title"] → reading.title
-       - [data-field="pdf"].src → reading.pdfUrl (URL firmada)
-       - [data-field="activitiesCount"] → reading.activities.length
-       - [data-field="panelTotal"] → reading.activities.length
-
-    3. TEMPORIZADOR (cuenta regresiva con tiempo extra):
-
-       Duración:
-       - Tiempo total = assignment.timeLimit (en segundos)
-         Ejemplo: 20 minutos = 1200 segundos
-       - Si el docente no definió timeLimit, usar
-         reading.estimatedMinutes * 60 como fallback
-
-       Estado inicial:
-       - Si el estudiante ya había empezado antes
-         (studentAssignment.timeSpentSeconds):
-         remainingTime = timeLimit - studentAssignment.timeSpentSeconds
-       - Si es la primera vez:
-         remainingTime = timeLimit
-
-       Actualización cada segundo:
-       - remainingTime -= 1
-       - Formatear como "MM:SS" (con signo - si es negativo):
-         * Si remainingTime >= 0: "MM:SS"
-         * Si remainingTime < 0: "-MM:SS"
-       - Actualizar [data-field="timer"]
-
-       Estados visuales (en #timerContainer):
-       - Normal (>25% del tiempo): sin clase
-       - Advertencia (10-25%): .activity__timer--warning
-       - Urgente (0-10%): .activity__timer--danger
-       - Tiempo extra (< 0): .activity__timer--over (rojo fuerte)
-
-       Al pasar de 0 a negativo (una sola vez):
-       - Mostrar #time-extra-notice (quitar hidden)
-       - Esto NO detiene el temporizador
-       - El temporizador sigue contando en negativo
-
-       Al salir/volver:
-       - Guardar remainingTime en el backend antes de salir
-         (POST /assignments/:id/progress con remainingTime)
-       - Al volver, retomar desde el tiempo guardado
-
-    4. Manejar el botón #activities-toggle:
-       - Al hacer clic, mostrar/ocultar #activities-panel
-       - Cambiar aria-expanded
-       - Cambiar el texto entre "Ver actividades" y "Ocultar actividades"
-
-    5. Renderizar la actividad actual dentro de [data-field="activityContent"]
-       según su tipo:
-       - multiple_choice → radios
-       - true_false → radios (Verdadero / Falso)
-       - fill_blank → inputs de texto
-       - short_answer → textarea
-
-    6. Manejar la navegación:
-       - #activity-prev → retroceder
-       - #activity-next → avanzar
-       - Actualizar:
-         * [data-field="panelCurrent"]
-         * Deshabilitar #activity-prev en la primera
-         * Ocultar #activity-next y mostrar [data-field="submitWrapper"]
-           en la última
-
-    7. Guardar las respuestas seleccionadas en memoria
-
-    8. Al enviar (#activity-submit):
-       - POST /assignments/:id/attempts con las respuestas y el tiempo
-       - Redirigir a feedback.html?id=xxx
-
-    9. Al hacer clic en "Guardar y salir" (#save-and-exit):
-       - POST /assignments/:id/start (si aún no ha empezado)
-       - Guardar el tiempo restante actual
-       - Redirigir a my-tasks.html
-  -->
 </html>

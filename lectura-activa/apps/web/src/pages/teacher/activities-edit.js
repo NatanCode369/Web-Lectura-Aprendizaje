@@ -1,162 +1,213 @@
-(function () {
-  'use strict';
+/**
+ * activities-edit.js
+ * Editor de las 5 actividades de una lectura.
+ * Usa la misma clave que espera reading-activity.js: `actividades_${lecturaId}`.
+ * 
+ * Ahora lee las lecturas REALES del docente desde localStorage.
+ */
 
-  // Lecturas de ejemplo (cuando exista el API vendrán de allá)
-  const LECTURAS = [
-    { id: '1', titulo: 'La liebre y la tortuga' },
-    { id: '2', titulo: 'El león y el ratón' },
-    { id: '3', titulo: 'La zorra y las uvas' }
-  ];
+// ---------- Cargar lecturas del docente ----------
+const KEY_LECTURAS = 'lecturas_docente';
 
-  const $ = (id) => document.getElementById(id);
-  const selLectura = $('lectura');
-  const listaTrivia = $('lista-trivia');
-  const listaVf = $('lista-vf');
-  const mensaje = $('mensaje');
-  const clave = (id) => 'la_activities_' + id;
-
-  function escapeHtml(t) {
-    return String(t).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+const lecturasReales = (() => {
+  try {
+    return JSON.parse(localStorage.getItem(KEY_LECTURAS) || '[]');
+  } catch {
+    return [];
   }
-
-  function nuevaTrivia() { return { text: '', options: ['', '', ''], correct: 0 }; }
-  function nuevaVf() { return { text: '', answer: true }; }
-
-  // ---------- Estado ----------
-  let estado = { trivia: [], vf: [] };
-
-  function cargar(id) {
-    try {
-      const guardado = JSON.parse(localStorage.getItem(clave(id)));
-      if (guardado && Array.isArray(guardado.trivia) && Array.isArray(guardado.vf)) return guardado;
-    } catch (e) { /* sin datos guardados */ }
-    return { trivia: [nuevaTrivia()], vf: [nuevaVf()] };
-  }
-
-  // Lee lo escrito en pantalla y lo pasa al estado
-  function leerPantalla() {
-    estado.trivia = [...listaTrivia.querySelectorAll('.q-card')].map((card, i) => ({
-      text: card.querySelector('.q-text').value.trim(),
-      options: [...card.querySelectorAll('.q-opt-text')].map((o) => o.value.trim()),
-      correct: Number(card.querySelector('input[type="radio"]:checked')?.value ?? 0)
-    }));
-    estado.vf = [...listaVf.querySelectorAll('.q-card')].map((card) => ({
-      text: card.querySelector('.q-text').value.trim(),
-      answer: card.querySelector('input[type="radio"]:checked')?.value !== 'false'
-    }));
-  }
-
-  // ---------- Dibujar ----------
-  function renderTrivia() {
-    listaTrivia.innerHTML = estado.trivia.map((q, i) => `
-      <div class="q-card" data-i="${i}">
-        <div class="q-card__head">
-          <span class="q-card__num">Pregunta ${i + 1}</span>
-          <button type="button" class="btn btn--ghost btn--sm" data-del="trivia" data-i="${i}">Quitar</button>
-        </div>
-        <input type="text" class="q-text" placeholder="Escribe la pregunta" value="${escapeHtml(q.text)}" aria-label="Pregunta ${i + 1}">
-        ${q.options.map((o, j) => `
-          <label class="q-opt">
-            <input type="radio" name="t-${i}" value="${j}" ${q.correct === j ? 'checked' : ''} aria-label="Marcar opción ${j + 1} como correcta">
-            <input type="text" class="q-opt-text" placeholder="Opción ${j + 1}" value="${escapeHtml(o)}">
-          </label>`).join('')}
-      </div>`).join('') || '<p class="q-empty">Aún no hay preguntas.</p>';
-  }
-
-  function renderVf() {
-    listaVf.innerHTML = estado.vf.map((q, i) => `
-      <div class="q-card" data-i="${i}">
-        <div class="q-card__head">
-          <span class="q-card__num">Afirmación ${i + 1}</span>
-          <button type="button" class="btn btn--ghost btn--sm" data-del="vf" data-i="${i}">Quitar</button>
-        </div>
-        <textarea class="q-text" placeholder="Escribe una afirmación sobre la lectura" aria-label="Afirmación ${i + 1}">${escapeHtml(q.text)}</textarea>
-        <div class="choice-group">
-          <label class="choice"><input type="radio" name="v-${i}" value="true" ${q.answer ? 'checked' : ''}> Verdadero</label>
-          <label class="choice"><input type="radio" name="v-${i}" value="false" ${q.answer ? '' : 'checked'}> Falso</label>
-        </div>
-      </div>`).join('') || '<p class="q-empty">Aún no hay afirmaciones.</p>';
-  }
-
-  function render() { renderTrivia(); renderVf(); }
-
-  function avisar(texto, tipo) {
-    mensaje.textContent = texto;
-    mensaje.className = 'alert alert--' + tipo;
-    mensaje.hidden = false;
-    mensaje.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-
-  // ---------- Validar y guardar ----------
-  function validar() {
-    let ok = true;
-    document.querySelectorAll('.q-card').forEach((c) => c.classList.remove('q-card--error'));
-
-    estado.trivia.forEach((q, i) => {
-      const llenas = q.options.filter(Boolean).length;
-      const correctaVacia = !q.options[q.correct];
-      if (!q.text || llenas < 2 || correctaVacia) {
-        listaTrivia.children[i].classList.add('q-card--error');
-        ok = false;
-      }
-    });
-    estado.vf.forEach((q, i) => {
-      if (!q.text) { listaVf.children[i].classList.add('q-card--error'); ok = false; }
-    });
-    return ok;
-  }
-
-  $('activities-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    leerPantalla();
-
-    if (estado.trivia.length + estado.vf.length === 0) {
-      avisar('Agrega al menos una pregunta antes de guardar.', 'error');
-      return;
-    }
-    if (!validar()) {
-      avisar('Revisa las tarjetas marcadas en rojo: cada pregunta necesita texto, al menos 2 opciones y la correcta con texto.', 'error');
-      return;
-    }
-    // Quita las opciones vacías conservando cuál era la correcta
-    estado.trivia = estado.trivia.map((q) => {
-      const textoCorrecto = q.options[q.correct];
-      const opciones = q.options.filter(Boolean);
-      return { text: q.text, options: opciones, correct: opciones.indexOf(textoCorrecto) };
-    });
-
-    try {
-      localStorage.setItem(clave(selLectura.value), JSON.stringify(estado));
-      render();
-      avisar('Actividades guardadas.', 'ok');
-    } catch (err) {
-      avisar('No se pudo guardar en este navegador.', 'error');
-    }
-  });
-
-  // ---------- Eventos ----------
-  $('add-trivia').addEventListener('click', () => { leerPantalla(); estado.trivia.push(nuevaTrivia()); render(); });
-  $('add-vf').addEventListener('click', () => { leerPantalla(); estado.vf.push(nuevaVf()); render(); });
-
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-del]');
-    if (!btn) return;
-    leerPantalla();
-    estado[btn.dataset.del].splice(Number(btn.dataset.i), 1);
-    render();
-  });
-
-  selLectura.addEventListener('change', () => {
-    mensaje.hidden = true;
-    estado = cargar(selLectura.value);
-    render();
-  });
-
-  // ---------- Arranque ----------
-  selLectura.innerHTML = LECTURAS.map((l) => `<option value="${l.id}">${escapeHtml(l.titulo)}</option>`).join('');
-  const idUrl = new URLSearchParams(location.search).get('id');
-  if (LECTURAS.some((l) => l.id === idUrl)) selLectura.value = idUrl;
-  estado = cargar(selLectura.value);
-  render();
 })();
+
+// Mocks de fallback (por si no hay lecturas creadas)
+const LECTURAS_MOCK = [
+  { id: 'liebre-tortuga', titulo: 'La liebre y la tortuga' },
+  { id: 'leon-raton', titulo: 'El león y el ratón' },
+  { id: 'zorra-uvas', titulo: 'La zorra y las uvas' }
+];
+
+// Combinar: primero las reales, luego los mocks
+const LECTURAS = [
+  ...lecturasReales.map((l) => ({ id: l.id, titulo: l.title })),
+  ...LECTURAS_MOCK
+];
+
+const $ = (id) => document.getElementById(id);
+const $lectura = $('lectura');
+const $listaTrivia = $('lista-trivia');
+const $listaVF = $('lista-vf');
+const $listaEventos = $('lista-eventos');
+const $listaParejas = $('lista-parejas');
+const $mensaje = $('mensaje');
+
+let actividades = null;
+let lecturaActual = null;
+
+// ---------- Carga y guardado ----------
+function cargarActividades(lecturaId) {
+  const guardadas = localStorage.getItem(`actividades_${lecturaId}`);
+  if (guardadas) return JSON.parse(guardadas);
+  return {
+    trivia: [{ pregunta: '', opciones: ['', '', '', ''], correcta: 0 }],
+    verdaderoFalso: [{ afirmacion: '', respuesta: true }],
+    detective: { target: '', synonyms: [], distractors: [] },
+    order: ['', '', '', ''],
+    mindMap: [{ a: '', b: '' }]
+  };
+}
+
+function guardarActividades(lecturaId, acts) {
+  localStorage.setItem(`actividades_${lecturaId}`, JSON.stringify(acts));
+}
+
+// ---------- Render ----------
+function renderTrivia() {
+  $listaTrivia.innerHTML = actividades.trivia.map((q, i) => `
+    <div class="q-item">
+      <div class="q-item__header">
+        <span class="q-item__label">Pregunta ${i + 1}</span>
+        <button type="button" class="q-item__remove" data-tipo="trivia" data-index="${i}">Quitar</button>
+      </div>
+      <input class="q-item__input" type="text" value="${q.pregunta}" placeholder="Pregunta" data-tipo="trivia" data-index="${i}" data-field="pregunta">
+      ${q.opciones.map((op, j) => `
+        <div class="q-item__option">
+          <input type="radio" name="trivia-${i}" ${q.correcta === j ? 'checked' : ''} data-tipo="trivia" data-index="${i}" data-opcion="${j}">
+          <input type="text" value="${op}" data-tipo="trivia" data-index="${i}" data-opcion="${j}" data-field="opcion" placeholder="Opción ${j + 1}">
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function renderVF() {
+  $listaVF.innerHTML = actividades.verdaderoFalso.map((v, i) => `
+    <div class="q-item">
+      <div class="q-item__header">
+        <span class="q-item__label">Afirmación ${i + 1}</span>
+        <button type="button" class="q-item__remove" data-tipo="vf" data-index="${i}">Quitar</button>
+      </div>
+      <textarea class="q-item__input" data-tipo="vf" data-index="${i}" data-field="afirmacion" placeholder="Afirmación">${v.afirmacion}</textarea>
+      <div class="q-item__vf">
+        <label><input type="radio" name="vf-${i}" ${v.respuesta === true ? 'checked' : ''} data-tipo="vf" data-index="${i}" data-respuesta="true"> Verdadero</label>
+        <label><input type="radio" name="vf-${i}" ${v.respuesta === false ? 'checked' : ''} data-tipo="vf" data-index="${i}" data-respuesta="false"> Falso</label>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderEventos() {
+  $listaEventos.innerHTML = actividades.order.map((ev, i) => `
+    <div class="q-item">
+      <div class="q-item__header">
+        <span class="q-item__label">Evento ${i + 1}</span>
+        <button type="button" class="q-item__remove" data-tipo="order" data-index="${i}">Quitar</button>
+      </div>
+      <input class="q-item__input" type="text" value="${ev}" placeholder="Evento" data-tipo="order" data-index="${i}" data-field="evento">
+    </div>
+  `).join('');
+}
+
+function renderParejas() {
+  $listaParejas.innerHTML = actividades.mindMap.map((p, i) => `
+    <div class="q-item">
+      <div class="q-item__header">
+        <span class="q-item__label">Pareja ${i + 1}</span>
+        <button type="button" class="q-item__remove" data-tipo="mindmap" data-index="${i}">Quitar</button>
+      </div>
+      <div class="q-item__option">
+        <input type="text" value="${p.a}" placeholder="Concepto A" data-tipo="mindmap" data-index="${i}" data-field="a">
+        <input type="text" value="${p.b}" placeholder="Concepto B" data-tipo="mindmap" data-index="${i}" data-field="b">
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderTodo() {
+  renderTrivia();
+  renderVF();
+  renderEventos();
+  renderParejas();
+  $('detective-target').value = actividades.detective.target || '';
+  $('detective-synonyms').value = (actividades.detective.synonyms || []).join(', ');
+  $('detective-distractors').value = (actividades.detective.distractors || []).join(', ');
+}
+
+// ---------- Cambio de lectura ----------
+function cambiarLectura() {
+  lecturaActual = $lectura.value;
+  actividades = cargarActividades(lecturaActual);
+  renderTodo();
+}
+
+$lectura.addEventListener('change', cambiarLectura);
+
+// ---------- Edición ----------
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  const tipo = el.dataset.tipo;
+  if (!tipo) return;
+  const index = Number(el.dataset.index);
+
+  if (tipo === 'trivia') {
+    if (el.dataset.field === 'pregunta') actividades.trivia[index].pregunta = el.value;
+    if (el.dataset.field === 'opcion') actividades.trivia[index].opciones[el.dataset.opcion] = el.value;
+  }
+  if (tipo === 'vf' && el.dataset.field === 'afirmacion') {
+    actividades.verdaderoFalso[index].afirmacion = el.value;
+  }
+  if (tipo === 'order') actividades.order[index] = el.value;
+  if (tipo === 'mindmap') {
+    if (el.dataset.field === 'a') actividades.mindMap[index].a = el.value;
+    if (el.dataset.field === 'b') actividades.mindMap[index].b = el.value;
+  }
+});
+
+document.addEventListener('change', (e) => {
+  const el = e.target;
+  if (el.type !== 'radio') return;
+  if (el.dataset.tipo === 'trivia') actividades.trivia[el.dataset.index].correcta = Number(el.dataset.opcion);
+  if (el.dataset.tipo === 'vf') actividades.verdaderoFalso[el.dataset.index].respuesta = el.dataset.respuesta === 'true';
+});
+
+$('detective-target').addEventListener('input', (e) => actividades.detective.target = e.target.value);
+$('detective-synonyms').addEventListener('input', (e) => actividades.detective.synonyms = e.target.value.split(',').map(s => s.trim()).filter(Boolean));
+$('detective-distractors').addEventListener('input', (e) => actividades.detective.distractors = e.target.value.split(',').map(s => s.trim()).filter(Boolean));
+
+// ---------- Agregar / quitar ----------
+$('add-trivia').addEventListener('click', () => {
+  actividades.trivia.push({ pregunta: '', opciones: ['', '', '', ''], correcta: 0 });
+  renderTrivia();
+});
+$('add-vf').addEventListener('click', () => {
+  actividades.verdaderoFalso.push({ afirmacion: '', respuesta: true });
+  renderVF();
+});
+$('add-evento').addEventListener('click', () => {
+  actividades.order.push('');
+  renderEventos();
+});
+$('add-pareja').addEventListener('click', () => {
+  actividades.mindMap.push({ a: '', b: '' });
+  renderParejas();
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.classList.contains('q-item__remove')) return;
+  const tipo = e.target.dataset.tipo;
+  const index = Number(e.target.dataset.index);
+  if (tipo === 'trivia') { actividades.trivia.splice(index, 1); renderTrivia(); }
+  if (tipo === 'vf') { actividades.verdaderoFalso.splice(index, 1); renderVF(); }
+  if (tipo === 'order') { actividades.order.splice(index, 1); renderEventos(); }
+  if (tipo === 'mindmap') { actividades.mindMap.splice(index, 1); renderParejas(); }
+});
+
+// ---------- Guardar ----------
+$('activities-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  guardarActividades(lecturaActual, actividades);
+  $mensaje.textContent = '✅ Actividades guardadas correctamente.';
+  $mensaje.hidden = false;
+  setTimeout(() => $mensaje.hidden = true, 3000);
+});
+
+// ---------- Inicializar ----------
+$lectura.innerHTML = LECTURAS.map(l => `<option value="${l.id}">${l.titulo}</option>`).join('');
+cambiarLectura();

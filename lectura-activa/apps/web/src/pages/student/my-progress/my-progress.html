@@ -14,44 +14,21 @@
 
     <header class="site-header">
       <div class="site-header__container">
-        <a
-          href="/"
-          class="site-header__logo"
-          aria-label="Lectura Activa - Inicio"
-        >
+        <a href="../catalog/catalog.html" class="site-header__logo" aria-label="Lectura Activa - Inicio">
           <span class="site-header__logo-text">Lectura Activa</span>
         </a>
 
         <nav class="site-header__nav" aria-label="Navegación principal">
           <ul class="site-header__nav-list">
-            <li>
-              <a href="../catalog/catalog.html" class="site-header__nav-link"
-                >Catálogo</a
-              >
-            </li>
-            <li>
-              <a href="../my-tasks/my-tasks.html" class="site-header__nav-link"
-                >Mis tareas</a
-              >
-            </li>
-            <li>
-              <a
-                href="./my-progress.html"
-                class="site-header__nav-link"
-                aria-current="page"
-                >Mi progreso</a
-              >
-            </li>
+            <li><a href="../catalog/catalog.html" class="site-header__nav-link">Catálogo</a></li>
+            <li><a href="../my-tasks/my-tasks.html" class="site-header__nav-link">Mis tareas</a></li>
+            <li><a href="./my-progress.html" class="site-header__nav-link" aria-current="page">Mi progreso</a></li>
           </ul>
         </nav>
 
         <div class="site-header__user">
           <span class="site-header__user-name">Estudiante</span>
-          <a
-            href="../user-profile/user-profile.html"
-            class="site-header__user-button"
-            aria-label="Ver mi perfil"
-          >
+          <a href="../user-profile/user-profile.html" class="site-header__user-button" aria-label="Ver mi perfil">
             <span aria-hidden="true">👤</span>
           </a>
         </div>
@@ -69,29 +46,25 @@
       <section class="progress__stats" aria-label="Resumen general">
         <div class="progress__stat">
           <span class="progress__stat-icon" aria-hidden="true">📚</span>
-          <span class="progress__stat-value" data-field="totalReadings">8</span>
+          <span class="progress__stat-value" data-field="totalReadings">—</span>
           <span class="progress__stat-label">Lecturas</span>
         </div>
 
         <div class="progress__stat progress__stat--success">
           <span class="progress__stat-icon" aria-hidden="true">✅</span>
-          <span class="progress__stat-value" data-field="completedReadings"
-            >5</span
-          >
+          <span class="progress__stat-value" data-field="completedReadings">—</span>
           <span class="progress__stat-label">Completadas</span>
         </div>
 
         <div class="progress__stat progress__stat--primary">
           <span class="progress__stat-icon" aria-hidden="true">🎯</span>
-          <span class="progress__stat-value" data-field="averageScore">82</span>
+          <span class="progress__stat-value" data-field="averageScore">—</span>
           <span class="progress__stat-label">Promedio</span>
         </div>
 
         <div class="progress__stat progress__stat--warning">
           <span class="progress__stat-icon" aria-hidden="true">⏱</span>
-          <span class="progress__stat-value" data-field="totalTime"
-            >2h 30m</span
-          >
+          <span class="progress__stat-value" data-field="totalTime">—</span>
           <span class="progress__stat-label">Tiempo total</span>
         </div>
       </section>
@@ -100,218 +73,19 @@
         <header class="progress__section-header">
           <h2 class="progress__section-title" id="history-title">Historial</h2>
           <p class="progress__section-count">
-            <span data-field="historyCount">5</span> lecturas completadas
+            <span data-field="historyCount">0</span> lecturas completadas
           </p>
         </header>
 
-        <ul
-          class="progress__list"
-          data-field="historyList"
-          aria-label="Historial de lecturas completadas"
-        >
-          <!-- Item 1 -->
-          <li>
-            <a
-              href="../feedback/feedback.html?id=fake_001"
-              class="progress__item"
-              data-id="fake_001"
-              aria-label="Ver resultados de El principito"
-            >
-              <div class="progress__item-header">
-                <h3 class="progress__item-title">El principito</h3>
-                <span class="progress__item-score progress__item-score--high"
-                  >92 / 100</span
-                >
-              </div>
-
-              <div class="progress__item-meta">
-                <span class="progress__item-date">
-                  <span aria-hidden="true">📅</span>
-                  <span data-field="completedAt">22/09/2026</span>
-                </span>
-                <span class="progress__item-time">
-                  <span aria-hidden="true">⏱</span>
-                  <span data-field="timeSpent">12 min</span>
-                </span>
-              </div>
-
-              <div class="progress__item-footer">
-                <span class="progress__item-group" data-field="groupName">
-                  <span aria-hidden="true">👥</span>
-                  Grupo 3°A
-                </span>
-                <span class="progress__item-action">
-                  Ver resultados
-                  <span aria-hidden="true">→</span>
-                </span>
-              </div>
-            </a>
-          </li>
-
-          <!-- Item 2 -->
-          <li>
-            <a
-              href="../feedback/feedback.html?id=fake_002"
-              class="progress__item"
-              data-id="fake_002"
-              aria-label="Ver resultados de 1984"
-            >
-              <div class="progress__item-header">
-                <h3 class="progress__item-title">1984</h3>
-                <span class="progress__item-score progress__item-score--mid"
-                  >78 / 100</span
-                >
-              </div>
-
-              <div class="progress__item-meta">
-                <span class="progress__item-date">
-                  <span aria-hidden="true">📅</span>
-                  <span data-field="completedAt">15/09/2026</span>
-                </span>
-                <span class="progress__item-time">
-                  <span aria-hidden="true">⏱</span>
-                  <span data-field="timeSpent">35 min</span>
-                </span>
-              </div>
-
-              <div class="progress__item-footer">
-                <span class="progress__item-group" data-field="groupName">
-                  <span aria-hidden="true">👥</span>
-                  Grupo 3°A
-                </span>
-                <span class="progress__item-action">
-                  Ver resultados
-                  <span aria-hidden="true">→</span>
-                </span>
-              </div>
-            </a>
-          </li>
-
-          <!-- Item 3 -->
-          <li>
-            <a
-              href="../feedback/feedback.html?id=fake_003"
-              class="progress__item"
-              data-id="fake_003"
-              aria-label="Ver resultados de Cien años de soledad"
-            >
-              <div class="progress__item-header">
-                <h3 class="progress__item-title">Cien años de soledad</h3>
-                <span class="progress__item-score progress__item-score--high"
-                  >85 / 100</span
-                >
-              </div>
-
-              <div class="progress__item-meta">
-                <span class="progress__item-date">
-                  <span aria-hidden="true">📅</span>
-                  <span data-field="completedAt">28/08/2026</span>
-                </span>
-                <span class="progress__item-time">
-                  <span aria-hidden="true">⏱</span>
-                  <span data-field="timeSpent">28 min</span>
-                </span>
-              </div>
-
-              <div class="progress__item-footer">
-                <span class="progress__item-group" data-field="groupName">
-                  <span aria-hidden="true">👥</span>
-                  Grupo 3°A
-                </span>
-                <span class="progress__item-action">
-                  Ver resultados
-                  <span aria-hidden="true">→</span>
-                </span>
-              </div>
-            </a>
-          </li>
-
-          <!-- Item 4 -->
-          <li>
-            <a
-              href="../feedback/feedback.html?id=fake_004"
-              class="progress__item"
-              data-id="fake_004"
-              aria-label="Ver resultados de La casa de los espíritus"
-            >
-              <div class="progress__item-header">
-                <h3 class="progress__item-title">La casa de los espíritus</h3>
-                <span class="progress__item-score progress__item-score--mid"
-                  >72 / 100</span
-                >
-              </div>
-
-              <div class="progress__item-meta">
-                <span class="progress__item-date">
-                  <span aria-hidden="true">📅</span>
-                  <span data-field="completedAt">20/08/2026</span>
-                </span>
-                <span class="progress__item-time">
-                  <span aria-hidden="true">⏱</span>
-                  <span data-field="timeSpent">38 min</span>
-                </span>
-              </div>
-
-              <div class="progress__item-footer">
-                <span class="progress__item-group" data-field="groupName">
-                  <span aria-hidden="true">👥</span>
-                  Grupo 3°A
-                </span>
-                <span class="progress__item-action">
-                  Ver resultados
-                  <span aria-hidden="true">→</span>
-                </span>
-              </div>
-            </a>
-          </li>
-
-          <!-- Item 5 -->
-          <li>
-            <a
-              href="../feedback/feedback.html?id=fake_005"
-              class="progress__item"
-              data-id="fake_005"
-              aria-label="Ver resultados de Don Quijote de la Mancha"
-            >
-              <div class="progress__item-header">
-                <h3 class="progress__item-title">Don Quijote de la Mancha</h3>
-                <span class="progress__item-score progress__item-score--low"
-                  >58 / 100</span
-                >
-              </div>
-
-              <div class="progress__item-meta">
-                <span class="progress__item-date">
-                  <span aria-hidden="true">📅</span>
-                  <span data-field="completedAt">10/08/2026</span>
-                </span>
-                <span class="progress__item-time">
-                  <span aria-hidden="true">⏱</span>
-                  <span data-field="timeSpent">55 min</span>
-                </span>
-              </div>
-
-              <div class="progress__item-footer">
-                <span class="progress__item-group" data-field="groupName">
-                  <span aria-hidden="true">👥</span>
-                  Grupo 3°A
-                </span>
-                <span class="progress__item-action">
-                  Ver resultados
-                  <span aria-hidden="true">→</span>
-                </span>
-              </div>
-            </a>
-          </li>
+        <ul class="progress__list" data-field="historyList" aria-label="Historial de lecturas completadas">
+          <!-- Se rellena con JS -->
         </ul>
       </section>
 
       <!-- Estado vacío -->
       <section class="progress__empty" hidden>
         <div class="progress__empty-icon" aria-hidden="true">📚</div>
-        <h2 class="progress__empty-title">
-          Aún no has completado ninguna lectura
-        </h2>
+        <h2 class="progress__empty-title">Aún no has completado ninguna lectura</h2>
         <p class="progress__empty-text">
           Cuando termines tu primera lectura, aparecerá aquí tu progreso.
         </p>
@@ -320,75 +94,7 @@
         </a>
       </section>
     </main>
+
+    <script type="module" src="./my-progress.js"></script>
   </body>
-  <!--
-    ============================================================
-    NOTA PARA EL JS
-
-    El JS debe:
-
-    1. Hacer fetch a GET /api/v1/me/progress
-       (endpoint a definir con Aaron).
-
-    2. Rellenar las estadísticas generales:
-       - [data-field="totalReadings"] → total de lecturas asignadas
-       - [data-field="completedReadings"] → lecturas completadas
-       - [data-field="averageScore"] → promedio de notas
-       - [data-field="totalTime"] → tiempo total formateado
-         (ej: "2h 30m")
-
-    3. Rellenar el contador del historial:
-       - [data-field="historyCount"] → número de lecturas completadas
-
-    4. Generar los <li> dentro de [data-field="historyList"]:
-       Para cada lectura COMPLETADA (status === "completed"):
-
-       <li>
-         <a href="../feedback/feedback.html?id={studentAssignmentId}"
-            class="progress__item"
-            data-id="{studentAssignmentId}">
-           <div class="progress__item-header">
-             <h3 class="progress__item-title">{readingTitle}</h3>
-             <span class="progress__item-score progress__item-score--{nivel}">
-               {score} / 100
-             </span>
-           </div>
-           <div class="progress__item-meta">
-             <span class="progress__item-date">
-               📅 {completedAt formateado}
-             </span>
-             <span class="progress__item-time">
-               ⏱ {timeSpentSeconds formateado}
-             </span>
-           </div>
-           <div class="progress__item-footer">
-             <span class="progress__item-group">
-               👥 {groupName}
-             </span>
-             <span class="progress__item-action">
-               Ver resultados →
-             </span>
-           </div>
-         </a>
-       </li>
-
-       Nivel de score (para clase de color):
-       - score >= 80: --high (verde)
-       - 60 <= score < 80: --mid (amarillo)
-       - score < 60: --low (rojo)
-
-    5. Filtrar SOLO lecturas completadas:
-       - Solo se muestran las que tienen status === "completed"
-       - Las pendientes y en progreso NO aparecen aquí
-       - Esas están en my-tasks
-
-    6. Si no hay lecturas completadas:
-       - Ocultar .progress__section
-       - Mostrar .progress__empty (quitar hidden)
-
-    7. Formatear fechas: "DD/MM/YYYY"
-    8. Formatear tiempo:
-       - Si < 60 min: "{min} min"
-       - Si >= 60 min: "{h}h {m}m"
-  -->
 </html>

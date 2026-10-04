@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis grupos | Lectura Activa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles/dashboard.css">
+  <link rel="stylesheet" href="./groups.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <img src="../../assets/logo-kinal.png" alt="Logo" onerror="this.style.display='none'">
+      </div>
+      <div>
+        <p class="sidebar__title">Panel docente</p>
+        <nav class="nav">
+          <a href="./dashboard-teacher.html" class="nav__link">Inicio</a>
+          <a href="./reading-new.html" class="nav__link">Nueva lectura</a>
+          <a href="./activities-edit.html" class="nav__link">Actividades</a>
+          <a href="./groups.html" class="nav__link is-active">Grupos</a>
+          <a href="./stats.html" class="nav__link">Estadísticas</a>
+        </nav>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__crumb">Lectura Activa</span>
+        <div class="topbar__user">
+          <span>Docente</span>
+          <a href="../auth/login.html" class="topbar__logout">Cerrar sesión</a>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1>Mis grupos</h1>
+            <p>Crea grupos, comparte el código y tus estudiantes se unirán solos.</p>
+          </div>
+          <button type="button" class="btn btn--orange" id="btn-nuevo-grupo">+ Nuevo grupo</button>
+        </div>
+
+        <p id="mensaje" class="alert" role="status" hidden></p>
+
+        <section class="groups-grid" id="groups-grid"></section>
+
+        <p id="sin-grupos" class="panel__hint" hidden style="text-align:center; padding: 40px;">
+          Aún no tienes grupos. Crea el primero con el botón "+ Nuevo grupo".
+        </p>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal: nuevo grupo -->
+  <div id="modal-nuevo" class="modal" hidden>
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__content">
+      <header class="modal__header">
+        <h2 class="modal__title">Nuevo grupo</h2>
+        <button type="button" class="modal__close" data-close>&times;</button>
+      </header>
+      <div class="modal__body">
+        <div class="field">
+          <label for="grupo-nombre">Nombre del grupo</label>
+          <input type="text" id="grupo-nombre" placeholder="Ej. 4to A">
+        </div>
+        <div class="field">
+          <label for="grupo-year">Año escolar</label>
+          <input type="number" id="grupo-year" min="2024" max="2100">
+        </div>
+        <div class="field">
+          <label for="grupo-codigo">Código (compártelo con tus estudiantes)</label>
+          <div class="field-inline">
+            <input type="text" id="grupo-codigo" readonly>
+            <button type="button" class="btn btn--ghost btn--sm" id="btn-regenerar">🔄</button>
+          </div>
+        </div>
+      </div>
+      <footer class="modal__footer">
+        <button type="button" class="btn btn--ghost" data-close>Cancelar</button>
+        <button type="button" class="btn btn--orange" id="btn-guardar-grupo">Crear grupo</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Modal: ver estudiantes -->
+  <div id="modal-ver" class="modal" hidden>
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__content">
+      <header class="modal__header">
+        <h2 class="modal__title" id="ver-titulo">Estudiantes del grupo</h2>
+        <button type="button" class="modal__close" data-close>&times;</button>
+      </header>
+      <div class="modal__body">
+        <p class="modal__code">Código: <strong id="ver-codigo">—</strong></p>
+        <ul class="students-list" id="ver-estudiantes"></ul>
+      </div>
+      <footer class="modal__footer">
+        <button type="button" class="btn btn--ghost" data-close>Cerrar</button>
+      </footer>
+    </div>
+  </div>
+
+  <script type="module" src="./groups.js"></script>
+</body>
+</html>

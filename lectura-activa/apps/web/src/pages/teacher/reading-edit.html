@@ -13,7 +13,7 @@
   <div class="layout">
     <aside class="sidebar">
       <div class="sidebar__brand">
-        <img src="../../assets/logo-kinal.jpg" alt="Logo" onerror="this.style.display='none'">
+        <img src="../../assets/logo-kinal.png" alt="Logo" onerror="this.style.display='none'">
       </div>
       <div>
         <p class="sidebar__title">Panel docente</p>
@@ -21,6 +21,7 @@
           <a href="./dashboard-teacher.html" class="nav__link">Inicio</a>
           <a href="./reading-new.html" class="nav__link">Nueva lectura</a>
           <a href="./activities-edit.html" class="nav__link">Actividades</a>
+          <a href="./groups.html" class="nav__link">Grupos</a>
           <a href="./stats.html" class="nav__link">Estadísticas</a>
         </nav>
       </div>
@@ -41,7 +42,7 @@
             <h1>Editar lectura</h1>
             <p>Modifica los datos de una lectura ya publicada.</p>
           </div>
-          <span class="badge badge--ok">Publicada</span>
+          <span class="badge badge--ok" id="badge-estado">Publicada</span>
         </div>
 
         <p class="alert">
@@ -58,18 +59,18 @@
             <div class="form__grid">
               <div class="field">
                 <label for="titulo">Título</label>
-                <input type="text" id="titulo" name="titulo" value="La liebre y la tortuga" required>
+                <input type="text" id="titulo" name="titulo" required>
               </div>
 
               <div class="field">
                 <label for="autor">Autor</label>
-                <input type="text" id="autor" name="autor" value="Esopo">
+                <input type="text" id="autor" name="autor">
               </div>
 
               <div class="field">
                 <label for="nivel">Dificultad</label>
                 <select id="nivel" name="nivel" required>
-                  <option value="basico" selected>Básico</option>
+                  <option value="basico">Básico</option>
                   <option value="intermedio">Intermedio</option>
                   <option value="avanzado">Avanzado</option>
                 </select>
@@ -77,19 +78,17 @@
 
               <div class="field">
                 <label for="minutos">Tiempo estimado (minutos)</label>
-                <input type="number" id="minutos" name="minutos" min="1" max="30" value="3">
+                <input type="number" id="minutos" name="minutos" min="1" max="120" value="15">
               </div>
 
               <div class="field field--full">
                 <label for="resumen">Resumen</label>
-                <textarea id="resumen" name="resumen">Una carrera que enseña que la constancia vence a la confianza excesiva.</textarea>
+                <textarea id="resumen" name="resumen"></textarea>
               </div>
 
               <div class="field field--full">
                 <label for="contenido">Contenido</label>
-                <textarea id="contenido" name="contenido" rows="8">Una liebre se burlaba de la lentitud de una tortuga.
-La tortuga la retó a una carrera y la liebre aceptó riendo.
-Confiada, la liebre se durmió a mitad del camino, y la tortuga, sin detenerse, llegó primero a la meta.</textarea>
+                <textarea id="contenido" name="contenido" rows="8"></textarea>
                 <span class="field__hint">Recuerda que las lecturas deben ser muy cortas.</span>
               </div>
             </div>
@@ -101,46 +100,8 @@ Confiada, la liebre se durmió a mitad del camino, y la tortuga, sin detenerse, 
               <a href="./activities-edit.html" class="btn btn--ghost btn--sm">Editar preguntas</a>
             </div>
 
-            <div class="checklist">
-              <label class="check">
-                <input type="checkbox" name="actividades" value="trivia" checked>
-                <div>
-                  <p class="check__title">Preguntas tipo trivia</p>
-                  <p class="check__desc">Opción múltiple con puntaje.</p>
-                </div>
-              </label>
-
-              <label class="check">
-                <input type="checkbox" name="actividades" value="verdadero-falso" checked>
-                <div>
-                  <p class="check__title">Verdadero o falso rápido</p>
-                  <p class="check__desc">Afirmaciones sobre el texto.</p>
-                </div>
-              </label>
-
-              <label class="check">
-                <input type="checkbox" name="actividades" value="detective" checked>
-                <div>
-                  <p class="check__title">Detective de palabras</p>
-                  <p class="check__desc">Encontrar sinónimos en el texto.</p>
-                </div>
-              </label>
-
-              <label class="check">
-                <input type="checkbox" name="actividades" value="ordenar" checked>
-                <div>
-                  <p class="check__title">Ordena la historia</p>
-                  <p class="check__desc">Arrastrar los hechos al orden correcto.</p>
-                </div>
-              </label>
-
-              <label class="check">
-                <input type="checkbox" name="actividades" value="mapa" checked>
-                <div>
-                  <p class="check__title">Mapa mental</p>
-                  <p class="check__desc">Unir conceptos con líneas.</p>
-                </div>
-              </label>
+            <div class="checklist" id="lista-actividades">
+              <p class="panel__hint">Cargando actividades...</p>
             </div>
           </section>
 
@@ -160,18 +121,11 @@ Confiada, la liebre se durmió a mitad del camino, y la tortuga, sin detenerse, 
                     <th>Estado</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="asignaciones-body">
                   <tr>
-                    <td>4to A</td>
-                    <td>01/10/2026</td>
-                    <td>15/10/2026</td>
-                    <td><span class="badge badge--ok">En curso</span></td>
-                  </tr>
-                  <tr>
-                    <td>4to B</td>
-                    <td>05/10/2026</td>
-                    <td>20/10/2026</td>
-                    <td><span class="badge badge--draft">Programada</span></td>
+                    <td colspan="4" style="text-align: center; padding: 20px; color: #64748b;">
+                      Cargando asignaciones...
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -186,5 +140,7 @@ Confiada, la liebre se durmió a mitad del camino, y la tortuga, sin detenerse, 
       </main>
     </div>
   </div>
+
+  <script type="module" src="./reading-edit.js"></script>
 </body>
 </html>

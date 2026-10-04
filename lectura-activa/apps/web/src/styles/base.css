@@ -232,3 +232,10 @@ textarea {
     display: none;
   }
 }
+/* Header sin navegación (para pantallas bloqueadas) */
+.site-header--minimal .site-header__logo {
+  color: white;
+  font-weight: 700;
+  font-size: 1.25rem;
+  text-decoration: none;
+}
