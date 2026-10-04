@@ -1,28 +1,15 @@
 /**
  * my-progress.js
- * Muestra el progreso histórico del estudiante.
- * Por ahora usa datos mock. Mañana se conecta a GET /api/v1/me/progress.
+ * Muestra el progreso histórico del estudiante basado en los resultados
+ * guardados en localStorage (resultado_${lecturaId}).
+ * 
+ * TODO backend: reemplazar por GET /api/v1/me/progress
  */
 
 // ============================================================
-// DATOS MOCK
+// CONFIGURACIÓN
 // ============================================================
-// TODO backend: reemplazar por:
-//   import { api } from '../../../services/apiClient.js';
-//   const progreso = await api.get('/me/progress');
-const PROGRESO_MOCK = {
-  totalReadings: 8,
-  completedReadings: 5,
-  averageScore: 82,
-  totalTimeSeconds: 9000,
-  history: [
-    { id: 'fake_001', readingTitle: 'El principito', score: 92, completedAt: '2026-09-22T10:15:00Z', timeSpentSeconds: 720, groupName: '3°A' },
-    { id: 'fake_002', readingTitle: '1984', score: 78, completedAt: '2026-09-15T16:20:00Z', timeSpentSeconds: 2100, groupName: '3°A' },
-    { id: 'fake_003', readingTitle: 'Cien años de soledad', score: 85, completedAt: '2026-08-28T11:00:00Z', timeSpentSeconds: 1680, groupName: '3°A' },
-    { id: 'fake_004', readingTitle: 'La casa de los espíritus', score: 72, completedAt: '2026-08-20T09:30:00Z', timeSpentSeconds: 2280, groupName: '3°A' },
-    { id: 'fake_005', readingTitle: 'Don Quijote de la Mancha', score: 58, completedAt: '2026-08-10T15:45:00Z', timeSpentSeconds: 3300, groupName: '3°A' }
-  ]
-};
+const ESTUDIANTE_EMAIL = 'estudiante@kinal.edu.gt'; // TODO: reemplazar con user.email real
 
 // ============================================================
 // REFERENCIAS
@@ -73,14 +60,104 @@ function llenarTodos(campo, valor) {
 }
 
 // ============================================================
+// CÁLCULO DE PUNTAJE
+// ============================================================
+/**
+ * Calcula el puntaje de una lectura completada.
+ * Compara las respuestas del estudiante con las correctas.
+ */
+function calcularScore(lecturaId, resultado) {
+  const actividadesGuardadas = localStorage.getItem(`actividades_${lecturaId}`);
+  if (!actividadesGuardadas) return 0;
+
+  const acts = JSON.parse(actividadesGuardadas);
+  const respuestas = resultado.respuestas || {};
+
+  let correctas = 0;
+  let total = 0;
+
+  // Trivia
+  (acts.trivia || []).forEach((q, i) => {
+    const idx = String(i);
+    total++;
+    if (respuestas[idx] === q.correcta) correctas++;
+  });
+
+  // Verdadero / Falso
+  const offset = (acts.trivia || []).length;
+  (acts.verdaderoFalso || []).forEach((v, j) => {
+    const idx = String(offset + j);
+    total++;
+    if (respuestas[idx] === v.respuesta) correctas++;
+  });
+
+  if (total === 0) return 0;
+  return Math.round((correctas / total) * 100);
+}
+
+// ============================================================
+// CARGAR HISTORIAL
+// ============================================================
+function cargarHistorial() {
+  const historial = [];
+
+  // Buscar todas las claves resultado_* en localStorage
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+
+    if (!key || !key.startsWith('resultado_')) continue;
+
+    const lecturaId = key.replace('resultado_', '');
+
+    // Leer el resultado guardado
+    let resultado;
+    try {
+      resultado = JSON.parse(localStorage.getItem(key) || '{}');
+    } catch {
+      continue;
+    }
+
+    // Leer la lectura (para saber el título)
+    const lecturaGuardada = localStorage.getItem(`lectura_${lecturaId}`);
+    const lectura = lecturaGuardada ? JSON.parse(lecturaGuardada) : null;
+
+    // Leer el grupo del estudiante (para saber a qué grupo pertenece)
+    const grupoGuardado = localStorage.getItem(`grupo_estudiante_${ESTUDIANTE_EMAIL}`);
+    const grupo = grupoGuardado ? JSON.parse(grupoGuardado) : null;
+
+    const score = calcularScore(lecturaId, resultado);
+
+    historial.push({
+      id: lecturaId,
+      readingTitle: lectura?.title || 'Lectura',
+      score,
+      completedAt: resultado.fecha,
+      timeSpentSeconds: resultado.tiempoUsadoSegundos || 0,
+      groupName: grupo?.nombreGrupo || 'Sin grupo'
+    });
+  }
+
+  // Ordenar por fecha descendente (más reciente primero)
+  historial.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+
+  return historial;
+}
+
+// ============================================================
 // RENDER
 // ============================================================
-function renderEstadisticas(p) {
-  llenarTodos('totalReadings', p.totalReadings);
-  llenarTodos('completedReadings', p.completedReadings);
-  llenarTodos('averageScore', p.averageScore);
-  llenarTodos('totalTime', formatearTiempo(p.totalTimeSeconds));
-  llenarTodos('historyCount', p.history.length);
+function renderEstadisticas(historial) {
+  const total = historial.length;
+  const promedio = total > 0
+    ? Math.round(historial.reduce((acc, h) => acc + h.score, 0) / total)
+    : 0;
+  const tiempoTotal = historial.reduce((acc, h) => acc + h.timeSpentSeconds, 0);
+
+  llenarTodos('totalReadings', total);
+  llenarTodos('completedReadings', total);
+  llenarTodos('averageScore', promedio);
+  llenarTodos('totalTime', formatearTiempo(tiempoTotal));
+  llenarTodos('historyCount', total);
 }
 
 function renderHistorial(historial) {
@@ -125,29 +202,19 @@ function renderHistorial(historial) {
 // ============================================================
 // INICIALIZAR
 // ============================================================
-async function cargarProgreso() {
-  // TODO backend: reemplazar por:
-  //   try {
-  //     const p = await api.get('/me/progress');
-  //     // render...
-  //   } catch (err) {
-  //     if (err.status === 401) window.location.href = '../../auth/login.html';
-  //   }
+function init() {
+  const historial = cargarHistorial();
 
-  await new Promise((r) => setTimeout(r, 400));
+  renderEstadisticas(historial);
 
-  const p = PROGRESO_MOCK;
-
-  renderEstadisticas(p);
-
-  if (p.history.length === 0) {
+  if (historial.length === 0) {
     $seccionHistorial.hidden = true;
     $vacio.hidden = false;
   } else {
     $seccionHistorial.hidden = false;
     $vacio.hidden = true;
-    renderHistorial(p.history);
+    renderHistorial(historial);
   }
 }
 
-cargarProgreso();
+init();

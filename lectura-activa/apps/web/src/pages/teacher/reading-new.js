@@ -1,14 +1,15 @@
 /**
  * reading-new.js
  * Maneja el formulario de nueva lectura.
- * Guarda la lectura en localStorage y la asigna a grupos.
+ * Guarda la lectura en localStorage, crea actividades vacías
+ * y la asigna a grupos.
  * 
  * TODO backend: reemplazar localStorage por:
  *   const lectura = await api.post('/readings', data);
  *   await api.post('/assignments', { readingId: lectura.id, groupIds });
  */
 
-const DOCENTE_ID = 'docente-demo'; // TODO: reemplazar por user.id real
+const DOCENTE_ID = 'docente-demo';
 const KEY_GRUPOS = `grupos_${DOCENTE_ID}`;
 const KEY_LECTURAS = 'lecturas_docente';
 
@@ -89,7 +90,7 @@ form.addEventListener('submit', (e) => {
     return;
   }
 
-  // Generar un id simple (slug + timestamp)
+  // Generar id
   const id = titulo.toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
@@ -99,7 +100,7 @@ form.addEventListener('submit', (e) => {
   const actividadesSeleccionadas = [...document.querySelectorAll('input[name="actividades"]:checked')]
     .map((c) => c.value);
 
-  // Grupos asignados (IDs reales)
+  // Grupos asignados
   const gruposSeleccionados = [...document.querySelectorAll('input[name="grupos"]:checked')]
     .map((c) => c.value);
 
@@ -107,7 +108,7 @@ form.addEventListener('submit', (e) => {
   const fechaInicio = document.getElementById('fecha-inicio').value;
   const fechaEntrega = document.getElementById('fecha-entrega').value;
 
-  // Guardar lectura en localStorage
+  // Guardar lectura
   const lectura = {
     id,
     title: titulo,
@@ -124,15 +125,27 @@ form.addEventListener('submit', (e) => {
     createdAt: new Date().toISOString()
   };
 
-  // Lista global de lecturas
+  // Lista global
   const lecturasGuardadas = JSON.parse(localStorage.getItem(KEY_LECTURAS) || '[]');
   lecturasGuardadas.push(lectura);
   localStorage.setItem(KEY_LECTURAS, JSON.stringify(lecturasGuardadas));
 
-  // Guardar por id (para lectura individual)
+  // Guardar por id
   localStorage.setItem(`lectura_${id}`, JSON.stringify(lectura));
 
-  // Crear tareas para los grupos asignados (por cada estudiante)
+  // ⭐ NUEVO: Guardar actividades vacías para que reading-activity.js
+  // no caiga en el fallback cuando esta lectura no tenga actividades editadas aún.
+  if (!localStorage.getItem(`actividades_${id}`)) {
+    localStorage.setItem(`actividades_${id}`, JSON.stringify({
+      trivia: [],
+      verdaderoFalso: [],
+      detective: { target: '', synonyms: [], distractors: [] },
+      order: [],
+      mindMap: []
+    }));
+  }
+
+  // Crear tareas para los grupos asignados
   if (gruposSeleccionados.length > 0) {
     const todosGrupos = cargarGrupos();
     gruposSeleccionados.forEach((grupoId) => {

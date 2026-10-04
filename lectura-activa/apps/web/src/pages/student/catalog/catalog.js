@@ -1,16 +1,13 @@
 /**
  * catalog.js
  * Carga, filtra y muestra las lecturas del catálogo.
- * Por ahora usa datos mock. Mañana se conecta a GET /api/v1/readings.
+ * Combina lecturas mock con las lecturas reales creadas por el docente.
  */
 
 // ============================================================
-// DATOS (mock por ahora)
+// DATOS
 // ============================================================
-// TODO backend: reemplazar por:
-//   import { api } from '../../../services/apiClient.js';
-//   const lecturas = await api.get('/readings');
-const LECTURAS = [
+const LECTURAS_MOCK = [
   { id: 'fake_001', title: 'El principito', summary: 'Un piloto conoce a un pequeño príncipe que viene de otro planeta y le enseña lecciones sobre la vida, el amor y la amistad.', difficulty: 'easy', estimatedMinutes: 15, authorName: 'Ana López' },
   { id: 'fake_002', title: '1984', summary: 'Una distopía sobre un régimen totalitario que controla todo, incluso el pensamiento, y la lucha de un hombre por la libertad.', difficulty: 'hard', estimatedMinutes: 45, authorName: 'Luis Pérez' },
   { id: 'fake_003', title: 'Cien años de soledad', summary: 'La historia de la familia Buendía en el pueblo de Macondo, con realismo mágico y personajes inolvidables.', difficulty: 'medium', estimatedMinutes: 30, authorName: 'Gabriel García Márquez' },
@@ -18,6 +15,12 @@ const LECTURAS = [
   { id: 'fake_005', title: 'Don Quijote de la Mancha', summary: 'Las aventuras de un hidalgo que decide convertirse en caballero andante y vive todo tipo de peripecias.', difficulty: 'hard', estimatedMinutes: 60, authorName: 'Miguel de Cervantes' },
   { id: 'fake_006', title: 'El Principito (corto)', summary: 'Versión corta para lectores principiantes del clásico de Saint-Exupéry.', difficulty: 'easy', estimatedMinutes: 8, authorName: 'Ana López' }
 ];
+
+// Cargar las lecturas reales creadas por el docente
+const lecturasGuardadas = JSON.parse(localStorage.getItem('lecturas_docente') || '[]');
+
+// Combinar: primero las del docente, luego los mocks
+const LECTURAS = [...lecturasGuardadas, ...LECTURAS_MOCK];
 
 // ============================================================
 // REFERENCIAS
@@ -107,7 +110,7 @@ $filterDifficulty.addEventListener('change', aplicarFiltros);
 $filterDuration.addEventListener('change', aplicarFiltros);
 
 // ============================================================
-// CARRUSEL (scroll horizontal)
+// CARRUSEL
 // ============================================================
 function actualizarBotonesCarrusel() {
   const scrollLeft = $grid.scrollLeft;
@@ -134,10 +137,5 @@ window.addEventListener('resize', actualizarBotonesCarrusel);
 // ============================================================
 // INICIALIZAR
 // ============================================================
-// TODO backend: cuando el API esté listo:
-//   const lecturas = await api.get('/readings');
-//   LECTURAS.push(...lecturas);
-//   aplicarFiltros();
-
 renderLecturas();
 setTimeout(actualizarBotonesCarrusel, 100);

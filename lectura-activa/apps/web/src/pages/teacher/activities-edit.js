@@ -1,13 +1,33 @@
 /**
  * activities-edit.js
  * Editor de las 5 actividades de una lectura.
- * Usa la misma clave que espera reading-activity.html: `actividades_${lecturaId}`.
+ * Usa la misma clave que espera reading-activity.js: `actividades_${lecturaId}`.
+ * 
+ * Ahora lee las lecturas REALES del docente desde localStorage.
  */
 
-const LECTURAS = [
+// ---------- Cargar lecturas del docente ----------
+const KEY_LECTURAS = 'lecturas_docente';
+
+const lecturasReales = (() => {
+  try {
+    return JSON.parse(localStorage.getItem(KEY_LECTURAS) || '[]');
+  } catch {
+    return [];
+  }
+})();
+
+// Mocks de fallback (por si no hay lecturas creadas)
+const LECTURAS_MOCK = [
   { id: 'liebre-tortuga', titulo: 'La liebre y la tortuga' },
   { id: 'leon-raton', titulo: 'El león y el ratón' },
   { id: 'zorra-uvas', titulo: 'La zorra y las uvas' }
+];
+
+// Combinar: primero las reales, luego los mocks
+const LECTURAS = [
+  ...lecturasReales.map((l) => ({ id: l.id, titulo: l.title })),
+  ...LECTURAS_MOCK
 ];
 
 const $ = (id) => document.getElementById(id);
