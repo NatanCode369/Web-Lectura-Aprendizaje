@@ -14,43 +14,21 @@
 
     <header class="site-header">
       <div class="site-header__container">
-        <a
-          href="/"
-          class="site-header__logo"
-          aria-label="Lectura Activa - Inicio"
-        >
+        <a href="../catalog/catalog.html" class="site-header__logo" aria-label="Lectura Activa - Inicio">
           <span class="site-header__logo-text">Lectura Activa</span>
         </a>
 
         <nav class="site-header__nav" aria-label="Navegación principal">
           <ul class="site-header__nav-list">
-            <li>
-              <a href="../catalog/catalog.html" class="site-header__nav-link"
-                >Catálogo</a
-              >
-            </li>
-            <li>
-              <a href="../my-tasks/my-tasks.html" class="site-header__nav-link"
-                >Mis tareas</a
-              >
-            </li>
-            <li>
-              <a
-                href="../my-progress/my-progress.html"
-                class="site-header__nav-link"
-                >Mi progreso</a
-              >
-            </li>
+            <li><a href="../catalog/catalog.html" class="site-header__nav-link">Catálogo</a></li>
+            <li><a href="../my-tasks/my-tasks.html" class="site-header__nav-link">Mis tareas</a></li>
+            <li><a href="../my-progress/my-progress.html" class="site-header__nav-link">Mi progreso</a></li>
           </ul>
         </nav>
 
         <div class="site-header__user">
           <span class="site-header__user-name">Estudiante</span>
-          <a
-            href="../user-profile/user-profile.html"
-            class="site-header__user-button"
-            aria-label="Ver mi perfil"
-          >
+          <a href="../user-profile/user-profile.html" class="site-header__user-button" aria-label="Ver mi perfil">
             <span aria-hidden="true">👤</span>
           </a>
         </div>
@@ -61,19 +39,9 @@
       <!-- Breadcrumb -->
       <nav class="detail__breadcrumb" aria-label="Ruta de navegación">
         <ol class="detail__breadcrumb-list">
-          <li>
-            <a href="../catalog/catalog.html" class="detail__breadcrumb-link"
-              >Catálogo</a
-            >
-          </li>
+          <li><a href="../catalog/catalog.html" class="detail__breadcrumb-link">Catálogo</a></li>
           <li aria-hidden="true">/</li>
-          <li>
-            <span
-              class="detail__breadcrumb-current"
-              data-field="breadcrumbTitle"
-              >El principito</span
-            >
-          </li>
+          <li><span class="detail__breadcrumb-current" data-field="breadcrumbTitle">Lectura</span></li>
         </ol>
       </nav>
 
@@ -94,230 +62,73 @@
       <div id="error-state" class="detail__state" hidden>
         <div class="detail__state-icon" aria-hidden="true">⚠️</div>
         <h2 class="detail__state-title">No pudimos cargar la lectura</h2>
-        <p class="detail__state-text" data-field="errorMessage">
-          Intenta volver al catálogo y abrirla de nuevo.
-        </p>
-        <a href="../catalog/catalog.html" class="detail__state-button">
-          Volver al catálogo
-        </a>
+        <p class="detail__state-text" data-field="errorMessage">Intenta volver al catálogo y abrirla de nuevo.</p>
+        <a href="../catalog/catalog.html" class="detail__state-button">Volver al catálogo</a>
       </div>
 
       <!-- Contenido principal -->
       <div id="detail-content">
         <header class="detail__hero">
           <div class="detail__badges">
-            <span
-              class="detail__difficulty detail__difficulty--easy"
-              data-field="difficulty"
-            >
-              Fácil
-            </span>
-            <span
-              class="detail__progress detail__progress--pending"
-              data-field="progressBadge"
-              hidden
-            >
-              En progreso
-            </span>
+            <span class="detail__difficulty detail__difficulty--easy" data-field="difficulty">Fácil</span>
+            <span class="detail__progress detail__progress--pending" data-field="progressBadge" hidden>En progreso</span>
           </div>
 
-          <h1 class="detail__title" data-field="title">El principito</h1>
-          <p class="detail__author" data-field="author">Por: Ana López</p>
+          <h1 class="detail__title" data-field="title">Lectura</h1>
+          <p class="detail__author" data-field="author">Por: —</p>
         </header>
 
         <section class="detail__meta" aria-label="Información de la lectura">
           <div class="detail__meta-item">
             <span class="detail__meta-icon" aria-hidden="true">⏱</span>
             <span class="detail__meta-label">Duración</span>
-            <span class="detail__meta-value" data-field="estimatedMinutes"
-              >15 min</span
-            >
+            <span class="detail__meta-value" data-field="estimatedMinutes">—</span>
           </div>
 
           <div class="detail__meta-item">
             <span class="detail__meta-icon" aria-hidden="true">📝</span>
             <span class="detail__meta-label">Actividades</span>
-            <span class="detail__meta-value" data-field="activitiesCount"
-              >3</span
-            >
+            <span class="detail__meta-value" data-field="activitiesCount">—</span>
           </div>
 
           <div class="detail__meta-item">
             <span class="detail__meta-icon" aria-hidden="true">📖</span>
             <span class="detail__meta-label">Nivel</span>
-            <span class="detail__meta-value" data-field="level"
-              >Principiante</span
-            >
+            <span class="detail__meta-value" data-field="level">—</span>
           </div>
         </section>
 
         <section class="detail__section" aria-labelledby="about-title">
-          <h2 class="detail__section-title" id="about-title">
-            Sobre esta lectura
-          </h2>
-          <p class="detail__summary" data-field="summary">
-            Un piloto conoce a un pequeño príncipe que viene de otro planeta y
-            le enseña lecciones sobre la vida, el amor y la amistad. A través de
-            sus conversaciones, el principito comparte su visión única del mundo
-            y ayuda al piloto a redescubrir lo esencial que muchas veces
-            olvidamos los adultos.
-          </p>
+          <h2 class="detail__section-title" id="about-title">Sobre esta lectura</h2>
+          <p class="detail__summary" data-field="summary">—</p>
         </section>
 
         <section class="detail__section" aria-labelledby="activities-title">
-          <h2 class="detail__section-title" id="activities-title">
-            Actividades incluidas
-          </h2>
-          <ul
-            class="detail__activities"
-            data-field="activities"
-            aria-label="Lista de actividades de la lectura"
-          >
-            <li class="detail__activity">
-              <span class="detail__activity-icon" aria-hidden="true">❓</span>
-              <div class="detail__activity-content">
-                <h3 class="detail__activity-title">Preguntas de comprensión</h3>
-                <p class="detail__activity-text">
-                  Responde preguntas sobre los personajes y la historia.
-                </p>
-              </div>
-            </li>
-
-            <li class="detail__activity">
-              <span class="detail__activity-icon" aria-hidden="true">✓</span>
-              <div class="detail__activity-content">
-                <h3 class="detail__activity-title">Verdadero o falso</h3>
-                <p class="detail__activity-text">
-                  Identifica si las afirmaciones son verdaderas o falsas.
-                </p>
-              </div>
-            </li>
-
-            <li class="detail__activity">
-              <span class="detail__activity-icon" aria-hidden="true">✎</span>
-              <div class="detail__activity-content">
-                <h3 class="detail__activity-title">Completar espacios</h3>
-                <p class="detail__activity-text">
-                  Llena los espacios en blanco con la palabra correcta.
-                </p>
-              </div>
-            </li>
+          <h2 class="detail__section-title" id="activities-title">Actividades incluidas</h2>
+          <ul class="detail__activities" data-field="activities" aria-label="Lista de actividades de la lectura">
+            <!-- Se rellena con JS -->
           </ul>
         </section>
 
         <section class="detail__cta">
           <div class="detail__cta-content">
-            <h2 class="detail__cta-title" data-field="ctaTitle">
-              ¿Listo para empezar?
-            </h2>
-            <p class="detail__cta-note" data-field="ctaNote">
-              Una vez empieces, podrás pausar y continuar cuando quieras.
-            </p>
+            <h2 class="detail__cta-title" data-field="ctaTitle">¿Listo para empezar?</h2>
+            <p class="detail__cta-note" data-field="ctaNote">Una vez empieces, podrás pausar y continuar cuando quieras.</p>
           </div>
 
           <div class="detail__cta-actions">
-            <a
-              href="../reading-activity/reading-activity.html?id=fake_001"
-              class="detail__cta-button"
-              data-field="ctaPrimary"
-            >
+            <a href="#" class="detail__cta-button" data-field="ctaPrimary">
               <span data-field="ctaPrimaryText">Empezar a leer</span>
               <span aria-hidden="true">→</span>
             </a>
-            <a
-              href="../catalog/catalog.html"
-              class="detail__cta-button detail__cta-button--secondary"
-            >
+            <a href="../catalog/catalog.html" class="detail__cta-button detail__cta-button--secondary">
               Volver al catálogo
             </a>
           </div>
         </section>
       </div>
     </main>
+
+    <script type="module" src="./reading-detail.js"></script>
   </body>
-  <!--
-    ============================================================
-    NOTA PARA EL JS
-
-    El JS debe:
-    ============================================================
-
-    1. Leer el parámetro ?id= de la URL:
-       const params = new URLSearchParams(window.location.search);
-       const readingId = params.get('id');
-
-    2. Si no hay id, mostrar error:
-       - Ocultar #detail-content
-       - Mostrar #error-state con mensaje "Lectura no especificada"
-
-    3. Mostrar #loading-state mientras carga:
-       - Ocultar #detail-content y #error-state
-       - Mostrar #loading-state
-
-    4. Hacer fetch a GET /api/v1/readings/:id con el JWT:
-       const response = await fetch(`/api/v1/readings/${readingId}`, {
-         headers: { Authorization: `Bearer ${token}` }
-       });
-
-    5. Si falla, mostrar error:
-       - Ocultar #detail-content y #loading-state
-       - Mostrar #error-state con mensaje según el código HTTP:
-         * 404 → "Lectura no encontrada"
-         * 403 → "No tienes permiso para ver esta lectura"
-         * 500 → "Algo salió mal, intenta de nuevo"
-
-    6. Si funciona, ocultar #loading-state y #error-state,
-       y mostrar #detail-content. Rellenar los data-field:
-
-       - data-field="title" → reading.title
-       - data-field="author" → "Por: " + reading.authorName
-       - data-field="breadcrumbTitle" → reading.title
-       - data-field="difficulty" → texto según reading.difficulty
-         ("Fácil", "Medio", "Difícil") + cambiar la clase
-         detail__difficulty--easy/medium/hard
-       - data-field="estimatedMinutes" → reading.estimatedMinutes + " min"
-       - data-field="activitiesCount" → reading.activities.length
-       - data-field="level" → según reading.difficulty
-         ("Principiante", "Intermedio", "Avanzado")
-       - data-field="summary" → reading.summary
-
-    7. Generar los <li> dentro de data-field="activities":
-       Para cada actividad en reading.activities:
-       <li class="detail__activity">
-         <span class="detail__activity-icon">[ícono según type]</span>
-         <div class="detail__activity-content">
-           <h3 class="detail__activity-title">[título según type]</h3>
-           <p class="detail__activity-text">[descripción según type]</p>
-         </div>
-       </li>
-
-    8. Cambiar el CTA según el estado del estudiante
-       (consultar studentAssignment.status):
-
-       - Sin empezar (status = "pending" o no existe):
-         * data-field="ctaPrimaryText" → "Empezar a leer"
-         * data-field="ctaPrimary".href → reading-activity.html?id=xxx
-         * data-field="ctaNote" → "Una vez empieces, podrás pausar..."
-         * #progressBadge: hidden
-
-       - En progreso (status = "in_progress"):
-         * data-field="ctaPrimaryText" → "Continuar leyendo"
-         * data-field="ctaPrimary".href → reading-activity.html?id=xxx
-         * data-field="ctaNote" → "Ya empezaste. Continúa donde lo dejaste."
-         * data-field="progressBadge" → texto "En progreso"
-         * quitar el atributo hidden de #progressBadge
-
-       - Completada (status = "completed"):
-         * data-field="ctaPrimaryText" → "Ver resultados"
-         * data-field="ctaPrimary".href → feedback.html?id=xxx
-         * data-field="ctaNote" → "Ya completaste esta lectura."
-         * data-field="progressBadge" → texto "Completada"
-         * cambiar la clase a detail__progress--completed
-
-    9. Actualizar el <title> de la pestaña:
-       document.title = `${reading.title} — Lectura Activa`;
-
-    10. Manejar el caso "no autenticado":
-        - 401 → redirigir a login
-  -->
 </html>

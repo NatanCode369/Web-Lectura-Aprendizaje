@@ -189,18 +189,6 @@
     </div>
   </div>
 
-  <script>
-    const radios = document.querySelectorAll('input[name="formato"]');
-    const cajaTexto = document.getElementById('formato-texto');
-    const cajaPdf = document.getElementById('formato-pdf');
-
-    radios.forEach((radio) => {
-      radio.addEventListener('change', () => {
-        const esPdf = document.querySelector('input[name="formato"]:checked').value === 'pdf';
-        cajaTexto.hidden = esPdf;
-        cajaPdf.hidden = !esPdf;
-      });
-    });
-  </script>
+  <script type="module" src="./reading-new.js"></script>
 </body>
 </html>

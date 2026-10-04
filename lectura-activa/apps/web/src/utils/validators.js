@@ -5,8 +5,6 @@
 
 /**
  * Valida que un correo sea institucional (@kinal.edu.gt).
- * @param {string} email
- * @returns {boolean}
  */
 export function isInstitutionalEmail(email) {
   if (!email || typeof email !== 'string') return false;
@@ -16,8 +14,6 @@ export function isInstitutionalEmail(email) {
 
 /**
  * Valida formato general de correo.
- * @param {string} email
- * @returns {boolean}
  */
 export function isValidEmail(email) {
   if (!email || typeof email !== 'string') return false;
@@ -27,8 +23,6 @@ export function isValidEmail(email) {
 
 /**
  * Valida contraseña: mínimo 8 caracteres.
- * @param {string} password
- * @returns {{ valid: boolean, message: string }}
  */
 export function validatePassword(password) {
   if (!password || typeof password !== 'string') {
@@ -42,8 +36,6 @@ export function validatePassword(password) {
 
 /**
  * Valida nombre completo: mínimo 3 caracteres, solo letras y espacios.
- * @param {string} name
- * @returns {{ valid: boolean, message: string }}
  */
 export function validateFullName(name) {
   if (!name || typeof name !== 'string') {
@@ -61,9 +53,6 @@ export function validateFullName(name) {
 
 /**
  * Valida que dos contraseñas coincidan.
- * @param {string} password
- * @param {string} confirm
- * @returns {{ valid: boolean, message: string }}
  */
 export function validatePasswordMatch(password, confirm) {
   if (password !== confirm) {

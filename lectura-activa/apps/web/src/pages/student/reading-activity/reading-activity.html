@@ -12,7 +12,6 @@
   <body>
     <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
 
-    <!-- ⚠️ Sin navegación: el estudiante no puede salir de la lectura -->
     <header class="site-header site-header--minimal">
       <div class="site-header__container">
         <span class="site-header__logo">
@@ -30,19 +29,20 @@
 
     <main id="main-content" class="activity">
 
-      <!-- VISTA 1: PDF -->
+      <!-- VISTA 1: PDF con temporizador de lectura -->
       <section id="view-reading" class="activity__view">
         <header class="activity__bar">
           <h1 class="activity__title" data-field="title">Lectura</h1>
-          <div class="activity__timer" data-field="timerContainer" role="timer" aria-live="polite" aria-label="Tiempo restante">
+          <div class="activity__timer" data-field="timerContainer" role="timer" aria-live="polite" aria-label="Tiempo restante de lectura">
             <span class="activity__timer-icon" aria-hidden="true">⏱</span>
-            <span class="activity__timer-value" data-field="timer">20:00</span>
+            <span class="activity__timer-value" data-field="timer">15:00</span>
           </div>
         </header>
 
+        <!-- Aviso que aparece cuando queda poco tiempo -->
         <div id="time-extra-notice" class="activity__notice activity__notice--warning" hidden role="status">
           <span class="activity__notice-icon" aria-hidden="true">⚠️</span>
-          <span class="activity__notice-text">Estás en tiempo extra. Envía pronto tus respuestas.</span>
+          <span class="activity__notice-text">Queda poco tiempo. Apresúrate o haz clic en "Empezar actividades".</span>
         </div>
 
         <div class="activity__pdf-wrapper">
@@ -52,7 +52,7 @@
         <div class="activity__actions">
           <button type="button" class="activity__action activity__action--activities" id="activities-toggle">
             <span aria-hidden="true">📝</span>
-            <span>Ver actividades</span>
+            <span>Empezar actividades</span>
             <span class="activity__action-count" data-field="activitiesCount" aria-hidden="true">0</span>
           </button>
         </div>
@@ -85,12 +85,45 @@
         </div>
       </section>
 
+      <!-- VISTA 3: PANTALLA DE RESUMEN -->
+      <section id="view-summary" class="activity__view" hidden>
+        <div class="activity__summary">
+          <div class="activity__summary-icon" aria-hidden="true">📖</div>
+          <h2 class="activity__summary-title">¡Terminaste de leer!</h2>
+          <p class="activity__summary-time">
+            Tiempo usado: <strong data-field="summaryTime">00:00</strong>
+          </p>
+          <p class="activity__summary-answers">
+            Respondiste <strong data-field="summaryAnswers">0 de 0</strong> actividades
+          </p>
+
+          <div class="activity__summary-actions">
+            <a href="#" id="go-to-feedback" class="activity__summary-button">
+              Ver retroalimentación
+              <span aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
     </main>
 
     <script>
+      // ============================================================
+      // CONFIGURACIÓN
+      // ============================================================
       const params = new URLSearchParams(window.location.search);
       const lecturaId = params.get('id') || 'liebre-tortuga';
 
+      // TODO backend: leer el reading de GET /readings/:id
+      //   y usar reading.estimatedMinutes para el tiempo límite.
+      const reading = {
+        title: 'El principito',
+        estimatedMinutes: 15,         // ← tiempo límite de la lectura
+        activities: []                 // se llena abajo
+      };
+
+      // Cargar actividades del localStorage
       const actividadesGuardadas = localStorage.getItem(`actividades_${lecturaId}`);
       const actividadesDocente = actividadesGuardadas ? JSON.parse(actividadesGuardadas) : null;
 
@@ -100,14 +133,23 @@
         if (actividadesDocente.trivia?.length) {
           actividadesDocente.trivia.forEach(t => {
             if (t.pregunta && t.opciones?.some(o => o)) {
-              actividadesList.push({ type: 'multiple_choice', question: t.pregunta, options: t.opciones, correct: t.correcta });
+              actividadesList.push({
+                type: 'multiple_choice',
+                question: t.pregunta,
+                options: t.opciones,
+                correct: t.correcta
+              });
             }
           });
         }
         if (actividadesDocente.verdaderoFalso?.length) {
           actividadesDocente.verdaderoFalso.forEach(v => {
             if (v.afirmacion) {
-              actividadesList.push({ type: 'true_false', question: v.afirmacion, correct: v.respuesta });
+              actividadesList.push({
+                type: 'true_false',
+                question: v.afirmacion,
+                correct: v.respuesta
+              });
             }
           });
         }
@@ -119,63 +161,20 @@
         ];
       }
 
-      const reading = { title: 'Lectura', timeLimitSeconds: 1200, activities: actividadesList };
+      reading.activities = actividadesList;
+      reading.timeLimitSeconds = reading.estimatedMinutes * 60;
 
+      // ============================================================
+      // REFERENCIAS
+      // ============================================================
       const $viewReading = document.getElementById('view-reading');
       const $viewActivities = document.getElementById('view-activities');
+      const $viewSummary = document.getElementById('view-summary');
 
-      document.getElementById('activities-toggle').addEventListener('click', () => {
-        $viewReading.hidden = true;
-        $viewActivities.hidden = false;
-        currentActivity = 0;
-        renderActivity();
-      });
-
-      const $timer = document.querySelector('[data-field="timer"]');
       const $timerContainer = document.querySelector('[data-field="timerContainer"]');
+      const $timer = document.querySelector('[data-field="timer"]');
       const $timeExtraNotice = document.getElementById('time-extra-notice');
-      let remainingTime = reading.timeLimitSeconds;
-      let extraNoticeShown = false;
 
-      function formatTime(seconds) {
-        const isNegative = seconds < 0;
-        const abs = Math.abs(seconds);
-        const mm = String(Math.floor(abs / 60)).padStart(2, '0');
-        const ss = String(abs % 60).padStart(2, '0');
-        return (isNegative ? '-' : '') + `${mm}:${ss}`;
-      }
-
-      function updateTimer() {
-        remainingTime--;
-        $timer.textContent = formatTime(remainingTime);
-        const pct = remainingTime / reading.timeLimitSeconds;
-        $timerContainer.classList.remove('activity__timer--warning', 'activity__timer--danger', 'activity__timer--over');
-
-        if (remainingTime < 0) {
-          $timerContainer.classList.add('activity__timer--over');
-          if (!extraNoticeShown) { $timeExtraNotice.hidden = false; extraNoticeShown = true; }
-        } else if (pct <= 0.10) $timerContainer.classList.add('activity__timer--danger');
-        else if (pct <= 0.25) $timerContainer.classList.add('activity__timer--warning');
-
-        if (remainingTime === 0) { clearInterval(intervalo); mostrarTiempoAgotado(); }
-      }
-
-      $timer.textContent = formatTime(remainingTime);
-      const intervalo = setInterval(updateTimer, 1000);
-
-      function mostrarTiempoAgotado() {
-        document.querySelector('.activity').innerHTML = `
-          <div class="activity__timeout">
-            <div class="activity__timeout-icon">⏰</div>
-            <h2 class="activity__timeout-title">¡Se acabó el tiempo!</h2>
-            <p class="activity__timeout-msg">El tiempo asignado para esta lectura ha terminado. Tus respuestas fueron enviadas automáticamente.</p>
-            <a href="../catalog/catalog.html" class="btn btn--primary">Volver al catálogo</a>
-          </div>
-        `;
-      }
-
-      let currentActivity = 0;
-      const answers = {};
       const $activityContent = document.querySelector('[data-field="activityContent"]');
       const $panelCurrent = document.querySelector('[data-field="panelCurrent"]');
       const $panelTotal = document.querySelector('[data-field="panelTotal"]');
@@ -184,9 +183,97 @@
       const $nextBtn = document.getElementById('activity-next');
       const $submitWrapper = document.querySelector('[data-field="submitWrapper"]');
 
+      const $summaryTime = document.querySelector('[data-field="summaryTime"]');
+      const $summaryAnswers = document.querySelector('[data-field="summaryAnswers"]');
+      const $goToFeedback = document.getElementById('go-to-feedback');
+
+      // ============================================================
+      // ESTADO
+      // ============================================================
+      let remainingTime = reading.timeLimitSeconds;
+      let intervaloLectura = null;
+      let avisoMostrado = false;
+      let tiempoUsado = 0;
+
+      let currentActivity = 0;
+      const answers = {};
+
       $panelTotal.textContent = reading.activities.length;
       $activitiesCount.textContent = reading.activities.length;
 
+      // ============================================================
+      // UTILIDADES
+      // ============================================================
+      function formatMMSS(segundos) {
+        const abs = Math.abs(segundos);
+        const mm = String(Math.floor(abs / 60)).padStart(2, '0');
+        const ss = String(abs % 60).padStart(2, '0');
+        return (segundos < 0 ? '-' : '') + `${mm}:${ss}`;
+      }
+
+      function formatDuracion(segundos) {
+        const min = Math.floor(segundos / 60);
+        const seg = segundos % 60;
+        if (min === 0) return `${seg} seg`;
+        return `${min} min ${String(seg).padStart(2, '0')} seg`;
+      }
+
+      // ============================================================
+      // TEMPORIZADOR (cuenta hacia atrás)
+      // ============================================================
+      function actualizarTimer() {
+        remainingTime--;
+        tiempoUsado = reading.timeLimitSeconds - remainingTime;
+        $timer.textContent = formatMMSS(remainingTime);
+
+        const pct = remainingTime / reading.timeLimitSeconds;
+        $timerContainer.classList.remove('activity__timer--warning', 'activity__timer--danger', 'activity__timer--over');
+
+        if (remainingTime < 0) {
+          $timerContainer.classList.add('activity__timer--over');
+        } else if (pct <= 0.10) {
+          $timerContainer.classList.add('activity__timer--danger');
+          if (!avisoMostrado) {
+            $timeExtraNotice.hidden = false;
+            avisoMostrado = true;
+          }
+        } else if (pct <= 0.25) {
+          $timerContainer.classList.add('activity__timer--warning');
+        }
+
+        // Tiempo agotado → pasa a la vista de resumen automáticamente
+        if (remainingTime <= 0) {
+          detenerTimer();
+          irAResumen();
+        }
+      }
+
+      function empezarTimer() {
+        if (intervaloLectura) return;
+        intervaloLectura = setInterval(actualizarTimer, 1000);
+      }
+
+      function detenerTimer() {
+        if (intervaloLectura) {
+          clearInterval(intervaloLectura);
+          intervaloLectura = null;
+        }
+      }
+
+      // ============================================================
+      // CAMBIO DE VISTA
+      // ============================================================
+      document.getElementById('activities-toggle').addEventListener('click', () => {
+        detenerTimer();
+        $viewReading.hidden = true;
+        $viewActivities.hidden = false;
+        currentActivity = 0;
+        renderActivity();
+      });
+
+      // ============================================================
+      // ACTIVIDADES
+      // ============================================================
       function renderActivity() {
         const act = reading.activities[currentActivity];
         $panelCurrent.textContent = currentActivity + 1;
@@ -236,13 +323,46 @@
         });
       }
 
-      $prevBtn.addEventListener('click', () => { if (currentActivity > 0) { currentActivity--; renderActivity(); } });
-      $nextBtn.addEventListener('click', () => { if (currentActivity < reading.activities.length - 1) { currentActivity++; renderActivity(); } });
-
-      document.getElementById('activity-submit').addEventListener('click', () => {
-        localStorage.setItem(`resultado_${lecturaId}`, JSON.stringify({ respuestas: answers, fecha: new Date().toISOString() }));
-        window.location.href = '../my-tasks/my-tasks.html';
+      $prevBtn.addEventListener('click', () => {
+        if (currentActivity > 0) { currentActivity--; renderActivity(); }
       });
+
+      $nextBtn.addEventListener('click', () => {
+        if (currentActivity < reading.activities.length - 1) { currentActivity++; renderActivity(); }
+      });
+
+      // ============================================================
+      // ENVÍO Y PANTALLA DE RESUMEN
+      // ============================================================
+      document.getElementById('activity-submit').addEventListener('click', () => {
+        irAResumen();
+      });
+
+      function irAResumen() {
+        // Guardar resultado
+        localStorage.setItem(`resultado_${lecturaId}`, JSON.stringify({
+          respuestas: answers,
+          tiempoUsadoSegundos: tiempoUsado,
+          fecha: new Date().toISOString()
+        }));
+
+        $summaryTime.textContent = formatDuracion(tiempoUsado);
+
+        const respondidas = Object.keys(answers).length;
+        $summaryAnswers.textContent = `${respondidas} de ${reading.activities.length}`;
+
+        $goToFeedback.href = `../feedback/feedback.html?id=${encodeURIComponent(lecturaId)}`;
+
+        $viewReading.hidden = true;
+        $viewActivities.hidden = true;
+        $viewSummary.hidden = false;
+      }
+
+      // ============================================================
+      // INIT
+      // ============================================================
+      $timer.textContent = formatMMSS(remainingTime);
+      empezarTimer();
     </script>
   </body>
 </html>

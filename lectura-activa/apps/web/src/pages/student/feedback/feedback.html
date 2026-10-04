@@ -3,10 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="Resultados de la lectura — Lectura Activa"
-    />
+    <meta name="description" content="Resultados de la lectura — Lectura Activa" />
     <title>Resultados — Lectura Activa</title>
 
     <link rel="stylesheet" href="../../../styles/base.css" />
@@ -17,43 +14,21 @@
 
     <header class="site-header">
       <div class="site-header__container">
-        <a
-          href="../catalog/catalog.html"
-          class="site-header__logo"
-          aria-label="Lectura Activa - Inicio"
-        >
+        <a href="../catalog/catalog.html" class="site-header__logo" aria-label="Lectura Activa - Inicio">
           <span class="site-header__logo-text">Lectura Activa</span>
         </a>
 
         <nav class="site-header__nav" aria-label="Navegación principal">
           <ul class="site-header__nav-list">
-            <li>
-              <a href="../catalog/catalog.html" class="site-header__nav-link"
-                >Catálogo</a
-              >
-            </li>
-            <li>
-              <a href="../my-tasks/my-tasks.html" class="site-header__nav-link"
-                >Mis tareas</a
-              >
-            </li>
-            <li>
-              <a
-                href="../my-progress/my-progress.html"
-                class="site-header__nav-link"
-                >Mi progreso</a
-              >
-            </li>
+            <li><a href="../catalog/catalog.html" class="site-header__nav-link">Catálogo</a></li>
+            <li><a href="../my-tasks/my-tasks.html" class="site-header__nav-link">Mis tareas</a></li>
+            <li><a href="../my-progress/my-progress.html" class="site-header__nav-link">Mi progreso</a></li>
           </ul>
         </nav>
 
         <div class="site-header__user">
           <span class="site-header__user-name">Estudiante</span>
-          <a
-            href="../user-profile/user-profile.html"
-            class="site-header__user-button"
-            aria-label="Ver mi perfil"
-          >
+          <a href="../user-profile/user-profile.html" class="site-header__user-button" aria-label="Ver mi perfil">
             <span aria-hidden="true">👤</span>
           </a>
         </div>
@@ -80,10 +55,7 @@
         <p class="feedback__state-text" data-field="errorMessage">
           Vuelve a tu progreso e intenta de nuevo.
         </p>
-        <a
-          href="../my-progress/my-progress.html"
-          class="feedback__state-button"
-        >
+        <a href="../my-progress/my-progress.html" class="feedback__state-button">
           Volver a mi progreso
         </a>
       </div>
@@ -93,32 +65,26 @@
         <header class="feedback__hero">
           <div class="feedback__hero-icon" aria-hidden="true">🎉</div>
           <h1 class="feedback__hero-title">¡Completaste la lectura!</h1>
-          <p class="feedback__hero-subtitle" data-field="readingTitle">
-            El principito
-          </p>
+          <p class="feedback__hero-subtitle" data-field="readingTitle">Lectura</p>
         </header>
 
         <section class="feedback__summary" aria-label="Resumen de resultados">
           <div class="feedback__score-card">
             <span class="feedback__score-label">Puntaje</span>
-            <span class="feedback__score-value" data-field="score">92</span>
+            <span class="feedback__score-value" data-field="score">—</span>
             <span class="feedback__score-max">/ 100</span>
           </div>
 
           <div class="feedback__meta-card">
             <span class="feedback__meta-icon" aria-hidden="true">⏱</span>
             <span class="feedback__meta-label">Tiempo</span>
-            <span class="feedback__meta-value" data-field="timeSpent"
-              >12 min</span
-            >
+            <span class="feedback__meta-value" data-field="timeSpent">—</span>
           </div>
 
           <div class="feedback__meta-card">
             <span class="feedback__meta-icon" aria-hidden="true">📅</span>
             <span class="feedback__meta-label">Completada</span>
-            <span class="feedback__meta-value" data-field="completedAt"
-              >22/09/2026</span
-            >
+            <span class="feedback__meta-value" data-field="completedAt">—</span>
           </div>
         </section>
 
@@ -128,236 +94,43 @@
             role="progressbar"
             aria-valuemin="0"
             aria-valuemax="100"
-            aria-valuenow="92"
+            aria-valuenow="0"
             data-field="scoreProgressBar"
           >
-            <div
-              class="feedback__progress-fill"
-              data-field="scoreProgressFill"
-              style="width: 92%"
-            ></div>
+            <div class="feedback__progress-fill" data-field="scoreProgressFill" style="width: 0%"></div>
           </div>
 
-          <p class="feedback__motivation" data-field="motivation">
-            ¡Excelente trabajo! Dominas esta lectura.
-          </p>
+          <p class="feedback__motivation" data-field="motivation"></p>
         </section>
 
         <section class="feedback__section" aria-labelledby="details-title">
           <header class="feedback__section-header">
-            <h2 class="feedback__section-title" id="details-title">
-              Detalle de actividades
-            </h2>
+            <h2 class="feedback__section-title" id="details-title">Detalle de actividades</h2>
             <p class="feedback__section-count">
-              <span data-field="correctCount">3</span> de
-              <span data-field="totalCount">3</span> correctas
+              <span data-field="correctCount">0</span> de
+              <span data-field="totalCount">0</span> correctas
             </p>
           </header>
 
-          <ul
-            class="feedback__list"
-            data-field="activitiesList"
-            aria-label="Resultados por actividad"
-          >
-            <!-- Actividad correcta -->
-            <li class="feedback__activity feedback__activity--correct">
-              <header class="feedback__activity-header">
-                <span class="feedback__activity-status" aria-hidden="true"
-                  >✅</span
-                >
-                <h3 class="feedback__activity-title">
-                  ¿Quién es el protagonista de la historia?
-                </h3>
-              </header>
-
-              <div class="feedback__activity-body">
-                <p class="feedback__activity-answer">
-                  <strong>Tu respuesta:</strong>
-                  <span>El principito</span>
-                </p>
-
-                <p
-                  class="feedback__activity-result feedback__activity-result--correct"
-                >
-                  <span aria-hidden="true">✓</span>
-                  Correcto
-                </p>
-              </div>
-            </li>
-
-            <!-- Actividad incorrecta -->
-            <li class="feedback__activity feedback__activity--wrong">
-              <header class="feedback__activity-header">
-                <span class="feedback__activity-status" aria-hidden="true"
-                  >❌</span
-                >
-                <h3 class="feedback__activity-title">
-                  ¿De dónde viene el principito?
-                </h3>
-              </header>
-
-              <div class="feedback__activity-body">
-                <p class="feedback__activity-answer">
-                  <strong>Tu respuesta:</strong>
-                  <span>De la Tierra</span>
-                </p>
-
-                <p
-                  class="feedback__activity-answer feedback__activity-answer--correct"
-                >
-                  <strong>Respuesta correcta:</strong>
-                  <span>De otro planeta</span>
-                </p>
-
-                <div class="feedback__activity-feedback">
-                  <span
-                    class="feedback__activity-feedback-icon"
-                    aria-hidden="true"
-                    >💬</span
-                  >
-                  <p class="feedback__activity-feedback-text">
-                    El principito viene del asteroide B-612, un planeta muy
-                    pequeño donde vivía solo con una rosa.
-                  </p>
-                </div>
-              </div>
-            </li>
-
-            <!-- Actividad correcta -->
-            <li class="feedback__activity feedback__activity--correct">
-              <header class="feedback__activity-header">
-                <span class="feedback__activity-status" aria-hidden="true"
-                  >✅</span
-                >
-                <h3 class="feedback__activity-title">
-                  ¿Qué le enseña el principito al piloto?
-                </h3>
-              </header>
-
-              <div class="feedback__activity-body">
-                <p class="feedback__activity-answer">
-                  <strong>Tu respuesta:</strong>
-                  <span>Sobre el amor y la amistad</span>
-                </p>
-
-                <p
-                  class="feedback__activity-result feedback__activity-result--correct"
-                >
-                  <span aria-hidden="true">✓</span>
-                  Correcto
-                </p>
-              </div>
-            </li>
+          <ul class="feedback__list" data-field="activitiesList" aria-label="Resultados por actividad">
+            <!-- Se rellena con JS -->
           </ul>
         </section>
 
         <section class="feedback__actions" aria-label="Acciones disponibles">
-          <a
-            href="../my-tasks/my-tasks.html"
-            class="feedback__action feedback__action--primary"
-          >
+          <a href="../my-tasks/my-tasks.html" class="feedback__action feedback__action--primary">
             <span aria-hidden="true">←</span>
             Volver a Mis tareas
           </a>
 
-          <a
-            href="../my-progress/my-progress.html"
-            class="feedback__action feedback__action--secondary"
-          >
+          <a href="../my-progress/my-progress.html" class="feedback__action feedback__action--secondary">
             Ver mi progreso
             <span aria-hidden="true">→</span>
           </a>
         </section>
       </div>
     </main>
+
+    <script type="module" src="./feedback.js"></script>
   </body>
-  <!--
-    ============================================================
-    NOTA PARA EL JS
-
-    El JS debe:
-
-    1. Leer ?id= de la URL (id del studentAssignment).
-    2. Mostrar #loading-state mientras carga.
-    3. Hacer fetch a GET /api/v1/assignments/:id (con JWT).
-    4. Si falla:
-       - Ocultar #loading-state y #feedback-content
-       - Mostrar #error-state con mensaje según el código:
-         * 401 → Redirigir a login
-         * 403 → "No tienes permiso para ver estos resultados"
-         * 404 → "Resultados no encontrados"
-         * 500 → "Algo salió mal, intenta de nuevo"
-    5. Si funciona:
-       - Ocultar #loading-state y #error-state
-       - Mostrar #feedback-content
-       - Rellenar los data-field:
-
-         * [data-field="readingTitle"] → studentAssignment.readingTitle
-         * [data-field="score"] → studentAssignment.score
-         * [data-field="timeSpent"] → formatear timeSpentSeconds
-           (ej: "12 min" o "1h 5m")
-         * [data-field="completedAt"] → formatear completedAt (DD/MM/YYYY)
-         * [data-field="correctCount"] → contar intentos con score máximo
-         * [data-field="totalCount"] → cantidad total de actividades
-
-       - Rellenar la barra de progreso del puntaje:
-         * [data-field="scoreProgressBar"].aria-valuenow → score
-         * [data-field="scoreProgressFill"].style.width → score + "%"
-         * Cambiar clase según score:
-           - score >= 80: sin clase especial (verde)
-           - 60 <= score < 80: .feedback__progress-fill--mid (amarillo)
-           - score < 60: .feedback__progress-fill--low (rojo)
-
-       - Rellenar el mensaje motivacional:
-         * score >= 90: "¡Excelente trabajo! Dominas esta lectura."
-         * 70-89: "¡Muy bien! Vas por buen camino."
-         * 50-69: "Buen intento. Repasa las respuestas incorrectas."
-         * < 50: "No te desanimes. Revisa la lectura con calma."
-
-    6. Generar los <li> dentro de [data-field="activitiesList"]:
-       Para cada actividad en studentAssignment.activityProgress:
-
-       SI es correcta (score máximo):
-       <li class="feedback__activity feedback__activity--correct">
-         <header class="feedback__activity-header">
-           <span class="feedback__activity-status">✅</span>
-           <h3 class="feedback__activity-title">{prompt}</h3>
-         </header>
-         <div class="feedback__activity-body">
-           <p class="feedback__activity-answer">
-             <strong>Tu respuesta:</strong>
-             <span>{answer}</span>
-           </p>
-           <p class="feedback__activity-result feedback__activity-result--correct">
-             ✓ Correcto
-           </p>
-         </div>
-       </li>
-
-       SI es incorrecta:
-       <li class="feedback__activity feedback__activity--wrong">
-         <header class="feedback__activity-header">
-           <span class="feedback__activity-status">❌</span>
-           <h3 class="feedback__activity-title">{prompt}</h3>
-         </header>
-         <div class="feedback__activity-body">
-           <p class="feedback__activity-answer">
-             <strong>Tu respuesta:</strong>
-             <span>{answer}</span>
-           </p>
-           <p class="feedback__activity-answer feedback__activity-answer--correct">
-             <strong>Respuesta correcta:</strong>
-             <span>{correctAnswer}</span>
-           </p>
-           [SI hay feedback pedagógico:]
-           <div class="feedback__activity-feedback">
-             <span class="feedback__activity-feedback-icon">💬</span>
-             <p class="feedback__activity-feedback-text">{feedback}</p>
-           </div>
-         </div>
-       </li>
-
-    7. Actualizar el <title> de la pestaña:
-       document.title = `Resultados: ${readingTitle} — Lectura Activa`;
-  -->
 </html>

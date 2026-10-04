@@ -162,7 +162,7 @@
 
           <div class="profile__actions">
             <a
-              href="#"
+              href="../../auth/forgot-password.html"
               class="profile__action profile__action--secondary"
               id="change-password"
             >
@@ -202,52 +202,7 @@
         </section>
       </div>
     </main>
+
+    <script type="module" src="./user-profile.js"></script>
   </body>
-  <!--
-    ============================================================
-    NOTA PARA EL JS
-
-    El JS debe:
-
-    1. Mostrar #loading-state mientras carga.
-    2. Hacer fetch a GET /api/v1/me (con JWT).
-    3. Si falla:
-       - Ocultar #loading-state y #profile-content
-       - Mostrar #error-state con mensaje según código:
-         * 401 → Redirigir a login
-         * 404 → "Perfil no encontrado"
-         * 500 → "Algo salió mal, intenta de nuevo"
-    4. Si funciona:
-       - Ocultar #loading-state y #error-state
-       - Mostrar #profile-content
-       - Rellenar los data-field:
-
-         * [data-field="fullName"] → user.fullName
-         * [data-field="email"] → user.email
-         * [data-field="roleLabel"] → user.role (traducido):
-             "student" → "Estudiante"
-             "teacher" → "Docente"
-             "admin" → "Administrador"
-         * [data-field="initials"] → iniciales del nombre
-             (ej: "Omar Pérez" → "OP")
-         * [data-field="institution"] → user.institution.name
-         * [data-field="group"] → user.profile.groupName
-             (o "Sin grupo" si no tiene)
-         * [data-field="createdAt"] → formatear user.createdAt
-             (DD/MM/YYYY)
-         * [data-field="headerName"] → user.fullName
-             (para el nombre en el header)
-
-    5. Al hacer clic en #change-password:
-       - Llamar a Supabase Auth para enviar email de recuperación
-       - Mostrar toast/mensaje: "Te enviamos un correo"
-       - NO redirigir
-
-    6. Al hacer clic en #logout-button:
-       - Cerrar sesión en Supabase Auth
-       - Redirigir a ../../auth/login.html
-
-    7. Actualizar el <title>:
-       document.title = `${user.fullName} — Lectura Activa`;
-  -->
 </html>
