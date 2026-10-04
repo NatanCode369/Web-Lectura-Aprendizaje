@@ -1,44 +1,111 @@
 /**
  * feedback.js
  * Muestra los resultados de una lectura completada.
- * Por ahora usa datos mock. Mañana se conecta a GET /api/v1/assignments/:id.
+ * 
+ * Fuentes de datos:
+ * 1. localStorage: `lectura_${id}` (título, etc.)
+ * 2. localStorage: `resultado_${id}` (respuestas + tiempo usado)
+ * 
+ * TODO backend: reemplazar por GET /assignments/:id
  */
 
 // ============================================================
-// DATOS MOCK
+// CARGAR DATOS
 // ============================================================
-// TODO backend: reemplazar por:
-//   import { api } from '../../../services/apiClient.js';
-//   const data = await api.get(`/assignments/${id}`);
-const FEEDBACK_MOCK = {
-  fake_001: {
-    readingTitle: 'El principito',
-    score: 92,
-    timeSpentSeconds: 720,
-    completedAt: '2026-09-22T10:15:00Z',
-    activities: [
-      {
-        prompt: '¿Quién es el protagonista de la historia?',
-        answer: 'El principito',
-        correctAnswer: 'El principito',
-        isCorrect: true
-      },
-      {
-        prompt: '¿De dónde viene el principito?',
-        answer: 'De la Tierra',
-        correctAnswer: 'De otro planeta',
-        isCorrect: false,
-        feedback: 'El principito viene del asteroide B-612, un planeta muy pequeño donde vivía solo con una rosa.'
-      },
-      {
-        prompt: '¿Qué le enseña el principito al piloto?',
-        answer: 'Sobre el amor y la amistad',
-        correctAnswer: 'Sobre el amor y la amistad',
-        isCorrect: true
-      }
-    ]
+const params = new URLSearchParams(window.location.search);
+const lecturaId = params.get('id') || 'fake_001';
+
+// Título de la lectura (viene del localStorage del docente)
+const lecturaGuardada = localStorage.getItem(`lectura_${lecturaId}`);
+const datosLectura = lecturaGuardada ? JSON.parse(lecturaGuardada) : null;
+
+// Resultado guardado por reading-activity.js
+const resultadoGuardado = localStorage.getItem(`resultado_${lecturaId}`);
+const datosResultado = resultadoGuardado ? JSON.parse(resultadoGuardado) : null;
+
+// Actividades originales (para saber las respuestas correctas)
+const actividadesGuardadas = localStorage.getItem(`actividades_${lecturaId}`);
+const actividadesDocente = actividadesGuardadas ? JSON.parse(actividadesGuardadas) : null;
+
+// Si no hay lectura ni resultado, mostrar error
+if (!datosLectura && !datosResultado) {
+  // Fallback: usar un mock si no hay nada guardado (para probar)
+  const FEEDBACK_MOCK = {
+    fake_001: {
+      readingTitle: 'El principito',
+      score: 92,
+      timeSpentSeconds: 720,
+      completedAt: '2026-09-22T10:15:00Z',
+      activities: [
+        { prompt: '¿Quién es el protagonista?', answer: 'El principito', correctAnswer: 'El principito', isCorrect: true },
+        { prompt: '¿De dónde viene el principito?', answer: 'De la Tierra', correctAnswer: 'De otro planeta', isCorrect: false, feedback: 'Viene del asteroide B-612.' }
+      ]
+    }
+  };
+
+  if (!FEEDBACK_MOCK[lecturaId]) {
+    mostrarSoloError('Resultados no encontrados. Completa la lectura primero.');
+    throw new Error('stop');
   }
-};
+
+  render(FEEDBACK_MOCK[lecturaId]);
+  mostrarSoloContenido();
+}
+
+// ============================================================
+// CALCULAR RESULTADOS
+// ============================================================
+function calcularResultados() {
+  const activities = [];
+  let correctas = 0;
+
+  if (datosResultado && actividadesDocente) {
+    const respuestas = datosResultado.respuestas || {};
+
+    // Trivia
+    (actividadesDocente.trivia || []).forEach((q, i) => {
+      const idx = String(i);
+      const userAnswer = respuestas[idx];
+      const esCorrecta = userAnswer === q.correcta;
+      if (esCorrecta) correctas++;
+
+      activities.push({
+        prompt: q.pregunta,
+        answer: q.opciones[userAnswer] || '(sin responder)',
+        correctAnswer: q.opciones[q.correcta],
+        isCorrect: esCorrecta,
+        feedback: null
+      });
+    });
+
+    // Verdadero/Falso
+    (actividadesDocente.verdaderoFalso || []).forEach((v, j) => {
+      const idx = String((actividadesDocente.trivia || []).length + j);
+      const userAnswer = respuestas[idx];
+      const esCorrecta = userAnswer === v.respuesta;
+      if (esCorrecta) correctas++;
+
+      activities.push({
+        prompt: v.afirmacion,
+        answer: userAnswer === true ? 'Verdadero' : userAnswer === false ? 'Falso' : '(sin responder)',
+        correctAnswer: v.respuesta ? 'Verdadero' : 'Falso',
+        isCorrect: esCorrecta,
+        feedback: null
+      });
+    });
+  }
+
+  const total = activities.length;
+  const score = total > 0 ? Math.round((correctas / total) * 100) : 0;
+
+  return {
+    readingTitle: datosLectura?.title || 'Lectura',
+    score,
+    timeSpentSeconds: datosResultado?.tiempoUsadoSegundos || 0,
+    completedAt: datosResultado?.fecha || new Date().toISOString(),
+    activities
+  };
+}
 
 // ============================================================
 // REFERENCIAS
@@ -76,12 +143,6 @@ function formatearTiempo(segundos) {
   const h = Math.floor(min / 60);
   const m = min % 60;
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
-}
-
-function nivelScore(score) {
-  if (score >= 80) return 'high';
-  if (score >= 60) return 'mid';
-  return 'low';
 }
 
 function nivelProgreso(score) {
@@ -202,38 +263,9 @@ function render(data) {
 }
 
 // ============================================================
-// CARGA
+// INIT
 // ============================================================
-async function cargarFeedback() {
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get('id');
-
-  if (!id) {
-    mostrarSoloError('No especificaste qué resultados ver.');
-    return;
-  }
-
-  mostrarSoloCargando();
-  await new Promise((r) => setTimeout(r, 500));
-
-  // TODO backend: reemplazar por:
-  //   try {
-  //     const data = await api.get(`/assignments/${id}`);
-  //     render(data);
-  //     mostrarSoloContenido();
-  //   } catch (err) {
-  //     if (err.status === 401) { window.location.href = '../../auth/login.html'; return; }
-  //     mostrarSoloError(err.message || 'Error al cargar.');
-  //   }
-
-  const data = FEEDBACK_MOCK[id];
-  if (!data) {
-    mostrarSoloError('Resultados no encontrados.');
-    return;
-  }
-
-  render(data);
-  mostrarSoloContenido();
-}
-
-cargarFeedback();
+// (al inicio del archivo ya se manejaron los casos sin datos)
+const resultados = calcularResultados();
+render(resultados);
+mostrarSoloContenido();
