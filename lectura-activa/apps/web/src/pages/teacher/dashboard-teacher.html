@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel docente | Lectura Activa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <img src="../../assets/logo-kinal.png" alt="Logo" onerror="this.style.display='none'">
+      </div>
+      <div>
+        <p class="sidebar__title">Panel docente</p>
+        <nav class="nav">
+          <a href="./dashboard-teacher.html" class="nav__link is-active">Inicio</a>
+          <a href="./reading-new.html" class="nav__link">Nueva lectura</a>
+          <a href="./activities-edit.html" class="nav__link">Actividades</a>
+          <a href="./groups.html" class="nav__link">Grupos</a>
+          <a href="./stats.html" class="nav__link">Estadísticas</a>
+        </nav>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__crumb">Lectura Activa</span>
+        <div class="topbar__user">
+          <span>Docente</span>
+          <a href="../auth/login.html" class="topbar__logout">Cerrar sesión</a>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1>Panel del docente</h1>
+            <p>Resumen de tus grupos y lecturas.</p>
+          </div>
+          <a href="./reading-new.html" class="btn btn--orange">+ Nueva lectura</a>
+        </div>
+
+        <section class="stats" aria-label="Resumen">
+          <article class="stat">
+            <p class="stat__label">Grupos</p>
+            <p class="stat__value" id="stat-grupos">—</p>
+          </article>
+          <article class="stat">
+            <p class="stat__label">Lecturas activas</p>
+            <p class="stat__value" id="stat-lecturas">—</p>
+          </article>
+          <article class="stat">
+            <p class="stat__label">Estudiantes conectados</p>
+            <p class="stat__value" id="stat-conectados">—</p>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="panel__header">
+            <h2 class="panel__title">Mis lecturas</h2>
+            <a href="./reading-new.html" class="btn btn--primary btn--sm">Agregar</a>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Título</th>
+                  <th>Nivel</th>
+                  <th>Duración</th>
+                  <th>Estado</th>
+                  <th>Grupos</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="lecturas-body">
+                <!-- Se rellena con JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__header">
+            <h2 class="panel__title">Progreso de mis grupos</h2>
+            <span class="panel__hint">Estudiantes que van al día</span>
+          </div>
+
+          <div class="progress-list">
+            <!-- Se rellena con JS -->
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script type="module" src="./dashboard-teacher.js"></script>
+</body>
+</html>

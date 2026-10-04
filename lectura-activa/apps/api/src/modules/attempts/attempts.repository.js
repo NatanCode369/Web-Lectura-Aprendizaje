@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { getDb } from '../../config/db.js';
+import { getDb } from '../../shared/db.js';
 
 const COLLECTION = 'activityAttempts';
 

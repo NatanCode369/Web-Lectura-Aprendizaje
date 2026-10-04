@@ -3,22 +3,24 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import { randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-import { env } from 'config/env.js';
-import { logger } from 'shared/logger.js';
-import { connectDb, closeDb, pingDb } from 'shared/db.js';
-import { errorHandler } from 'shared/errors/errorHandler.js';
-import { requestId } from 'shared/middleware/requestId.js';
+import { env } from './config/env.js';
+import { logger } from './shared/logger.js';
+import { connectDb, closeDb, pingDb } from './shared/db.js';
+import { errorHandler } from './shared/errors/errorHandler.js';
+import { requestId } from './shared/middleware/requestId.js';
 
-import { authRoutes } from 'modules/auth/auth.routes.js';
-import { usersRoutes } from 'modules/users/users.routes.js';
-import { groupsRoutes } from 'modules/groups/groups.routes.js';
-import { assignmentsRoutes } from 'modules/assignments/assignments.routes.js';
-import { studentAssignmentsRoutes } from 'modules/studentAssignments/studentAssignments.routes.js';
-import { attemptsRoutes } from 'modules/attempts/attempts.routes.js';
-import { analyticsRoutes } from 'modules/analytics/analytics.routes.js';
+import { authRoutes } from './modules/auth/auth.routes.js';
+import { usersRoutes } from './modules/users/users.routes.js';
+import { groupsRoutes } from './modules/groups/groups.routes.js';
+import { assignmentsRoutes } from './modules/assignments/assignments.routes.js';
+import { studentAssignmentsRoutes } from './modules/studentAssignments/studentAssignments.routes.js';
+import { attemptsRoutes } from './modules/attempts/attempts.routes.js';
+import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
 
-// Módulos integrados desde ft/2023146
+// Módulos integrados desde ft/2023146 (Adrián - Persona 3)
 import { buildUserRepository } from './modules/users/user.repository.js';
 import { buildReadingRepository } from './modules/readings/reading.repository.js';
 import { buildAuditRepository } from './modules/readings/audit.repository.js';
@@ -30,18 +32,17 @@ export async function buildServer({ withDb = true } = {}) {
   const fastify = Fastify({
     loggerInstance: logger,
     genReqId: () => randomUUID(),
-    disableRequestLogging: false,
-    trustProxy: true,
+    trustProxy: true, // Cloud Run va detrás de un proxy
   });
 
   // ---- Middleware transversal ----
   fastify.addHook('onRequest', requestId);
 
-  // ---- Plugins ----
+  // ---- Plugins de seguridad ----
   await fastify.register(helmet, { contentSecurityPolicy: false });
 
   await fastify.register(cors, {
-    origin: env.CORS_ORIGINS ?? env.corsOrigin,
+    origin: env.CORS_ORIGINS || '*',
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
@@ -79,7 +80,7 @@ export async function buildServer({ withDb = true } = {}) {
     db = await connectDb();
   }
 
-  // ---- Rutas de Health Check / Readiness ----
+  // ---- Health checks ----
   fastify.get('/health', async () => ({
     status: 'ok',
     service: 'lectura-activa-api',
@@ -109,7 +110,7 @@ export async function buildServer({ withDb = true } = {}) {
   await fastify.register(attemptsRoutes, { prefix: '/api/v1/attempts', db });
   await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics', db });
 
-  // ---- Inyección y Rutas traídas de ft/2023146 ----
+  // ---- Inyección y Rutas de Readings (ft/2023146) ----
   const userRepository = buildUserRepository();
   const readingRepository = buildReadingRepository();
   const auditRepository = buildAuditRepository();
@@ -150,14 +151,27 @@ export async function start() {
     const host = env.HOST ?? process.env.HOST ?? '0.0.0.0';
 
     await fastify.listen({ port, host });
-    logger.info(`API escuchando en http://${host}:${port}`);
+    logger.info(`✅ API escuchando en http://${host}:${port}`);
   } catch (err) {
     logger.error({ err }, 'No se pudo arrancar el servidor');
     process.exit(1);
   }
 }
 
-// Arranque directo: `node src/server.js`
-if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`) {
-  start();
+// ==========================================
+// ARRANQUE DEL SERVIDOR (Entry Point)
+// ==========================================
+const __filename = fileURLToPath(import.meta.url);
+
+// Verificación robusta para Windows y Linux/Mac
+const isMainModule =
+  process.argv[1] === __filename ||
+  process.argv[1]?.replace(/\\/g, '/') === __filename ||
+  process.argv[1]?.endsWith('server.js');
+
+if (isMainModule) {
+  start().catch((err) => {
+    console.error('Fallo crítico al iniciar el servidor:', err);
+    process.exit(1);
+  });
 }

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editar actividades | Lectura Activa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles/dashboard.css">
+  <link rel="stylesheet" href="../../styles/activities-edit.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <img src="../../assets/logo-kinal.png" alt="Logo" onerror="this.style.display='none'">
+      </div>
+      <div>
+        <p class="sidebar__title">Panel docente</p>
+        <nav class="nav">
+          <a href="./dashboard-teacher.html" class="nav__link">Inicio</a>
+          <a href="./reading-new.html" class="nav__link">Nueva lectura</a>
+          <a href="./activities-edit.html" class="nav__link is-active">Actividades</a>
+          <a href="./groups.html" class="nav__link">Grupos</a>
+          <a href="./stats.html" class="nav__link">Estadísticas</a>
+        </nav>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__crumb">Lectura Activa</span>
+        <div class="topbar__user">
+          <span>Docente</span>
+          <a href="../auth/login.html" class="topbar__logout">Cerrar sesión</a>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1>Editar actividades</h1>
+            <p>Configura las 5 actividades que verán tus estudiantes al terminar la lectura.</p>
+          </div>
+        </div>
+
+        <section class="panel">
+          <div class="field">
+            <label for="lectura">Lectura</label>
+            <select id="lectura"></select>
+          </div>
+        </section>
+
+        <p id="mensaje" class="alert" role="status" hidden></p>
+
+        <form id="activities-form" class="form" novalidate>
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">1. Preguntas tipo trivia</h2>
+              <span class="panel__hint">Opción múltiple: marca la respuesta correcta</span>
+            </div>
+            <div id="lista-trivia" class="q-list"></div>
+            <button type="button" class="btn btn--ghost btn--sm" id="add-trivia">+ Agregar pregunta</button>
+          </section>
+
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">2. Verdadero o falso</h2>
+              <span class="panel__hint">Afirmaciones sobre el texto</span>
+            </div>
+            <div id="lista-vf" class="q-list"></div>
+            <button type="button" class="btn btn--ghost btn--sm" id="add-vf">+ Agregar afirmación</button>
+          </section>
+
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">3. Detective de palabras</h2>
+              <span class="panel__hint">Palabra objetivo y sinónimos</span>
+            </div>
+            <div class="field">
+              <label for="detective-target">Palabra objetivo</label>
+              <input type="text" id="detective-target" class="q-item__input" placeholder="Ej. velocidad">
+            </div>
+            <div class="field">
+              <label for="detective-synonyms">Sinónimos (separados por coma)</label>
+              <input type="text" id="detective-synonyms" class="q-item__input" placeholder="Ej. rapidez, celeridad">
+            </div>
+            <div class="field">
+              <label for="detective-distractors">Distractores (separados por coma)</label>
+              <input type="text" id="detective-distractors" class="q-item__input" placeholder="Ej. lentitud, calma">
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">4. Ordena la historia</h2>
+              <span class="panel__hint">Eventos en orden correcto</span>
+            </div>
+            <div id="lista-eventos" class="q-list"></div>
+            <button type="button" class="btn btn--ghost btn--sm" id="add-evento">+ Agregar evento</button>
+          </section>
+
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">5. Mapa mental</h2>
+              <span class="panel__hint">Parejas de conceptos</span>
+            </div>
+            <div id="lista-parejas" class="q-list"></div>
+            <button type="button" class="btn btn--ghost btn--sm" id="add-pareja">+ Agregar pareja</button>
+          </section>
+
+          <div class="form__actions">
+            <a href="./dashboard-teacher.html" class="btn btn--ghost">Cancelar</a>
+            <button type="submit" class="btn btn--orange">Guardar actividades</button>
+          </div>
+        </form>
+      </main>
+    </div>
+  </div>
+
+  <script type="module" src="./activities-edit.js"></script>
+</body>
+</html>
