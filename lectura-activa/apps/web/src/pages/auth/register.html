@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro | Lectura Activa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles/auth.css">
+</head>
+<body>
+  <div class="auth">
+    <header class="auth__brand">
+      <img src="../../assets/logo-kinal.png" alt="Logo" class="auth__logo" onerror="this.style.display='none'">
+    </header>
+
+    <main class="auth__grid">
+      <section class="card card--dark">
+        <h1 class="card__title">Crear tu cuenta</h1>
+
+        <form id="register-form" novalidate>
+          <div class="input">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+            <input type="text" id="nombre" name="nombre" placeholder="Nombre completo" autocomplete="name" required>
+          </div>
+
+          <div class="input">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+            <input type="email" id="email" name="email" placeholder="Correo (ej. estudiante@kinal.edu.gt)" autocomplete="email" required>
+          </div>
+
+          <div class="input">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            <input type="password" id="password" name="password" placeholder="Contraseña (mínimo 8 caracteres)" autocomplete="new-password" minlength="8" required>
+          </div>
+
+          <div class="input">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            <input type="password" id="password-confirm" name="passwordConfirm" placeholder="Confirmar contraseña" autocomplete="new-password" required>
+          </div>
+
+          <p id="form-error" class="form-error" role="alert" hidden></p>
+
+          <button type="submit" class="btn btn--primary">Registrarme</button>
+        </form>
+      </section>
+
+      <section class="card card--light">
+        <h2 class="card__title">¿Ya tienes cuenta?</h2>
+        <div class="promo">
+          <h3>Accede a tu cuenta</h3>
+          <p>Si ya estás registrado, inicia sesión para continuar.</p>
+          <a href="login.html" class="btn btn--orange">Iniciar sesión</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="auth__footer">
+      © 2026 Lectura Activa. Todos los derechos reservados.
+    </footer>
+  </div>
+
+  <script type="module" src="./register.js"></script>
+</body>
+</html>

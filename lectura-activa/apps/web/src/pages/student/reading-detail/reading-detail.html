@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Detalle de la lectura — Lectura Activa" />
+    <title>Detalle de lectura — Lectura Activa</title>
+
+    <link rel="stylesheet" href="../../../styles/base.css" />
+    <link rel="stylesheet" href="./reading-detail.css" />
+  </head>
+  <body>
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
+    <header class="site-header">
+      <div class="site-header__container">
+        <a href="../catalog/catalog.html" class="site-header__logo" aria-label="Lectura Activa - Inicio">
+          <span class="site-header__logo-text">Lectura Activa</span>
+        </a>
+
+        <nav class="site-header__nav" aria-label="Navegación principal">
+          <ul class="site-header__nav-list">
+            <li><a href="../catalog/catalog.html" class="site-header__nav-link">Catálogo</a></li>
+            <li><a href="../my-tasks/my-tasks.html" class="site-header__nav-link">Mis tareas</a></li>
+            <li><a href="../my-progress/my-progress.html" class="site-header__nav-link">Mi progreso</a></li>
+          </ul>
+        </nav>
+
+        <div class="site-header__user">
+          <span class="site-header__user-name">Estudiante</span>
+          <a href="../user-profile/user-profile.html" class="site-header__user-button" aria-label="Ver mi perfil">
+            <span aria-hidden="true">👤</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" class="detail">
+      <!-- Breadcrumb -->
+      <nav class="detail__breadcrumb" aria-label="Ruta de navegación">
+        <ol class="detail__breadcrumb-list">
+          <li><a href="../catalog/catalog.html" class="detail__breadcrumb-link">Catálogo</a></li>
+          <li aria-hidden="true">/</li>
+          <li><span class="detail__breadcrumb-current" data-field="breadcrumbTitle">Lectura</span></li>
+        </ol>
+      </nav>
+
+      <!-- Estado de carga -->
+      <div id="loading-state" class="detail__state" hidden>
+        <div class="detail__skeleton">
+          <div class="detail__skeleton-badge"></div>
+          <div class="detail__skeleton-title"></div>
+          <div class="detail__skeleton-author"></div>
+          <div class="detail__skeleton-meta"></div>
+          <div class="detail__skeleton-text"></div>
+          <div class="detail__skeleton-text"></div>
+        </div>
+        <p class="detail__state-text">Cargando lectura...</p>
+      </div>
+
+      <!-- Estado de error -->
+      <div id="error-state" class="detail__state" hidden>
+        <div class="detail__state-icon" aria-hidden="true">⚠️</div>
+        <h2 class="detail__state-title">No pudimos cargar la lectura</h2>
+        <p class="detail__state-text" data-field="errorMessage">Intenta volver al catálogo y abrirla de nuevo.</p>
+        <a href="../catalog/catalog.html" class="detail__state-button">Volver al catálogo</a>
+      </div>
+
+      <!-- Contenido principal -->
+      <div id="detail-content">
+        <header class="detail__hero">
+          <div class="detail__badges">
+            <span class="detail__difficulty detail__difficulty--easy" data-field="difficulty">Fácil</span>
+            <span class="detail__progress detail__progress--pending" data-field="progressBadge" hidden>En progreso</span>
+          </div>
+
+          <h1 class="detail__title" data-field="title">Lectura</h1>
+          <p class="detail__author" data-field="author">Por: —</p>
+        </header>
+
+        <section class="detail__meta" aria-label="Información de la lectura">
+          <div class="detail__meta-item">
+            <span class="detail__meta-icon" aria-hidden="true">⏱</span>
+            <span class="detail__meta-label">Duración</span>
+            <span class="detail__meta-value" data-field="estimatedMinutes">—</span>
+          </div>
+
+          <div class="detail__meta-item">
+            <span class="detail__meta-icon" aria-hidden="true">📝</span>
+            <span class="detail__meta-label">Actividades</span>
+            <span class="detail__meta-value" data-field="activitiesCount">—</span>
+          </div>
+
+          <div class="detail__meta-item">
+            <span class="detail__meta-icon" aria-hidden="true">📖</span>
+            <span class="detail__meta-label">Nivel</span>
+            <span class="detail__meta-value" data-field="level">—</span>
+          </div>
+        </section>
+
+        <section class="detail__section" aria-labelledby="about-title">
+          <h2 class="detail__section-title" id="about-title">Sobre esta lectura</h2>
+          <p class="detail__summary" data-field="summary">—</p>
+        </section>
+
+        <section class="detail__section" aria-labelledby="activities-title">
+          <h2 class="detail__section-title" id="activities-title">Actividades incluidas</h2>
+          <ul class="detail__activities" data-field="activities" aria-label="Lista de actividades de la lectura">
+            <!-- Se rellena con JS -->
+          </ul>
+        </section>
+
+        <section class="detail__cta">
+          <div class="detail__cta-content">
+            <h2 class="detail__cta-title" data-field="ctaTitle">¿Listo para empezar?</h2>
+            <p class="detail__cta-note" data-field="ctaNote">Una vez empieces, podrás pausar y continuar cuando quieras.</p>
+          </div>
+
+          <div class="detail__cta-actions">
+            <a href="#" class="detail__cta-button" data-field="ctaPrimary">
+              <span data-field="ctaPrimaryText">Empezar a leer</span>
+              <span aria-hidden="true">→</span>
+            </a>
+            <a href="../catalog/catalog.html" class="detail__cta-button detail__cta-button--secondary">
+              Volver al catálogo
+            </a>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="./reading-detail.js"></script>
+  </body>
+</html>

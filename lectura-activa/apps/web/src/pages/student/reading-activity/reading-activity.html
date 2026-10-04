@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Lectura y actividades — Lectura Activa" />
+    <title>Lectura y actividades — Lectura Activa</title>
+
+    <link rel="stylesheet" href="../../../styles/base.css" />
+    <link rel="stylesheet" href="./reading-activity.css" />
+  </head>
+  <body>
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
+    <header class="site-header site-header--minimal">
+      <div class="site-header__container">
+        <span class="site-header__logo">
+          <span class="site-header__logo-text">Lectura Activa</span>
+        </span>
+
+        <div class="site-header__user">
+          <span class="site-header__user-name">Estudiante</span>
+          <a href="../user-profile/user-profile.html" class="site-header__user-button" aria-label="Ver mi perfil">
+            <span aria-hidden="true">👤</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" class="activity">
+
+      <!-- VISTA 1: PDF con temporizador de lectura -->
+      <section id="view-reading" class="activity__view">
+        <header class="activity__bar">
+          <h1 class="activity__title" data-field="title">Lectura</h1>
+          <div class="activity__timer" data-field="timerContainer" role="timer" aria-live="polite" aria-label="Tiempo restante de lectura">
+            <span class="activity__timer-icon" aria-hidden="true">⏱</span>
+            <span class="activity__timer-value" data-field="timer">15:00</span>
+          </div>
+        </header>
+
+        <div id="time-extra-notice" class="activity__notice activity__notice--warning" hidden role="status">
+          <span class="activity__notice-icon" aria-hidden="true">⚠️</span>
+          <span class="activity__notice-text">Queda poco tiempo. Apresúrate o haz clic en "Empezar actividades".</span>
+        </div>
+
+        <div class="activity__pdf-wrapper">
+          <iframe src="https://www.orimi.com/pdf-test.pdf" title="Lectura" class="activity__pdf" data-field="pdf"></iframe>
+        </div>
+
+        <div class="activity__actions">
+          <button type="button" class="activity__action activity__action--activities" id="activities-toggle">
+            <span aria-hidden="true">📝</span>
+            <span>Empezar actividades</span>
+            <span class="activity__action-count" data-field="activitiesCount" aria-hidden="true">0</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- VISTA 2: ACTIVIDADES -->
+      <section id="view-activities" class="activity__view" hidden>
+        <header class="activity__bar activity__bar--activities">
+          <h2 class="activity__title">Actividades</h2>
+          <p class="activity__panel-progress activity__panel-progress--inline">
+            Actividad <span data-field="panelCurrent">1</span> de
+            <span data-field="panelTotal">0</span>
+          </p>
+        </header>
+
+        <div class="activity__panel-content" data-field="activityContent" aria-live="polite"></div>
+
+        <footer class="activity__panel-nav">
+          <button type="button" class="activity__nav-button activity__nav-button--prev" id="activity-prev" disabled>
+            <span aria-hidden="true">←</span> Anterior
+          </button>
+          <button type="button" class="activity__nav-button activity__nav-button--next" id="activity-next">
+            Siguiente <span aria-hidden="true">→</span>
+          </button>
+        </footer>
+
+        <div class="activity__submit-wrapper" hidden data-field="submitWrapper">
+          <button type="button" class="activity__submit" id="activity-submit">Enviar respuestas</button>
+          <p class="activity__submit-note">Una vez enviadas, no podrás modificarlas.</p>
+        </div>
+      </section>
+
+      <!-- VISTA 3: PANTALLA DE RESUMEN -->
+      <section id="view-summary" class="activity__view" hidden>
+        <div class="activity__summary">
+          <div class="activity__summary-icon" aria-hidden="true">📖</div>
+          <h2 class="activity__summary-title">¡Terminaste de leer!</h2>
+          <p class="activity__summary-time">
+            Tiempo usado: <strong data-field="summaryTime">00:00</strong>
+          </p>
+          <p class="activity__summary-answers">
+            Respondiste <strong data-field="summaryAnswers">0 de 0</strong> actividades
+          </p>
+
+          <div class="activity__summary-actions">
+            <a href="#" id="go-to-feedback" class="activity__summary-button">
+              Ver retroalimentación
+              <span aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <script type="module" src="./reading-activity.js"></script>
+  </body>
+</html>

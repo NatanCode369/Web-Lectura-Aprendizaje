@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Catálogo de lecturas disponibles para estudiantes de Lectura Activa" />
+    <title>Catálogo de lecturas — Lectura Activa</title>
+
+    <link rel="stylesheet" href="../../../styles/base.css" />
+    <link rel="stylesheet" href="./catalog.css" />
+  </head>
+  <body>
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
+    <header class="site-header">
+      <div class="site-header__container">
+        <a href="./catalog.html" class="site-header__logo" aria-label="Lectura Activa - Inicio">
+          <span class="site-header__logo-text">Lectura Activa</span>
+        </a>
+
+        <nav class="site-header__nav" aria-label="Navegación principal">
+          <ul class="site-header__nav-list">
+            <li><a href="./catalog.html" class="site-header__nav-link" aria-current="page">Catálogo</a></li>
+            <li><a href="../my-tasks/my-tasks.html" class="site-header__nav-link">Mis tareas</a></li>
+            <li><a href="../my-progress/my-progress.html" class="site-header__nav-link">Mi progreso</a></li>
+          </ul>
+        </nav>
+
+        <div class="site-header__user">
+          <span class="site-header__user-name">Estudiante</span>
+          <a href="../user-profile/user-profile.html" class="site-header__user-button" aria-label="Ver mi perfil">
+            <span aria-hidden="true">👤</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" class="catalog">
+      <section class="catalog__hero">
+        <div class="catalog__hero-content">
+          <h1 class="catalog__title">
+            Descubre tu próxima
+            <span class="catalog__title-accent">lectura</span>
+          </h1>
+          <p class="catalog__subtitle">
+            Lee, comprende y mejora tus habilidades lectoras mientras descubres nuevas historias.
+          </p>
+        </div>
+      </section>
+
+      <section class="catalog__controls" aria-label="Buscador y filtros">
+        <div class="catalog__search">
+          <label for="search-input" class="visually-hidden">Buscar lecturas</label>
+          <span class="catalog__search-icon" aria-hidden="true">🔍</span>
+          <input type="search" id="search-input" class="catalog__search-input" placeholder="Buscar por título o descripción..." autocomplete="off" />
+        </div>
+
+        <div class="catalog__filters">
+          <div class="catalog__filter">
+            <label for="filter-difficulty" class="visually-hidden">Filtrar por dificultad</label>
+            <select id="filter-difficulty" class="catalog__select">
+              <option value="">Todas las dificultades</option>
+              <option value="easy">Fácil</option>
+              <option value="medium">Medio</option>
+              <option value="hard">Difícil</option>
+            </select>
+          </div>
+
+          <div class="catalog__filter">
+            <label for="filter-duration" class="visually-hidden">Filtrar por duración</label>
+            <select id="filter-duration" class="catalog__select">
+              <option value="">Todas las duraciones</option>
+              <option value="10">Menos de 10 min</option>
+              <option value="20">Menos de 20 min</option>
+              <option value="30">Menos de 30 min</option>
+              <option value="60">Menos de 60 min</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <p class="catalog__count" aria-live="polite">
+        <strong>6</strong> lecturas disponibles
+      </p>
+
+      <section id="readings-container" class="catalog__results" aria-busy="false">
+        <div id="catalog-carousel" class="catalog__carousel">
+          <button type="button" id="carousel-prev" class="catalog__carousel-button catalog__carousel-button--prev" aria-label="Ver lecturas anteriores" hidden>
+            <span aria-hidden="true">←</span>
+          </button>
+
+          <div id="readings-grid" class="catalog__grid" role="region" aria-label="Lecturas disponibles" tabindex="0">
+            <!-- Se rellena con JS -->
+          </div>
+
+          <button type="button" id="carousel-next" class="catalog__carousel-button catalog__carousel-button--next" aria-label="Ver más lecturas" hidden>
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./catalog.js"></script>
+  </body>
+</html>

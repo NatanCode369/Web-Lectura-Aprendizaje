@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Mis tareas — Lecturas asignadas por el docente" />
+    <title>Mis tareas — Lectura Activa</title>
+
+    <link rel="stylesheet" href="../../../styles/base.css" />
+    <link rel="stylesheet" href="./my-tasks.css" />
+  </head>
+  <body>
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
+    <header class="site-header">
+      <div class="site-header__container">
+        <a href="../catalog/catalog.html" class="site-header__logo" aria-label="Lectura Activa - Inicio">
+          <span class="site-header__logo-text">Lectura Activa</span>
+        </a>
+
+        <nav class="site-header__nav" aria-label="Navegación principal">
+          <ul class="site-header__nav-list">
+            <li><a href="../catalog/catalog.html" class="site-header__nav-link">Catálogo</a></li>
+            <li><a href="./my-tasks.html" class="site-header__nav-link" aria-current="page">Mis tareas</a></li>
+            <li><a href="../my-progress/my-progress.html" class="site-header__nav-link">Mi progreso</a></li>
+          </ul>
+        </nav>
+
+        <div class="site-header__user">
+          <span class="site-header__user-name">Estudiante</span>
+          <a href="../user-profile/user-profile.html" class="site-header__user-button" aria-label="Ver mi perfil">
+            <span aria-hidden="true">👤</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" class="tasks">
+      <header class="tasks__hero">
+        <h1 class="tasks__title">Mis tareas</h1>
+        <p class="tasks__subtitle">Revisa las lecturas asignadas por tu docente</p>
+      </header>
+
+      <section class="tasks__stats" aria-label="Filtrar tareas por estado">
+        <button type="button" class="tasks__stat tasks__stat--pending" data-filter="pending" aria-pressed="false">
+          <span class="tasks__stat-icon" aria-hidden="true">📝</span>
+          <span class="tasks__stat-number">0</span>
+          <span class="tasks__stat-label">Pendientes</span>
+        </button>
+
+        <button type="button" class="tasks__stat tasks__stat--in-progress" data-filter="in_progress" aria-pressed="false">
+          <span class="tasks__stat-icon" aria-hidden="true">⏳</span>
+          <span class="tasks__stat-number">0</span>
+          <span class="tasks__stat-label">En progreso</span>
+        </button>
+
+        <button type="button" class="tasks__stat tasks__stat--completed" data-filter="completed" aria-pressed="false">
+          <span class="tasks__stat-icon" aria-hidden="true">✅</span>
+          <span class="tasks__stat-number">0</span>
+          <span class="tasks__stat-label">Completadas</span>
+        </button>
+      </section>
+
+      <div class="tasks__list">
+        <section class="tasks__group" aria-labelledby="group-pending-title" data-status="pending" hidden>
+          <h2 class="tasks__group-title" id="group-pending-title">
+            Pendientes
+            <span class="tasks__group-count">0</span>
+          </h2>
+          <ul class="tasks__group-list"></ul>
+        </section>
+
+        <section class="tasks__group" aria-labelledby="group-progress-title" data-status="in_progress" hidden>
+          <h2 class="tasks__group-title" id="group-progress-title">
+            En progreso
+            <span class="tasks__group-count">0</span>
+          </h2>
+          <ul class="tasks__group-list"></ul>
+        </section>
+
+        <section class="tasks__group" aria-labelledby="group-completed-title" data-status="completed" hidden>
+          <h2 class="tasks__group-title" id="group-completed-title">
+            Completadas
+            <span class="tasks__group-count">0</span>
+          </h2>
+          <ul class="tasks__group-list"></ul>
+        </section>
+      </div>
+
+      <!-- Estado vacío -->
+      <section class="tasks__empty" hidden>
+        <div class="tasks__empty-icon" aria-hidden="true">📚</div>
+        <h2 class="tasks__empty-title">No tienes tareas asignadas aún</h2>
+        <p class="tasks__empty-text">
+          Cuando tu docente te asigne una lectura, aparecerá aquí.
+        </p>
+        <a href="../catalog/catalog.html" class="tasks__empty-button">
+          Explorar el catálogo
+        </a>
+      </section>
+    </main>
+
+    <script type="module" src="./my-tasks.js"></script>
+  </body>
+</html>
