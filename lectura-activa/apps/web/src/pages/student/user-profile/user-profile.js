@@ -1,22 +1,23 @@
 /**
  * user-profile.js
- * Carga los datos del perfil del estudiante.
- * Por ahora usa datos mock. Mañana se conecta a GET /api/v1/me.
+ * Carga el perfil del estudiante y maneja la unión a grupos por código.
+ * Por ahora usa localStorage (mock). Mañana se conecta a GET /api/v1/me.
  */
 
 // ============================================================
-// DATOS MOCK
+// CONFIGURACIÓN
 // ============================================================
-// TODO backend: reemplazar por:
-//   import { api } from '../../../services/apiClient.js';
-//   const user = await api.get('/me');
+const ESTUDIANTE_EMAIL = 'estudiante@kinal.edu.gt'; // TODO: reemplazar por user.email real
+const STORAGE_KEY_GRUPO = `grupo_estudiante_${ESTUDIANTE_EMAIL}`;
+const KEY_GRUPOS_DOCENTE = 'grupos_docente-demo';
+
 const USER_MOCK = {
   id: 'user-001',
   fullName: 'Juan López',
-  email: 'estudiante@kinal.edu.gt',
+  email: ESTUDIANTE_EMAIL,
   role: 'student',
   institution: { name: 'Fundación Kinal' },
-  profile: { groupName: '3°A' },
+  profile: { groupName: 'Sin grupo' },
   createdAt: '2026-08-01T12:00:00Z'
 };
 
@@ -80,62 +81,143 @@ function formatearFecha(iso) {
 }
 
 // ============================================================
-// RENDER
+// RENDER PERFIL
 // ============================================================
 function renderPerfil(user) {
   document.title = `${user.fullName} — Lectura Activa`;
-
   llenarTodos('fullName', user.fullName);
   llenarTodos('email', user.email);
   llenarTodos('initials', iniciales(user.fullName));
   llenarTodos('roleLabel', ETIQUETA_ROL[user.role] || user.role);
   llenarTodos('institution', user.institution?.name || '—');
-  llenarTodos('group', user.profile?.groupName || 'Sin grupo');
   llenarTodos('createdAt', formatearFecha(user.createdAt));
   llenarTodos('headerName', user.fullName);
 }
 
 // ============================================================
-// CARGA
+// CARGA DE PERFIL
 // ============================================================
 async function cargarPerfil() {
   mostrarSoloCargando();
+  await new Promise((r) => setTimeout(r, 400));
 
-  // Simulamos un fetch con delay para ver el skeleton
-  await new Promise((r) => setTimeout(r, 600));
-
-  // TODO backend: reemplazar por:
-  //   try {
-  //     const user = await api.get('/me');
-  //     renderPerfil(user);
-  //     mostrarSoloContenido();
-  //   } catch (err) {
-  //     if (err.status === 401) { window.location.href = '../../auth/login.html'; return; }
-  //     mostrarSoloError(err.message || 'Error al cargar el perfil.');
-  //   }
-
-  renderPerfil(USER_MOCK);
+  // TODO backend: reemplazar por api.get('/me')
+  const user = USER_MOCK;
+  renderPerfil(user);
   mostrarSoloContenido();
 }
 
-// ============================================================
-// CERRAR SESIÓN
-// ============================================================
-document.getElementById('logout-button').addEventListener('click', (e) => {
-  // Si el href ya lleva a login, dejamos que navegue.
-  // Aquí podríamos limpiar sesión antes.
-  // TODO backend: llamar a authService.logout() antes de redirigir.
+cargarPerfil();
 
-  // Por ahora, solo confirmamos.
-  const ok = confirm('¿Cerrar sesión?');
-  if (!ok) {
-    e.preventDefault();
+// ============================================================
+// GRUPOS — unirse por código
+// ============================================================
+const $sinGrupo = $('sin-grupo');
+const $conGrupo = $('con-grupo');
+const $codigoGrupo = $('codigo-grupo');
+const $unirseMensaje = $('unirse-mensaje');
+const $nombreGrupo = $('nombre-grupo');
+const $yearGrupo = $('year-grupo');
+
+function cargarMiembro() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY_GRUPO) || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function guardarMiembro(data) {
+  if (data) localStorage.setItem(STORAGE_KEY_GRUPO, JSON.stringify(data));
+  else localStorage.removeItem(STORAGE_KEY_GRUPO);
+}
+
+function cargarGruposDocente() {
+  try {
+    return JSON.parse(localStorage.getItem(KEY_GRUPOS_DOCENTE) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function guardarGruposDocente(grupos) {
+  localStorage.setItem(KEY_GRUPOS_DOCENTE, JSON.stringify(grupos));
+}
+
+function renderMiembro() {
+  const miembro = cargarMiembro();
+  if (miembro) {
+    $sinGrupo.hidden = true;
+    $conGrupo.hidden = false;
+    $nombreGrupo.textContent = miembro.nombreGrupo;
+    $yearGrupo.textContent = miembro.year;
+
+    // Actualizar también el grupo en "Información personal"
+    llenarTodos('group', miembro.nombreGrupo);
+  } else {
+    $sinGrupo.hidden = false;
+    $conGrupo.hidden = true;
+    llenarTodos('group', 'Sin grupo');
+  }
+}
+
+function avisarUnirse(texto, tipo = 'ok') {
+  $unirseMensaje.textContent = texto;
+  $unirseMensaje.style.color = tipo === 'error' ? '#ef4444' : '#22c55e';
+  $unirseMensaje.hidden = false;
+  setTimeout(() => { $unirseMensaje.hidden = true; }, 4000);
+}
+
+// Unirse a un grupo
+$('btn-unirse').addEventListener('click', () => {
+  const codigo = $codigoGrupo.value.trim().toUpperCase();
+  if (!codigo) {
+    avisarUnirse('Ingresa el código del grupo.', 'error');
     return;
   }
-  // El href ya apunta a ../../auth/login.html, dejamos que navegue.
+
+  const grupos = cargarGruposDocente();
+  const grupo = grupos.find((g) => g.codigo === codigo);
+  if (!grupo) {
+    avisarUnirse('Código no válido o grupo no encontrado.', 'error');
+    return;
+  }
+
+  if (grupo.estudiantes.includes(ESTUDIANTE_EMAIL)) {
+    avisarUnirse('Ya estás en este grupo.', 'error');
+    return;
+  }
+
+  grupo.estudiantes.push(ESTUDIANTE_EMAIL);
+  guardarGruposDocente(grupos);
+
+  guardarMiembro({
+    grupoId: grupo.id,
+    nombreGrupo: grupo.nombre,
+    year: grupo.year
+  });
+
+  avisarUnirse(`Te uniste al grupo "${grupo.nombre}".`);
+  $codigoGrupo.value = '';
+  renderMiembro();
 });
 
-// ============================================================
-// INICIALIZAR
-// ============================================================
-cargarPerfil();
+// Salir de un grupo
+$('btn-salir-grupo').addEventListener('click', () => {
+  const miembro = cargarMiembro();
+  if (!miembro) return;
+
+  if (!confirm(`¿Salir del grupo "${miembro.nombreGrupo}"?`)) return;
+
+  const grupos = cargarGruposDocente();
+  const grupo = grupos.find((g) => g.id === miembro.grupoId);
+  if (grupo) {
+    grupo.estudiantes = grupo.estudiantes.filter((e) => e !== ESTUDIANTE_EMAIL);
+    guardarGruposDocente(grupos);
+  }
+
+  guardarMiembro(null);
+  renderMiembro();
+});
+
+renderMiembro();

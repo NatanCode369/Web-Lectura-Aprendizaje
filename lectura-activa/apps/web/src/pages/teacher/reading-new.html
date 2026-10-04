@@ -13,7 +13,7 @@
   <div class="layout">
     <aside class="sidebar">
       <div class="sidebar__brand">
-        <img src="../../assets/logo-kinal.jpg" alt="Logo" onerror="this.style.display='none'">
+        <img src="../../assets/logo-kinal.png" alt="Logo" onerror="this.style.display='none'">
       </div>
       <div>
         <p class="sidebar__title">Panel docente</p>
@@ -21,6 +21,7 @@
           <a href="./dashboard-teacher.html" class="nav__link">Inicio</a>
           <a href="./reading-new.html" class="nav__link is-active">Nueva lectura</a>
           <a href="./activities-edit.html" class="nav__link">Actividades</a>
+          <a href="./groups.html" class="nav__link">Grupos</a>
           <a href="./stats.html" class="nav__link">Estadísticas</a>
         </nav>
       </div>
@@ -160,10 +161,8 @@
             <div class="form__grid">
               <div class="field field--full">
                 <span class="field__label">Grupos</span>
-                <div class="checklist">
-                  <label class="check"><input type="checkbox" name="grupos" value="4a"><div><p class="check__title">4to A</p></div></label>
-                  <label class="check"><input type="checkbox" name="grupos" value="4b"><div><p class="check__title">4to B</p></div></label>
-                  <label class="check"><input type="checkbox" name="grupos" value="4c"><div><p class="check__title">4to C</p></div></label>
+                <div class="checklist" id="lista-grupos">
+                  <!-- Se rellena con JS -->
                 </div>
               </div>
 

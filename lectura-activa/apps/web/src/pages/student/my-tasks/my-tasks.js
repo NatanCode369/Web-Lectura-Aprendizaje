@@ -1,73 +1,17 @@
 /**
  * my-tasks.js
  * Muestra las tareas asignadas al estudiante.
- * Por ahora usa datos mock. Mañana se conecta a GET /api/v1/assignments.
+ * Lee de localStorage las asignaciones que crea el docente en reading-new.js.
+ * 
+ * TODO backend: reemplazar por GET /api/v1/assignments
  */
 
 // ============================================================
-// DATOS MOCK
+// CONFIGURACIÓN
 // ============================================================
-// TODO backend: reemplazar por:
-//   import { api } from '../../../services/apiClient.js';
-//   const tareas = await api.get('/assignments');
-const TAREAS_MOCK = [
-  {
-    id: 'fake_001',
-    readingTitle: 'El principito',
-    readingSummary: 'Un piloto conoce a un pequeño príncipe que viene de otro planeta y le enseña lecciones sobre la vida, el amor y la amistad.',
-    groupName: '3°A',
-    estimatedMinutes: 15,
-    status: 'pending',
-    dueAt: '2026-10-15T18:00:00Z'
-  },
-  {
-    id: 'fake_002',
-    readingTitle: '1984',
-    readingSummary: 'Una distopía sobre un régimen totalitario que controla todo, incluso el pensamiento, y la lucha de un hombre por la libertad.',
-    groupName: '3°A',
-    estimatedMinutes: 45,
-    status: 'pending',
-    dueAt: '2026-10-20T23:59:00Z'
-  },
-  {
-    id: 'fake_003',
-    readingTitle: 'La casa de los espíritus',
-    readingSummary: 'La saga de la familia Trueba a lo largo de varias generaciones, con elementos mágicos y políticos.',
-    groupName: '3°A',
-    estimatedMinutes: 40,
-    status: 'pending',
-    dueAt: '2026-10-25T18:00:00Z'
-  },
-  {
-    id: 'fake_004',
-    readingTitle: 'Don Quijote de la Mancha',
-    readingSummary: 'Las aventuras de un hidalgo que decide convertirse en caballero andante y vive todo tipo de peripecias.',
-    groupName: '3°A',
-    estimatedMinutes: 60,
-    status: 'in_progress',
-    dueAt: '2026-10-25T23:59:00Z'
-  },
-  {
-    id: 'fake_005',
-    readingTitle: 'Cien años de soledad',
-    readingSummary: 'La historia de la familia Buendía en el pueblo de Macondo, con realismo mágico y personajes inolvidables.',
-    groupName: '3°A',
-    estimatedMinutes: 30,
-    status: 'completed',
-    completedAt: '2026-09-28T14:30:00Z',
-    score: 85
-  },
-  {
-    id: 'fake_006',
-    readingTitle: 'El Principito (corto)',
-    readingSummary: 'Versión corta para lectores principiantes del clásico de Saint-Exupéry.',
-    groupName: '3°A',
-    estimatedMinutes: 8,
-    status: 'completed',
-    completedAt: '2026-09-22T10:15:00Z',
-    score: 92
-  }
-];
+const ESTUDIANTE_EMAIL = 'estudiante@kinal.edu.gt'; // TODO: reemplazar con user.email real
+const KEY_ASIGNACIONES = `asignaciones_${ESTUDIANTE_EMAIL}`;
+const KEY_RESULTADOS = 'resultado'; // los resultados se guardan como resultado_${lecturaId}
 
 // ============================================================
 // REFERENCIAS
@@ -77,6 +21,7 @@ const $stats = document.querySelectorAll('.tasks__stat');
 const $vacio = document.querySelector('.tasks__empty');
 
 let filtroActivo = null;
+let tareas = [];
 
 // ============================================================
 // UTILIDADES
@@ -108,12 +53,64 @@ function estaProximaAVencer(iso) {
   return diff > 0 && diff < tresDias;
 }
 
-function contarPorEstado(estado) {
-  return TAREAS_MOCK.filter((t) => t.status === estado).length;
+// ============================================================
+// CARGAR ASIGNACIONES
+// ============================================================
+function cargarAsignaciones() {
+  try {
+    const lista = JSON.parse(localStorage.getItem(KEY_ASIGNACIONES) || '[]');
+
+    // Para cada asignación, verificar si el estudiante ya la completó
+    return lista.map((a) => {
+      const resultadoKey = `resultado_${a.lecturaId}`;
+      const resultadoGuardado = localStorage.getItem(resultadoKey);
+
+      if (resultadoGuardado) {
+        const r = JSON.parse(resultadoGuardado);
+        return {
+          ...a,
+          status: 'completed',
+          completedAt: r.fecha,
+          score: calcularScore(r)
+        };
+      }
+
+      // Si tiene tiempoUsado pero no está marcada como completada, está en progreso
+      // Por ahora, todas empiezan como pending
+      return a;
+    });
+  } catch {
+    return [];
+  }
+}
+
+function calcularScore(resultado) {
+  // Resultado tiene: { respuestas: {...}, tiempoUsadoSegundos: N }
+  // Necesitamos las actividades originales para saber cuántas correctas hay
+  // Por ahora, retornamos un mock (o podemos implementarlo bien si tenemos acceso a las actividades)
+  return resultado?.score || 85; // temporal
 }
 
 // ============================================================
-// RENDER
+// AGRUPAR POR ESTADO
+// ============================================================
+function agruparTareas() {
+  return {
+    pending: tareas.filter((t) => t.status === 'pending'),
+    in_progress: tareas.filter((t) => t.status === 'in_progress'),
+    completed: tareas.filter((t) => t.status === 'completed')
+  };
+}
+
+// ============================================================
+// CONTAR
+// ============================================================
+function contarPorEstado(estado) {
+  return tareas.filter((t) => t.status === estado).length;
+}
+
+// ============================================================
+// CREAR TARJETA
 // ============================================================
 function crearTarjeta(t) {
   const esPending = t.status === 'pending';
@@ -124,16 +121,20 @@ function crearTarjeta(t) {
   const statusClass = `task-card__status--${t.status}`;
 
   const href = esCompleted
-    ? `../feedback/feedback.html?id=${t.id}`
-    : `../reading-activity/reading-activity.html?id=${t.id}`;
+    ? `../feedback/feedback.html?id=${t.lecturaId}`
+    : `../reading-activity/reading-activity.html?id=${t.lecturaId}`;
 
   const dueHTML = esCompleted
     ? `<span class="task-card__score">${t.score} / 100</span>`
-    : `<span class="task-card__due ${estaProximaAVencer(t.dueAt) ? 'task-card__due--soon' : ''}">Vence: ${formatearFecha(t.dueAt)}</span>`;
+    : t.dueAt
+      ? `<span class="task-card__due ${estaProximaAVencer(t.dueAt) ? 'task-card__due--soon' : ''}">Vence: ${formatearFecha(t.dueAt)}</span>`
+      : '';
 
   const metaHTML = esCompleted
     ? `<span class="task-card__completed-date">Completada el ${formatearFecha(t.completedAt)}</span>`
-    : `<span class="task-card__minutes"><span aria-hidden="true">⏱</span> ${t.estimatedMinutes} min</span>`;
+    : t.estimatedMinutes
+      ? `<span class="task-card__minutes"><span aria-hidden="true">⏱</span> ${t.estimatedMinutes} min</span>`
+      : '';
 
   const actionText = esCompleted
     ? 'Ver resultados'
@@ -143,15 +144,15 @@ function crearTarjeta(t) {
 
   return `
     <li>
-      <a href="${href}" class="task-card task-card--${t.status}" data-id="${escapeHtml(t.id)}">
+      <a href="${href}" class="task-card task-card--${t.status}" data-id="${escapeHtml(t.lecturaId)}">
         <div class="task-card__header">
           <span class="task-card__status ${statusClass}" aria-hidden="true">${statusIcon}</span>
-          <h3 class="task-card__title">${escapeHtml(t.readingTitle)}</h3>
+          <h3 class="task-card__title">${escapeHtml(t.readingTitle || 'Lectura')}</h3>
           ${dueHTML}
         </div>
-        <p class="task-card__summary">${escapeHtml(t.readingSummary)}</p>
+        ${t.readingSummary ? `<p class="task-card__summary">${escapeHtml(t.readingSummary)}</p>` : ''}
         <div class="task-card__meta">
-          <span class="task-card__group">Grupo: ${escapeHtml(t.groupName)}</span>
+          ${t.groupName ? `<span class="task-card__group">Grupo: ${escapeHtml(t.groupName)}</span>` : ''}
           ${metaHTML}
         </div>
         <span class="task-card__action">
@@ -163,23 +164,26 @@ function crearTarjeta(t) {
   `;
 }
 
+// ============================================================
+// RENDER
+// ============================================================
 function renderGrupo(estado) {
-  const tareas = TAREAS_MOCK.filter((t) => t.status === estado);
+  const tareasFiltradas = tareas.filter((t) => t.status === estado);
   const $grupo = document.querySelector(`.tasks__group[data-status="${estado}"]`);
   if (!$grupo) return;
 
   const $lista = $grupo.querySelector('.tasks__group-list');
   const $count = $grupo.querySelector('.tasks__group-count');
 
-  $count.textContent = tareas.length;
+  $count.textContent = tareasFiltradas.length;
 
-  if (tareas.length === 0) {
+  if (tareasFiltradas.length === 0) {
     $grupo.hidden = true;
     return;
   }
 
   $grupo.hidden = false;
-  $lista.innerHTML = tareas.map(crearTarjeta).join('');
+  $lista.innerHTML = tareasFiltradas.map(crearTarjeta).join('');
 }
 
 function renderTodo() {
@@ -195,7 +199,7 @@ function renderTodo() {
   });
 
   // Estado vacío
-  if (TAREAS_MOCK.length === 0) {
+  if (tareas.length === 0) {
     $vacio.hidden = false;
     document.querySelector('.tasks__list').hidden = true;
     document.querySelector('.tasks__stats').hidden = true;
@@ -213,15 +217,15 @@ $stats.forEach((btn) => {
   btn.addEventListener('click', () => {
     const estado = btn.dataset.filter;
 
-    // Si ya estaba activo, desactivar
     if (filtroActivo === estado) {
       filtroActivo = null;
       $stats.forEach((b) => b.setAttribute('aria-pressed', 'false'));
       $grupos.forEach((g) => { g.hidden = false; });
+      // Re-render para que respete los grupos vacíos
+      renderTodo();
       return;
     }
 
-    // Activar este filtro
     filtroActivo = estado;
     $stats.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
     $grupos.forEach((g) => {
@@ -234,14 +238,8 @@ $stats.forEach((btn) => {
 // INICIALIZAR
 // ============================================================
 // TODO backend: cuando el API esté listo:
-//   try {
-//     const tareas = await api.get('/assignments');
-//     TAREAS_MOCK.length = 0;
-//     TAREAS_MOCK.push(...tareas);
-//     renderTodo();
-//   } catch (err) {
-//     if (err.status === 401) window.location.href = '../../auth/login.html';
-//     else console.error('Error:', err);
-//   }
-
+//   import { api } from '../../../services/apiClient.js';
+//   const tareas = await api.get('/assignments');
+//   ...
+tareas = cargarAsignaciones();
 renderTodo();
