@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Mi perfil — Lectura Activa" />
+    <title>Mi perfil — Lectura Activa</title>
+
+    <link rel="stylesheet" href="../../../styles/base.css" />
+    <link rel="stylesheet" href="./user-profile.css" />
+  </head>
+  <body>
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
+    <header class="site-header">
+      <div class="site-header__container">
+        <a href="../catalog/catalog.html" class="site-header__logo" aria-label="Lectura Activa - Inicio">
+          <span class="site-header__logo-text">Lectura Activa</span>
+        </a>
+
+        <nav class="site-header__nav" aria-label="Navegación principal">
+          <ul class="site-header__nav-list">
+            <li><a href="../catalog/catalog.html" class="site-header__nav-link">Catálogo</a></li>
+            <li><a href="../my-tasks/my-tasks.html" class="site-header__nav-link">Mis tareas</a></li>
+            <li><a href="../my-progress/my-progress.html" class="site-header__nav-link">Mi progreso</a></li>
+          </ul>
+        </nav>
+
+        <div class="site-header__user">
+          <span class="site-header__user-name" data-field="headerName">Estudiante</span>
+          <a href="./user-profile.html" class="site-header__user-button" aria-label="Ver mi perfil" aria-current="page">
+            <span aria-hidden="true">👤</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" class="profile">
+      <div id="loading-state" class="profile__state" hidden>
+        <div class="profile__skeleton">
+          <div class="profile__skeleton-avatar"></div>
+          <div class="profile__skeleton-name"></div>
+          <div class="profile__skeleton-email"></div>
+          <div class="profile__skeleton-card"></div>
+        </div>
+        <p class="profile__state-text">Cargando perfil...</p>
+      </div>
+
+      <div id="error-state" class="profile__state" hidden>
+        <div class="profile__state-icon" aria-hidden="true"></div>
+        <h2 class="profile__state-title">No pudimos cargar tu perfil</h2>
+        <p class="profile__state-text" data-field="errorMessage">Intenta de nuevo más tarde.</p>
+        <a href="../catalog/catalog.html" class="profile__state-button">Volver al catálogo</a>
+      </div>
+
+      <div id="profile-content">
+        <header class="profile__hero">
+          <h1 class="profile__title">Mi perfil</h1>
+          <p class="profile__subtitle">Revisa tu información personal y gestiona tu cuenta</p>
+        </header>
+
+        <section class="profile__card" aria-labelledby="profile-card-name">
+          <div class="profile__avatar" aria-hidden="true">
+            <span data-field="initials">JL</span>
+          </div>
+          <h2 class="profile__name" data-field="fullName" id="profile-card-name">Juan Lopez</h2>
+          <p class="profile__email" data-field="email">estudiante@kinal.edu.gt</p>
+          <span class="profile__role" data-field="roleLabel">Estudiante</span>
+        </section>
+
+        <section class="profile__section" aria-labelledby="info-title">
+          <h2 class="profile__section-title" id="info-title">Información personal</h2>
+          <dl class="profile__info-list">
+            <div class="profile__info-item">
+              <dt class="profile__info-label">Nombre completo</dt>
+              <dd class="profile__info-value" data-field="fullName">Juan Lopez</dd>
+            </div>
+            <div class="profile__info-item">
+              <dt class="profile__info-label">Correo institucional</dt>
+              <dd class="profile__info-value" data-field="email">estudiante@kinal.edu.gt</dd>
+            </div>
+            <div class="profile__info-item">
+              <dt class="profile__info-label">Institución</dt>
+              <dd class="profile__info-value" data-field="institution">Fundación Kinal</dd>
+            </div>
+            <div class="profile__info-item">
+              <dt class="profile__info-label">Grupo</dt>
+              <dd class="profile__info-value" data-field="group">Sin grupo</dd>
+            </div>
+            <div class="profile__info-item">
+              <dt class="profile__info-label">Miembro desde</dt>
+              <dd class="profile__info-value" data-field="createdAt">01/08/2026</dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- Mi grupo -->
+        <section class="profile__section" aria-labelledby="group-title">
+          <h2 class="profile__section-title" id="group-title">Mi grupo</h2>
+
+          <div id="sin-grupo">
+            <p class="panel__hint" style="margin-bottom: 16px;">
+              Aún no estás en ningún grupo. Pídele el código a tu docente e ingrésalo aquí.
+            </p>
+            <div class="field">
+              <label for="codigo-grupo">Código del grupo</label>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="text" id="codigo-grupo" placeholder="Ej. 4TOA-KINAL-2026-1234" style="flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-family: monospace;">
+                <button type="button" class="btn btn--orange" id="btn-unirse">Unirme</button>
+              </div>
+              <p id="unirse-mensaje" style="margin-top: 8px; font-size: 0.9rem;" hidden></p>
+            </div>
+          </div>
+
+          <div id="con-grupo" hidden>
+            <p style="font-size: 1rem; margin-bottom: 8px;">
+              Perteneces a: <strong id="nombre-grupo">—</strong>
+            </p>
+            <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 16px;">
+              Año: <span id="year-grupo">—</span>
+            </p>
+            <button type="button" class="btn btn--ghost btn--sm" id="btn-salir-grupo">Salir del grupo</button>
+          </div>
+        </section>
+
+        <section class="profile__section" aria-labelledby="account-title">
+          <h2 class="profile__section-title" id="account-title">Cuenta</h2>
+          <div class="profile__actions">
+            <a href="../../auth/forgot-password.html" class="profile__action profile__action--secondary" id="change-password">
+              <span class="profile__action-icon" aria-hidden="true"></span>
+              <div class="profile__action-content">
+                <span class="profile__action-title">Cambiar contraseña</span>
+                <span class="profile__action-description">Recibirás un correo para cambiarla</span>
+              </div>
+              <span class="profile__action-arrow" aria-hidden="true">→</span>
+            </a>
+
+            <a href="../../auth/login.html" class="profile__action profile__action--danger" id="logout-button">
+              <span class="profile__action-icon" aria-hidden="true"></span>
+              <div class="profile__action-content">
+                <span class="profile__action-title">Cerrar sesión</span>
+                <span class="profile__action-description">Salir de tu cuenta en este dispositivo</span>
+              </div>
+              <span class="profile__action-arrow" aria-hidden="true">→</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="profile__back" aria-label="Volver">
+          <a href="../catalog/catalog.html" class="profile__back-link">
+            <span aria-hidden="true">←</span> Volver al catálogo
+          </a>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="./user-profile.js"></script>
+  </body>
+</html>

@@ -1,0 +1,70 @@
+# Entorno local de Lectura Activa (Fase 0).
+# Mongo solo:     docker compose up -d
+# Mongo + API:    docker compose --profile dev up
+#
+# Flujo recomendado: Mongo en Docker y la API en el host
+# (`npm run dev` dentro de apps/api). El servicio `api` es opcional.
+
+services:
+  mongo:
+    # Pin a la línea 7.x (misma major que Atlas en el diseño).
+    # `mongo:7` también vale; `7.0` evita saltos silenciosos de minor.
+    image: mongo:7.0
+    container_name: lectura-activa-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-lectura}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-lectura}
+      MONGO_INITDB_DATABASE: ${MONGODB_DB:-lectura_activa}
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "-u",
+          "${MONGO_INITDB_ROOT_USERNAME:-lectura}",
+          "-p",
+          "${MONGO_INITDB_ROOT_PASSWORD:-lectura}",
+          "--authenticationDatabase",
+          "admin",
+          "--eval",
+          "db.adminCommand('ping')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  api:
+    profiles: ["dev"]
+    image: node:20-alpine
+    container_name: lectura-activa-api
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    ports:
+      # Host:contenedor. Dentro del contenedor Fastify siempre escucha 3000.
+      - "${PORT:-3000}:3000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: 3000
+      # Hostname `mongo` = nombre del servicio en la red de Compose, no localhost.
+      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-lectura}:${MONGO_INITDB_ROOT_PASSWORD:-lectura}@mongo:27017/${MONGODB_DB:-lectura_activa}?authSource=admin
+    volumes:
+      - ./apps/api:/app
+      - api_node_modules:/app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  mongo_data:
+  api_node_modules:

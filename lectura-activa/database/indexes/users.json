@@ -1,0 +1,17 @@
+[
+  {
+    "collection": "users",
+    "key": { "authUserId": 1 },
+    "options": { "unique": true, "name": "users_auth_user_id_unique" }
+  },
+  {
+    "collection": "users",
+    "key": { "email": 1 },
+    "options": { "unique": true, "name": "users_email_unique" }
+  },
+  {
+    "collection": "users",
+    "key": { "institutionId": 1, "role": 1 },
+    "options": { "name": "users_institution_role" }
+  }
+]

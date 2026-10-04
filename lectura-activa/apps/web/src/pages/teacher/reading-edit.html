@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editar lectura | Lectura Activa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../styles/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <img src="../../assets/logo-kinal.png" alt="Logo" onerror="this.style.display='none'">
+      </div>
+      <div>
+        <p class="sidebar__title">Panel docente</p>
+        <nav class="nav">
+          <a href="./dashboard-teacher.html" class="nav__link">Inicio</a>
+          <a href="./reading-new.html" class="nav__link">Nueva lectura</a>
+          <a href="./activities-edit.html" class="nav__link">Actividades</a>
+          <a href="./groups.html" class="nav__link">Grupos</a>
+          <a href="./stats.html" class="nav__link">Estadísticas</a>
+        </nav>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__crumb">Lectura Activa</span>
+        <div class="topbar__user">
+          <span>Docente</span>
+          <a href="../auth/login.html" class="topbar__logout">Cerrar sesión</a>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1>Editar lectura</h1>
+            <p>Modifica los datos de una lectura ya publicada.</p>
+          </div>
+          <span class="badge badge--ok" id="badge-estado">Publicada</span>
+        </div>
+
+        <p class="alert">
+          Los cambios que guardes no afectan las asignaciones que ya hiciste: los estudiantes
+          verán la versión que tenía la lectura cuando se asignó.
+        </p>
+
+        <form id="reading-edit-form" class="form">
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">Datos de la lectura</h2>
+            </div>
+
+            <div class="form__grid">
+              <div class="field">
+                <label for="titulo">Título</label>
+                <input type="text" id="titulo" name="titulo" required>
+              </div>
+
+              <div class="field">
+                <label for="autor">Autor</label>
+                <input type="text" id="autor" name="autor">
+              </div>
+
+              <div class="field">
+                <label for="nivel">Dificultad</label>
+                <select id="nivel" name="nivel" required>
+                  <option value="basico">Básico</option>
+                  <option value="intermedio">Intermedio</option>
+                  <option value="avanzado">Avanzado</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="minutos">Tiempo estimado (minutos)</label>
+                <input type="number" id="minutos" name="minutos" min="1" max="120" value="15">
+              </div>
+
+              <div class="field field--full">
+                <label for="resumen">Resumen</label>
+                <textarea id="resumen" name="resumen"></textarea>
+              </div>
+
+              <div class="field field--full">
+                <label for="contenido">Contenido</label>
+                <textarea id="contenido" name="contenido" rows="8"></textarea>
+                <span class="field__hint">Recuerda que las lecturas deben ser muy cortas.</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">Actividades</h2>
+              <a href="./activities-edit.html" class="btn btn--ghost btn--sm">Editar preguntas</a>
+            </div>
+
+            <div class="checklist" id="lista-actividades">
+              <p class="panel__hint">Cargando actividades...</p>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">Asignaciones existentes</h2>
+              <span class="panel__hint">Solo lectura</span>
+            </div>
+
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Grupo</th>
+                    <th>Inicio</th>
+                    <th>Entrega</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="asignaciones-body">
+                  <tr>
+                    <td colspan="4" style="text-align: center; padding: 20px; color: #64748b;">
+                      Cargando asignaciones...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <div class="form__actions">
+            <a href="./dashboard-teacher.html" class="btn btn--ghost">Cancelar</a>
+            <button type="submit" class="btn btn--orange">Guardar cambios</button>
+          </div>
+        </form>
+      </main>
+    </div>
+  </div>
+
+  <script type="module" src="./reading-edit.js"></script>
+</body>
+</html>

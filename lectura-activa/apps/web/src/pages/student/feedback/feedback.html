@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Resultados de la lectura — Lectura Activa" />
+    <title>Resultados — Lectura Activa</title>
+
+    <link rel="stylesheet" href="../../../styles/base.css" />
+    <link rel="stylesheet" href="./feedback.css" />
+  </head>
+  <body>
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
+    <header class="site-header">
+      <div class="site-header__container">
+        <a href="../catalog/catalog.html" class="site-header__logo" aria-label="Lectura Activa - Inicio">
+          <span class="site-header__logo-text">Lectura Activa</span>
+        </a>
+
+        <nav class="site-header__nav" aria-label="Navegación principal">
+          <ul class="site-header__nav-list">
+            <li><a href="../catalog/catalog.html" class="site-header__nav-link">Catálogo</a></li>
+            <li><a href="../my-tasks/my-tasks.html" class="site-header__nav-link">Mis tareas</a></li>
+            <li><a href="../my-progress/my-progress.html" class="site-header__nav-link">Mi progreso</a></li>
+          </ul>
+        </nav>
+
+        <div class="site-header__user">
+          <span class="site-header__user-name">Estudiante</span>
+          <a href="../user-profile/user-profile.html" class="site-header__user-button" aria-label="Ver mi perfil">
+            <span aria-hidden="true">👤</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" class="feedback">
+      <!-- Estado de carga -->
+      <div id="loading-state" class="feedback__state" hidden>
+        <div class="feedback__skeleton">
+          <div class="feedback__skeleton-badge"></div>
+          <div class="feedback__skeleton-title"></div>
+          <div class="feedback__skeleton-meta"></div>
+          <div class="feedback__skeleton-block"></div>
+          <div class="feedback__skeleton-block"></div>
+        </div>
+        <p class="feedback__state-text">Cargando resultados...</p>
+      </div>
+
+      <!-- Estado de error -->
+      <div id="error-state" class="feedback__state" hidden>
+        <div class="feedback__state-icon" aria-hidden="true">⚠️</div>
+        <h2 class="feedback__state-title">No pudimos cargar los resultados</h2>
+        <p class="feedback__state-text" data-field="errorMessage">
+          Vuelve a tu progreso e intenta de nuevo.
+        </p>
+        <a href="../my-progress/my-progress.html" class="feedback__state-button">
+          Volver a mi progreso
+        </a>
+      </div>
+
+      <!-- Contenido principal -->
+      <div id="feedback-content">
+        <header class="feedback__hero">
+          <div class="feedback__hero-icon" aria-hidden="true">🎉</div>
+          <h1 class="feedback__hero-title">¡Completaste la lectura!</h1>
+          <p class="feedback__hero-subtitle" data-field="readingTitle">Lectura</p>
+        </header>
+
+        <section class="feedback__summary" aria-label="Resumen de resultados">
+          <div class="feedback__score-card">
+            <span class="feedback__score-label">Puntaje</span>
+            <span class="feedback__score-value" data-field="score">—</span>
+            <span class="feedback__score-max">/ 100</span>
+          </div>
+
+          <div class="feedback__meta-card">
+            <span class="feedback__meta-icon" aria-hidden="true">⏱</span>
+            <span class="feedback__meta-label">Tiempo</span>
+            <span class="feedback__meta-value" data-field="timeSpent">—</span>
+          </div>
+
+          <div class="feedback__meta-card">
+            <span class="feedback__meta-icon" aria-hidden="true">📅</span>
+            <span class="feedback__meta-label">Completada</span>
+            <span class="feedback__meta-value" data-field="completedAt">—</span>
+          </div>
+        </section>
+
+        <section class="feedback__progress-section" aria-label="Nivel de logro">
+          <div
+            class="feedback__progress-bar"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            data-field="scoreProgressBar"
+          >
+            <div class="feedback__progress-fill" data-field="scoreProgressFill" style="width: 0%"></div>
+          </div>
+
+          <p class="feedback__motivation" data-field="motivation"></p>
+        </section>
+
+        <section class="feedback__section" aria-labelledby="details-title">
+          <header class="feedback__section-header">
+            <h2 class="feedback__section-title" id="details-title">Detalle de actividades</h2>
+            <p class="feedback__section-count">
+              <span data-field="correctCount">0</span> de
+              <span data-field="totalCount">0</span> correctas
+            </p>
+          </header>
+
+          <ul class="feedback__list" data-field="activitiesList" aria-label="Resultados por actividad">
+            <!-- Se rellena con JS -->
+          </ul>
+        </section>
+
+        <section class="feedback__actions" aria-label="Acciones disponibles">
+          <a href="../my-tasks/my-tasks.html" class="feedback__action feedback__action--primary">
+            <span aria-hidden="true">←</span>
+            Volver a Mis tareas
+          </a>
+
+          <a href="../my-progress/my-progress.html" class="feedback__action feedback__action--secondary">
+            Ver mi progreso
+            <span aria-hidden="true">→</span>
+          </a>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="./feedback.js"></script>
+  </body>
+</html>
