@@ -2,25 +2,29 @@
  * Error base de la aplicación.
  */
 export class AppError extends Error {
-  constructor(statusCode, code, message, meta = {}) {
+  constructor(statusCode, code, message, details = undefined) {
     super(message);
     this.name = 'AppError';
     this.statusCode = statusCode;
     this.code = code;
-    this.meta = meta;
-    this.isOperational = true;
-    Error.captureStackTrace?.(this, AppError);
+    this.details = details;
   }
-
-  // Atajos estáticos para uso rápido
-  static badRequest(code, message, meta) { return new AppError(400, code, message, meta); }
-  static unauthorized(code, message, meta) { return new AppError(401, code, message, meta); }
-  static forbidden(code, message, meta) { return new AppError(403, code, message, meta); }
-  static notFound(code, message, meta) { return new AppError(404, code, message, meta); }
-  static conflict(code, message, meta) { return new AppError(409, code, message, meta); }
-  static unprocessable(code, message, meta) { return new AppError(422, code, message, meta); }
-  static internal(code, message, meta) { return new AppError(500, code, message, meta); }
 }
+
+export const badRequest = (message, details) =>
+    new AppError(400, 'BAD_REQUEST', message, details);
+
+export const unauthorized = (message = 'Autenticación requerida') =>
+    new AppError(401, 'UNAUTHORIZED', message);
+
+export const forbidden = (message = 'No tienes permisos para realizar esta operación') =>
+    new AppError(403, 'FORBIDDEN', message);
+
+export const notFound = (message = 'Recurso no encontrado') =>
+    new AppError(404, 'NOT_FOUND', message);
+
+export const conflict = (message, details) =>
+    new AppError(409, 'CONFLICT', message, details);
 
 /**
  * Clases específicas para importación directa desde la Capa de Servicio/Dominio.

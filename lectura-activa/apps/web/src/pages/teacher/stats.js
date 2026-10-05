@@ -22,9 +22,9 @@
   const KEY_GRUPOS = `grupos_${DOCENTE_ID}`;
   const KEY_LECTURAS = 'lecturas_docente';
 
-  const NOMBRE_ESTADO = { al- dia: 'Al día', atrasado: 'Atrasado', 'sin-empezar': 'Sin empezar'
+  const NOMBRE_ESTADO = { alDia: 'Al día', atrasado: 'Atrasado', 'sin-empezar': 'Sin empezar'
 };
-const CLASE_ESTADO = { al- dia: 'badge--ok', atrasado: 'badge--late', 'sin-empezar': 'badge--soon' };
+const CLASE_ESTADO = { alDia: 'badge--ok', atrasado: 'badge--late', 'sin-empezar': 'badge--soon' };
 
 // ============================================================
 // REFERENCIAS
