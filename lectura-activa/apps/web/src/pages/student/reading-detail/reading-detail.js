@@ -1,224 +1,288 @@
-/**
- * reading-detail.js
- * Muestra el detalle de una lectura.
- * Lee del localStorage primero (lecturas creadas por el docente),
- * y si no existe, cae en los mocks.
- * 
- * TODO backend: reemplazar por GET /api/v1/readings/:id
- */
+/* Pantalla: Detalle de lectura — Dueño: Omar */
 
-// ============================================================
-// DATOS MOCK (fallback)
-// ============================================================
-const LECTURAS_MOCK = {
-  fake_001: {
-    id: 'fake_001',
-    title: 'El principito',
-    authorName: 'Ana López',
-    summary: 'Un piloto conoce a un pequeño príncipe que viene de otro planeta y le enseña lecciones sobre la vida, el amor y la amistad. A través de sus conversaciones, el principito comparte su visión única del mundo y ayuda al piloto a redescubrir lo esencial que muchas veces olvidamos los adultos.',
-    difficulty: 'easy',
-    estimatedMinutes: 15,
-    activities: [
-      { type: 'trivia', title: 'Preguntas de comprensión', text: 'Responde preguntas sobre los personajes y la historia.' },
-      { type: 'true_false', title: 'Verdadero o falso', text: 'Identifica si las afirmaciones son verdaderas o falsas.' },
-      { type: 'detective', title: 'Detective de palabras', text: 'Encuentra sinónimos en el texto.' }
-    ]
-  },
-  fake_002: {
-    id: 'fake_002',
-    title: '1984',
-    authorName: 'Luis Pérez',
-    summary: 'Una distopía sobre un régimen totalitario que controla todo, incluso el pensamiento, y la lucha de un hombre por la libertad.',
-    difficulty: 'hard',
-    estimatedMinutes: 45,
-    activities: [
-      { type: 'trivia', title: 'Preguntas de comprensión', text: 'Responde sobre el mundo de Oceanía.' },
-      { type: 'true_false', title: 'Verdadero o falso', text: 'Afirmaciones sobre la historia.' }
-    ]
-  },
-  fake_003: {
-    id: 'fake_003',
-    title: 'Cien años de soledad',
-    authorName: 'Gabriel García Márquez',
-    summary: 'La historia de la familia Buendía en el pueblo de Macondo, con realismo mágico y personajes inolvidables.',
-    difficulty: 'medium',
-    estimatedMinutes: 30,
-    activities: [
-      { type: 'trivia', title: 'Preguntas de comprensión', text: 'Responde sobre los Buendía.' },
-      { type: 'mind_map', title: 'Mapa mental', text: 'Conecta los personajes con sus historias.' }
-    ]
-  }
+import { readingService } from "../../../services/readingsService.js";
+import { formatDifficulty, formatLevel } from "../../../utils/formatters.js";
+import { qs, getParam, escapeHtml } from "../../../utils/dom.js";
+
+/* Estado de la pantalla */
+const state = {
+  readingId: null,
+  reading: null,
 };
 
-// Mapeo de actividades del docente a iconos y textos
-const ACTIVIDAD_INFO = {
-  trivia: { icon: '❓', title: 'Preguntas tipo trivia', text: 'Responde preguntas de opción múltiple sobre la lectura.' },
-  'verdadero-falso': { icon: '✓', title: 'Verdadero o falso', text: 'Identifica si las afirmaciones son verdaderas o falsas.' },
-  detective: { icon: '🔍', title: 'Detective de palabras', text: 'Encuentra sinónimos en el texto.' },
-  ordenar: { icon: '🔀', title: 'Ordena la historia', text: 'Arrastra los hechos al orden correcto.' },
-  mapa: { icon: '🧠', title: 'Mapa mental', text: 'Une conceptos con líneas.' }
+/* Referencias del DOM */
+const els = {
+  loading: qs("#loading-state"),
+  error: qs("#error-state"),
+  errorMessage: qs("#error-message"),
+  content: qs("#detail-content"),
+  breadcrumbTitle: qs('[data-field="breadcrumbTitle"]'),
+  difficulty: qs('[data-field="difficulty"]'),
+  progressBadge: qs('[data-field="progressBadge"]'),
+  title: qs('[data-field="title"]'),
+  author: qs('[data-field="author"]'),
+  estimatedMinutes: qs('[data-field="estimatedMinutes"]'),
+  activitiesCount: qs('[data-field="activitiesCount"]'),
+  level: qs('[data-field="level"]'),
+  summary: qs('[data-field="summary"]'),
+  activitiesList: qs('[data-field="activities"]'),
+  ctaTitle: qs('[data-field="ctaTitle"]'),
+  ctaNote: qs('[data-field="ctaNote"]'),
+  ctaPrimary: qs('[data-field="ctaPrimary"]'),
+  ctaPrimaryText: qs('[data-field="ctaPrimaryText"]'),
 };
 
-const ETIQUETA_DIFICULTAD = { easy: 'Fácil', medium: 'Medio', hard: 'Difícil' };
-const ETIQUETA_NIVEL = { easy: 'Principiante', medium: 'Intermedio', hard: 'Avanzado' };
+/* Iconos y textos por tipo de actividad (según el backend) */
+const ACTIVITY_META = {
+  multiple_choice: {
+    icon: "❓",
+    title: "Preguntas de comprensión",
+    text: "Responde preguntas sobre los personajes y la historia.",
+  },
+  true_false: {
+    icon: "✓",
+    title: "Verdadero o falso",
+    text: "Identifica si las afirmaciones son verdaderas o falsas.",
+  },
+  short_answer: {
+    icon: "✎",
+    title: "Respuesta corta",
+    text: "Escribe una respuesta breve a cada pregunta.",
+  },
+  ordering: {
+    icon: "🔀",
+    title: "Ordena la historia",
+    text: "Arrastra los hechos al orden correcto.",
+  },
+  matching: {
+    icon: "🔗",
+    title: "Relacionar conceptos",
+    text: "Une cada concepto con su definición.",
+  },
+};
 
-// ============================================================
-// REFERENCIAS
-// ============================================================
-const $ = (id) => document.getElementById(id);
-const $loading = $('loading-state');
-const $error = $('error-state');
-const $content = $('detail-content');
-
-// ============================================================
-// UTILIDADES
-// ============================================================
-function mostrarSoloCargando() {
-  $loading.hidden = false;
-  $error.hidden = true;
-  $content.hidden = true;
+/* Estados de UI */
+function showState(name) {
+  if (els.loading) els.loading.hidden = name !== "loading";
+  if (els.error) els.error.hidden = name !== "error";
+  if (els.content) els.content.hidden = name !== "content";
 }
 
-function mostrarSoloError(mensaje) {
-  $loading.hidden = true;
-  $error.hidden = false;
-  $content.hidden = true;
-  document.querySelector('[data-field="errorMessage"]').textContent = mensaje;
+function showError(message) {
+  if (els.errorMessage) els.errorMessage.textContent = message;
+  showState("error");
 }
 
-function mostrarSoloContenido() {
-  $loading.hidden = true;
-  $error.hidden = true;
-  $content.hidden = false;
-}
+/* Render de actividades */
+function renderActivities(activities) {
+  if (!els.activitiesList) return;
 
-function llenarCampo(campo, valor) {
-  const el = document.querySelector(`[data-field="${campo}"]`);
-  if (el) el.textContent = valor;
-}
-
-// ============================================================
-// CARGAR LECTURA
-// ============================================================
-function cargarLectura(id) {
-  // 1. Intentar leer del localStorage (lectura creada por el docente)
-  const guardada = localStorage.getItem(`lectura_${id}`);
-  if (guardada) {
-    const l = JSON.parse(guardada);
-
-    // Contar actividades reales (si tiene)
-    const actividadesGuardadas = localStorage.getItem(`actividades_${id}`);
-    let actividades = [];
-
-    if (actividadesGuardadas) {
-      const acts = JSON.parse(actividadesGuardadas);
-      const tiposSeleccionados = l.actividades || Object.keys(acts);
-
-      tiposSeleccionados.forEach((tipo) => {
-        const info = ACTIVIDAD_INFO[tipo];
-        if (info) {
-          actividades.push({
-            type: tipo,
-            title: info.title,
-            text: info.text
-          });
-        }
-      });
-    }
-
-    // Si no tiene actividades configuradas, poner al menos las básicas
-    if (actividades.length === 0) {
-      actividades = [
-        { type: 'trivia', title: 'Preguntas tipo trivia', text: 'Responde preguntas de opción múltiple sobre la lectura.' }
-      ];
-    }
-
-    return {
-      id: l.id,
-      title: l.title,
-      authorName: l.authorName,
-      summary: l.summary,
-      difficulty: l.difficulty,
-      estimatedMinutes: l.estimatedMinutes,
-      activities: actividades
-    };
-  }
-
-  // 2. Si no existe, caer en los mocks
-  return LECTURAS_MOCK[id] || null;
-}
-
-// ============================================================
-// RENDER
-// ============================================================
-function renderLectura(reading) {
-  document.title = `${reading.title} — Lectura Activa`;
-
-  llenarCampo('title', reading.title);
-  llenarCampo('author', `Por: ${reading.authorName}`);
-  llenarCampo('breadcrumbTitle', reading.title);
-
-  // Dificultad
-  const $dif = document.querySelector('[data-field="difficulty"]');
-  $dif.textContent = ETIQUETA_DIFICULTAD[reading.difficulty] || '—';
-  $dif.className = `detail__difficulty detail__difficulty--${reading.difficulty}`;
-
-  // Meta
-  llenarCampo('estimatedMinutes', `${reading.estimatedMinutes} min`);
-  llenarCampo('activitiesCount', reading.activities.length);
-  llenarCampo('level', ETIQUETA_NIVEL[reading.difficulty] || '—');
-
-  // Resumen
-  llenarCampo('summary', reading.summary);
-
-  // Lista de actividades
-  const $lista = document.querySelector('[data-field="activities"]');
-  $lista.innerHTML = reading.activities.map((a) => {
-    const info = ACTIVIDAD_INFO[a.type] || { icon: '📝' };
-    return `
+  if (!activities || activities.length === 0) {
+    els.activitiesList.innerHTML = `
       <li class="detail__activity">
-        <span class="detail__activity-icon" aria-hidden="true">${info.icon}</span>
         <div class="detail__activity-content">
-          <h3 class="detail__activity-title">${a.title}</h3>
-          <p class="detail__activity-text">${a.text}</p>
+          <p class="detail__activity-text">
+            Esta lectura no tiene actividades por ahora.
+          </p>
         </div>
       </li>
     `;
-  }).join('');
-
-  // CTA
-  const cta = document.querySelector('[data-field="ctaPrimary"]');
-  cta.href = `../reading-activity/reading-activity.html?id=${encodeURIComponent(reading.id)}`;
-  llenarCampo('ctaPrimaryText', 'Empezar a leer');
-  llenarCampo('ctaNote', 'Una vez empieces, podrás pausar y continuar cuando quieras.');
-}
-
-// ============================================================
-// CARGA
-// ============================================================
-async function cargar() {
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get('id');
-
-  if (!id) {
-    mostrarSoloError('No especificaste qué lectura abrir.');
     return;
   }
 
-  mostrarSoloCargando();
+  els.activitiesList.innerHTML = activities
+    .map((activity) => {
+      const meta = ACTIVITY_META[activity.type] || {
+        icon: "📝",
+        title: "Actividad",
+        text: "Completa esta actividad.",
+      };
 
-  // Simulamos un fetch con delay para ver el skeleton
-  await new Promise((r) => setTimeout(r, 400));
+      return `
+        <li class="detail__activity">
+          <span class="detail__activity-icon" aria-hidden="true">${meta.icon}</span>
+          <div class="detail__activity-content">
+            <h3 class="detail__activity-title">${escapeHtml(meta.title)}</h3>
+            <p class="detail__activity-text">${escapeHtml(meta.text)}</p>
+          </div>
+        </li>
+      `;
+    })
+    .join("");
+}
 
-  const reading = cargarLectura(id);
+/* Rellenar el hero */
+function renderHero(reading) {
+  const difficulty = reading.difficulty || "easy";
 
-  if (!reading) {
-    mostrarSoloError('Lectura no encontrada.');
+  if (els.breadcrumbTitle) {
+    els.breadcrumbTitle.textContent = reading.title ?? "—";
+  }
+
+  if (els.difficulty) {
+    els.difficulty.textContent = formatDifficulty(difficulty);
+    els.difficulty.className = `detail__difficulty detail__difficulty--${difficulty}`;
+  }
+
+  if (els.title) els.title.textContent = reading.title ?? "—";
+
+  if (els.author) {
+    els.author.textContent = reading.authorName
+      ? `Por: ${reading.authorName}`
+      : "";
+  }
+}
+
+/* Rellenar la meta */
+function renderMeta(reading) {
+  const difficulty = reading.difficulty || "easy";
+  const activitiesCount = reading.activities?.length ?? 0;
+
+  if (els.estimatedMinutes) {
+    els.estimatedMinutes.textContent = reading.estimatedMinutes
+      ? `${reading.estimatedMinutes} min`
+      : "—";
+  }
+
+  if (els.activitiesCount) {
+    els.activitiesCount.textContent = String(activitiesCount);
+  }
+
+  if (els.level) els.level.textContent = formatLevel(difficulty);
+}
+
+/* Rellenar la sección de resumen */
+function renderSummary(reading) {
+  if (els.summary) {
+    els.summary.textContent = reading.summary ?? "";
+  }
+}
+
+/* Rellenar el CTA según el estado del estudiante
+ * Por ahora: siempre "Empezar a leer".
+ *
+ * TODO: cuando tengamos el endpoint del estado del estudiante,
+ * cambiar según `studentAssignment.status`:
+ *   - pending      → "Empezar a leer"  → reading-activity.html
+ *   - in_progress  → "Continuar leyendo" + badge "En progreso"
+ *   - completed    → "Ver resultados"  → feedback.html
+ */
+function renderCta(reading) {
+  const readingId = encodeURIComponent(reading.id);
+
+  if (els.ctaPrimary) {
+    els.ctaPrimary.href = `../reading-activity/reading-activity.html?id=${readingId}`;
+  }
+
+  if (els.ctaPrimaryText) {
+    els.ctaPrimaryText.textContent = "Empezar a leer";
+  }
+
+  if (els.ctaTitle) {
+    els.ctaTitle.textContent = "¿Listo para empezar?";
+  }
+
+  if (els.ctaNote) {
+    els.ctaNote.textContent =
+      "Una vez empieces, podrás pausar y continuar cuando quieras.";
+  }
+
+  if (els.progressBadge) {
+    els.progressBadge.hidden = true;
+  }
+}
+
+/* Render completo */
+function renderDetail(reading) {
+  renderHero(reading);
+  renderMeta(reading);
+  renderSummary(reading);
+  renderActivities(reading.activities);
+  renderCta(reading);
+
+  document.title = `${reading.title ?? "Detalle"} — Lectura Activa`;
+}
+
+/* Manejo de errores por código HTTP */
+function handleError(error) {
+  console.error("[reading-detail] Error:", error);
+
+  const status = error?.status;
+
+  if (status === 401) {
+    showError("Necesitas iniciar sesión para ver esta lectura.");
     return;
   }
 
-  renderLectura(reading);
-  mostrarSoloContenido();
+  if (status === 403) {
+    showError("No tienes permiso para ver esta lectura.");
+    return;
+  }
+
+  if (status === 404) {
+    showError("No encontramos esta lectura.");
+    return;
+  }
+
+  if (status >= 500) {
+    showError("El servidor tuvo un problema. Intenta de nuevo más tarde.");
+    return;
+  }
+
+  if (error?.message?.includes("conectar")) {
+    showError("No pudimos conectar con el servidor. Verifica tu conexión.");
+    return;
+  }
+
+  showError(
+    error?.message || "No pudimos cargar la lectura. Intenta de nuevo.",
+  );
 }
 
-cargar();
+/* Normalizar el objeto que devuelve el backend */
+function normalizeReading(raw) {
+  if (!raw) return null;
+
+  // El backend devuelve `_id` (MongoDB). Lo normalizamos a `id`.
+  const id = raw.id ?? raw._id?.toString();
+
+  return {
+    ...raw,
+    id,
+  };
+}
+
+/* Cargar la lectura desde el backend */
+async function loadReading() {
+  if (!state.readingId) {
+    showError("No especificaste qué lectura abrir.");
+    return;
+  }
+
+  showState("loading");
+
+  try {
+    const response = await readingService.getById(state.readingId);
+    const reading = normalizeReading(response?.data ?? response);
+
+    if (!reading) {
+      showError("Lectura no encontrada.");
+      return;
+    }
+
+    state.reading = reading;
+    renderDetail(reading);
+    showState("content");
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/* Inicialización */
+function init() {
+  state.readingId = getParam("id");
+  console.info("[reading-detail] Pantalla cargada. ID:", state.readingId);
+  loadReading();
+}
+
+init();

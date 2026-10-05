@@ -14,21 +14,44 @@
 
     <header class="site-header">
       <div class="site-header__container">
-        <a href="../catalog/catalog.html" class="site-header__logo" aria-label="Lectura Activa - Inicio">
+        <a
+          href="../catalog/catalog.html"
+          class="site-header__logo"
+          aria-label="Lectura Activa - Inicio"
+        >
           <span class="site-header__logo-text">Lectura Activa</span>
         </a>
 
         <nav class="site-header__nav" aria-label="Navegación principal">
           <ul class="site-header__nav-list">
-            <li><a href="../catalog/catalog.html" class="site-header__nav-link">Catálogo</a></li>
-            <li><a href="../my-tasks/my-tasks.html" class="site-header__nav-link">Mis tareas</a></li>
-            <li><a href="./my-progress.html" class="site-header__nav-link" aria-current="page">Mi progreso</a></li>
+            <li>
+              <a href="../catalog/catalog.html" class="site-header__nav-link"
+                >Catálogo</a
+              >
+            </li>
+            <li>
+              <a href="../my-tasks/my-tasks.html" class="site-header__nav-link"
+                >Mis tareas</a
+              >
+            </li>
+            <li>
+              <a
+                href="./my-progress.html"
+                class="site-header__nav-link"
+                aria-current="page"
+                >Mi progreso</a
+              >
+            </li>
           </ul>
         </nav>
 
         <div class="site-header__user">
           <span class="site-header__user-name">Estudiante</span>
-          <a href="../user-profile/user-profile.html" class="site-header__user-button" aria-label="Ver mi perfil">
+          <a
+            href="../user-profile/user-profile.html"
+            class="site-header__user-button"
+            aria-label="Ver mi perfil"
+          >
             <span aria-hidden="true">👤</span>
           </a>
         </div>
@@ -43,56 +66,92 @@
         </p>
       </header>
 
-      <section class="progress__stats" aria-label="Resumen general">
-        <div class="progress__stat">
-          <span class="progress__stat-icon" aria-hidden="true">📚</span>
-          <span class="progress__stat-value" data-field="totalReadings">—</span>
-          <span class="progress__stat-label">Lecturas</span>
-        </div>
+      <!-- Estado de carga -->
+      <div id="loading-state" class="progress__state" hidden>
+        <p class="progress__state-text">Cargando tu progreso...</p>
+      </div>
 
-        <div class="progress__stat progress__stat--success">
-          <span class="progress__stat-icon" aria-hidden="true">✅</span>
-          <span class="progress__stat-value" data-field="completedReadings">—</span>
-          <span class="progress__stat-label">Completadas</span>
-        </div>
-
-        <div class="progress__stat progress__stat--primary">
-          <span class="progress__stat-icon" aria-hidden="true">🎯</span>
-          <span class="progress__stat-value" data-field="averageScore">—</span>
-          <span class="progress__stat-label">Promedio</span>
-        </div>
-
-        <div class="progress__stat progress__stat--warning">
-          <span class="progress__stat-icon" aria-hidden="true">⏱</span>
-          <span class="progress__stat-value" data-field="totalTime">—</span>
-          <span class="progress__stat-label">Tiempo total</span>
-        </div>
-      </section>
-
-      <section class="progress__section" aria-labelledby="history-title">
-        <header class="progress__section-header">
-          <h2 class="progress__section-title" id="history-title">Historial</h2>
-          <p class="progress__section-count">
-            <span data-field="historyCount">0</span> lecturas completadas
-          </p>
-        </header>
-
-        <ul class="progress__list" data-field="historyList" aria-label="Historial de lecturas completadas">
-          <!-- Se rellena con JS -->
-        </ul>
-      </section>
-
-      <!-- Estado vacío -->
-      <section class="progress__empty" hidden>
-        <div class="progress__empty-icon" aria-hidden="true">📚</div>
-        <h2 class="progress__empty-title">Aún no has completado ninguna lectura</h2>
-        <p class="progress__empty-text">
-          Cuando termines tu primera lectura, aparecerá aquí tu progreso.
+      <!-- Estado de error -->
+      <div id="error-state" class="progress__state" hidden>
+        <div class="progress__state-icon" aria-hidden="true">⚠️</div>
+        <h2 class="progress__state-title">No pudimos cargar tu progreso</h2>
+        <p class="progress__state-text" data-field="errorMessage">
+          Intenta de nuevo más tarde.
         </p>
-        <a href="../catalog/catalog.html" class="progress__empty-button">
-          Explorar el catálogo
+        <a href="../catalog/catalog.html" class="progress__state-button">
+          Volver al catálogo
         </a>
-      </section>
+      </div>
+
+      <!-- Contenido -->
+      <div id="progress-content">
+        <!-- Estadísticas -->
+        <section class="progress__stats" aria-label="Resumen general">
+          <div class="progress__stat">
+            <span class="progress__stat-icon" aria-hidden="true">📚</span>
+            <span class="progress__stat-value" data-field="totalReadings"
+              >0</span
+            >
+            <span class="progress__stat-label">Lecturas</span>
+          </div>
+
+          <div class="progress__stat progress__stat--success">
+            <span class="progress__stat-icon" aria-hidden="true">✅</span>
+            <span class="progress__stat-value" data-field="completedReadings"
+              >0</span
+            >
+            <span class="progress__stat-label">Completadas</span>
+          </div>
+
+          <div class="progress__stat progress__stat--primary">
+            <span class="progress__stat-icon" aria-hidden="true">🎯</span>
+            <span class="progress__stat-value" data-field="averageScore"
+              >—</span
+            >
+            <span class="progress__stat-label">Promedio</span>
+          </div>
+
+          <div class="progress__stat progress__stat--warning">
+            <span class="progress__stat-icon" aria-hidden="true">⏱</span>
+            <span class="progress__stat-value" data-field="totalTime">—</span>
+            <span class="progress__stat-label">Tiempo total</span>
+          </div>
+        </section>
+
+        <!-- Historial -->
+        <section class="progress__section" aria-labelledby="history-title">
+          <header class="progress__section-header">
+            <h2 class="progress__section-title" id="history-title">
+              Historial
+            </h2>
+            <p class="progress__section-count">
+              <span data-field="historyCount">0</span> lecturas completadas
+            </p>
+          </header>
+
+          <ul
+            class="progress__list"
+            data-field="historyList"
+            aria-label="Historial de lecturas completadas"
+          >
+            <!-- El JS rellena esto -->
+          </ul>
+        </section>
+
+        <!-- Estado vacío -->
+        <section class="progress__empty" hidden>
+          <div class="progress__empty-icon" aria-hidden="true">📚</div>
+          <h2 class="progress__empty-title">
+            Aún no has completado ninguna lectura
+          </h2>
+          <p class="progress__empty-text">
+            Cuando termines tu primera lectura, aparecerá aquí tu progreso.
+          </p>
+          <a href="../catalog/catalog.html" class="progress__empty-button">
+            Explorar el catálogo
+          </a>
+        </section>
+      </div>
     </main>
 
     <script type="module" src="./my-progress.js"></script>

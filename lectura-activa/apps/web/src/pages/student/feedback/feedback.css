@@ -523,3 +523,50 @@
     transform: none;
   }
 }
+/* Estados */
+.feedback__state {
+  text-align: center;
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.feedback__state-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-md);
+}
+
+.feedback__state-title {
+  font-size: var(--font-size-xl);
+  margin: 0 0 var(--space-sm);
+  color: var(--color-text);
+}
+
+.feedback__state-text {
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-lg);
+}
+
+.feedback__state-button {
+  display: inline-block;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  transition: opacity var(--transition-fast);
+}
+
+.feedback__state-button:hover {
+  opacity: 0.9;
+}
+.feedback__score-value--high {
+  color: var(--color-success);
+}
+
+.feedback__score-value--mid {
+  color: var(--color-medium);
+}
+
+.feedback__score-value--low {
+  color: var(--color-error);
+}
