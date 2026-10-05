@@ -1,141 +1,208 @@
-/**
- * catalog.js
- * Carga, filtra y muestra las lecturas del catálogo.
- * Combina lecturas mock con las lecturas reales creadas por el docente.
- */
+/* Pantalla: Catálogo de lecturas — Dueño: Omar */
 
-// ============================================================
-// DATOS
-// ============================================================
-const LECTURAS_MOCK = [
-  { id: 'fake_001', title: 'El principito', summary: 'Un piloto conoce a un pequeño príncipe que viene de otro planeta y le enseña lecciones sobre la vida, el amor y la amistad.', difficulty: 'easy', estimatedMinutes: 15, authorName: 'Ana López' },
-  { id: 'fake_002', title: '1984', summary: 'Una distopía sobre un régimen totalitario que controla todo, incluso el pensamiento, y la lucha de un hombre por la libertad.', difficulty: 'hard', estimatedMinutes: 45, authorName: 'Luis Pérez' },
-  { id: 'fake_003', title: 'Cien años de soledad', summary: 'La historia de la familia Buendía en el pueblo de Macondo, con realismo mágico y personajes inolvidables.', difficulty: 'medium', estimatedMinutes: 30, authorName: 'Gabriel García Márquez' },
-  { id: 'fake_004', title: 'La casa de los espíritus', summary: 'La saga de la familia Trueba a lo largo de varias generaciones, con elementos mágicos y políticos.', difficulty: 'medium', estimatedMinutes: 40, authorName: 'Isabel Allende' },
-  { id: 'fake_005', title: 'Don Quijote de la Mancha', summary: 'Las aventuras de un hidalgo que decide convertirse en caballero andante y vive todo tipo de peripecias.', difficulty: 'hard', estimatedMinutes: 60, authorName: 'Miguel de Cervantes' },
-  { id: 'fake_006', title: 'El Principito (corto)', summary: 'Versión corta para lectores principiantes del clásico de Saint-Exupéry.', difficulty: 'easy', estimatedMinutes: 8, authorName: 'Ana López' }
-];
+import { readingService } from "../../../services/readingsService.js";
+import { formatDifficulty } from "../../../utils/formatters.js";
+import { qs, debounce, escapeHtml } from "../../../utils/dom.js";
 
-// Cargar las lecturas reales creadas por el docente
-const lecturasGuardadas = JSON.parse(localStorage.getItem('lecturas_docente') || '[]');
+const state = {
+  search: "",
+  difficulty: "",
+  maxMinutes: "",
+  page: 1,
+  limit: 20,
+  total: 0,
+  totalPages: 0,
+  data: [],
+};
 
-// Combinar: primero las del docente, luego los mocks
-const LECTURAS = [...lecturasGuardadas, ...LECTURAS_MOCK];
+const els = {
+  loading: qs("#loading-state"),
+  empty: qs("#empty-state"),
+  error: qs("#error-state"),
+  errorMessage: qs("#error-message"),
+  grid: qs("#readings-grid"),
+  carousel: qs("#catalog-carousel"),
+  carouselPrev: qs("#carousel-prev"),
+  carouselNext: qs("#carousel-next"),
+  count: qs(".catalog__count"),
+  retryButton: qs("#retry-button"),
+  searchInput: qs("#search-input"),
+  filterDifficulty: qs("#filter-difficulty"),
+  filterDuration: qs("#filter-duration"),
+};
 
-// ============================================================
-// REFERENCIAS
-// ============================================================
-const $grid = document.getElementById('readings-grid');
-const $count = document.querySelector('.catalog__count strong');
-const $search = document.getElementById('search-input');
-const $filterDifficulty = document.getElementById('filter-difficulty');
-const $filterDuration = document.getElementById('filter-duration');
-const $carousel = document.getElementById('catalog-carousel');
-const $prev = document.getElementById('carousel-prev');
-const $next = document.getElementById('carousel-next');
-
-let lecturasFiltradas = [...LECTURAS];
-
-// ============================================================
-// UTILIDADES
-// ============================================================
-function escapeHtml(text) {
-  return String(text)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-const ETIQUETA_DIFICULTAD = { easy: 'Fácil', medium: 'Medio', hard: 'Difícil' };
-
-// ============================================================
-// RENDER
-// ============================================================
-function renderLecturas() {
-  if (lecturasFiltradas.length === 0) {
-    $grid.innerHTML = '<p class="catalog__empty">No encontramos lecturas con esos filtros.</p>';
-    $count.textContent = '0';
-    return;
-  }
-
-  $grid.innerHTML = lecturasFiltradas.map((l) => `
-    <a
-      href="../reading-detail/reading-detail.html?id=${encodeURIComponent(l.id)}"
-      class="reading-card reading-card--${l.difficulty}"
-      data-id="${escapeHtml(l.id)}"
-      aria-label="Leer ${escapeHtml(l.title)}"
-    >
-      <h2 class="reading-card__title">${escapeHtml(l.title)}</h2>
-      <p class="reading-card__summary">${escapeHtml(l.summary)}</p>
-      <div class="reading-card__meta">
-        <span class="reading-card__difficulty reading-card__difficulty--${l.difficulty}">
-          ${ETIQUETA_DIFICULTAD[l.difficulty]}
-        </span>
-        <span class="reading-card__minutes">
-          <span aria-hidden="true">⏱</span> ${l.estimatedMinutes} min
-        </span>
-      </div>
-      <p class="reading-card__author">Por: ${escapeHtml(l.authorName)}</p>
-    </a>
-  `).join('');
-
-  $count.textContent = lecturasFiltradas.length;
-}
-
-// ============================================================
-// FILTROS
-// ============================================================
-function aplicarFiltros() {
-  const texto = $search.value.trim().toLowerCase();
-  const dif = $filterDifficulty.value;
-  const dur = $filterDuration.value;
-
-  lecturasFiltradas = LECTURAS.filter((l) => {
-    if (texto) {
-      const coincide = l.title.toLowerCase().includes(texto) || l.summary.toLowerCase().includes(texto);
-      if (!coincide) return false;
-    }
-    if (dif && l.difficulty !== dif) return false;
-    if (dur && l.estimatedMinutes > Number(dur)) return false;
-    return true;
+function showState(name) {
+  ["loading", "empty", "error"].forEach((key) => {
+    const el = els[key];
+    if (el) el.hidden = key !== name;
   });
 
-  renderLecturas();
+  if (els.carousel) els.carousel.hidden = name !== "grid";
+  if (els.count) els.count.hidden = name !== "grid";
 }
 
-$search.addEventListener('input', aplicarFiltros);
-$filterDifficulty.addEventListener('change', aplicarFiltros);
-$filterDuration.addEventListener('change', aplicarFiltros);
-
-// ============================================================
-// CARRUSEL
-// ============================================================
-function actualizarBotonesCarrusel() {
-  const scrollLeft = $grid.scrollLeft;
-  const scrollMax = $grid.scrollWidth - $grid.clientWidth;
-
-  $prev.hidden = scrollLeft < 10;
-  $next.hidden = scrollLeft > scrollMax - 10;
-
-  $carousel.dataset.scrolledLeft = scrollLeft > 10 ? 'true' : 'false';
-  $carousel.dataset.scrolledRight = scrollLeft < scrollMax - 10 ? 'true' : 'false';
+function showError(message) {
+  if (els.errorMessage) els.errorMessage.textContent = message;
+  showState("error");
 }
 
-$prev.addEventListener('click', () => {
-  $grid.scrollBy({ left: -320, behavior: 'smooth' });
-});
+function renderCard(reading) {
+  const difficulty = escapeHtml(reading.difficulty || "");
+  const difficultyLabel = formatDifficulty(reading.difficulty);
+  const minutes = reading.estimatedMinutes ?? "—";
+  const authorName = reading.authorName
+    ? `Por: ${escapeHtml(reading.authorName)}`
+    : "";
 
-$next.addEventListener('click', () => {
-  $grid.scrollBy({ left: 320, behavior: 'smooth' });
-});
+  return `
+    <a
+      href="../reading-detail/reading-detail.html?id=${escapeHtml(reading.id)}"
+      class="reading-card reading-card--${difficulty}"
+      data-id="${escapeHtml(reading.id)}"
+      aria-label="Leer ${escapeHtml(reading.title)}"
+    >
+      <h2 class="reading-card__title">${escapeHtml(reading.title)}</h2>
+      <p class="reading-card__summary">${escapeHtml(reading.summary)}</p>
+      <div class="reading-card__meta">
+        <span class="reading-card__difficulty reading-card__difficulty--${difficulty}">
+          ${difficultyLabel}
+        </span>
+        <span class="reading-card__minutes">
+          <span aria-hidden="true">⏱</span> ${minutes} min
+        </span>
+      </div>
+      ${authorName ? `<p class="reading-card__author">${authorName}</p>` : ""}
+    </a>
+  `;
+}
 
-$grid.addEventListener('scroll', actualizarBotonesCarrusel);
-window.addEventListener('resize', actualizarBotonesCarrusel);
+function renderGrid(readings) {
+  if (!els.grid) return;
+  if (!readings || readings.length === 0) {
+    els.grid.innerHTML = "";
+    return;
+  }
+  els.grid.innerHTML = readings.map(renderCard).join("");
+}
 
-// ============================================================
-// INICIALIZAR
-// ============================================================
-renderLecturas();
-setTimeout(actualizarBotonesCarrusel, 100);
+function renderCount(total) {
+  if (!els.count) return;
+  els.count.innerHTML = `<strong>${total}</strong> lecturas disponibles`;
+}
+
+async function loadReadings() {
+  showState("loading");
+
+  try {
+    const response = await readingService.list({
+      search: state.search || undefined,
+      difficulty: state.difficulty || undefined,
+      maxMinutes: state.maxMinutes ? Number(state.maxMinutes) : undefined,
+      page: state.page,
+      limit: state.limit,
+    });
+
+    const data = response.data ?? [];
+    const pagination = response.pagination ?? {};
+
+    state.data = data;
+    state.total = pagination.total ?? data.length;
+    state.totalPages = pagination.totalPages ?? 1;
+
+    if (data.length === 0) {
+      showState("empty");
+      return;
+    }
+
+    renderGrid(data);
+    renderCount(state.total);
+    showState("grid");
+
+    if (els.grid) els.grid.scrollLeft = 0;
+    updateCarouselButtons();
+  } catch (error) {
+    console.error("[catalog] Error al cargar lecturas:", error);
+    showError(error.message || "No pudimos cargar las lecturas.");
+  }
+}
+
+function updateCarouselButtons() {
+  if (!els.grid) return;
+
+  const { scrollLeft, scrollWidth, clientWidth } = els.grid;
+  const canScrollLeft = scrollLeft > 5;
+  const canScrollRight = scrollLeft + clientWidth < scrollWidth - 5;
+
+  if (els.carouselPrev) els.carouselPrev.disabled = !canScrollLeft;
+  if (els.carouselNext) els.carouselNext.disabled = !canScrollRight;
+
+  if (els.carousel) {
+    els.carousel.dataset.scrolledLeft = canScrollLeft ? "true" : "false";
+    els.carousel.dataset.scrolledRight = canScrollRight ? "true" : "false";
+  }
+}
+
+function scrollCarousel(direction = 1) {
+  if (!els.grid) return;
+
+  const card = els.grid.querySelector(".reading-card");
+  if (!card) return;
+
+  const cardWidth = card.offsetWidth;
+  const gap = 24;
+  const scrollAmount = (cardWidth + gap) * direction;
+
+  els.grid.scrollBy({ left: scrollAmount, behavior: "smooth" });
+}
+
+const debouncedSearch = debounce(() => {
+  state.page = 1;
+  loadReadings();
+}, 300);
+
+if (els.searchInput) {
+  els.searchInput.addEventListener("input", (e) => {
+    state.search = e.target.value.trim();
+    debouncedSearch();
+  });
+}
+
+if (els.filterDifficulty) {
+  els.filterDifficulty.addEventListener("change", (e) => {
+    state.difficulty = e.target.value;
+    state.page = 1;
+    loadReadings();
+  });
+}
+
+if (els.filterDuration) {
+  els.filterDuration.addEventListener("change", (e) => {
+    state.maxMinutes = e.target.value;
+    state.page = 1;
+    loadReadings();
+  });
+}
+
+if (els.carouselPrev) {
+  els.carouselPrev.addEventListener("click", () => scrollCarousel(-1));
+}
+
+if (els.carouselNext) {
+  els.carouselNext.addEventListener("click", () => scrollCarousel(1));
+}
+
+if (els.grid) {
+  els.grid.addEventListener("scroll", updateCarouselButtons);
+  window.addEventListener("resize", updateCarouselButtons);
+}
+
+if (els.retryButton) {
+  els.retryButton.addEventListener("click", loadReadings);
+}
+
+function init() {
+  console.info("[catalog] Pantalla cargada.");
+  loadReadings();
+}
+
+init();
