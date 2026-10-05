@@ -3,77 +3,39 @@
  * CONTRATO DE API — Nueva lectura
  * ============================================================
  * 
- * Endpoints usados:
- *   GET  /api/v1/groups              → cargar grupos del docente
- *   POST /api/v1/readings            → crear lectura
- *   POST /api/v1/assignments         → crear asignación a un grupo
- * 
- * Auth: Bearer token (Supabase)
- * Rol requerido: teacher
- * 
- * POST /readings
- *   Request body:
- *     {
- *       title: string,
- *       authorName: string,
- *       summary: string,
- *       content: string,
- *       difficulty: 'easy' | 'medium' | 'hard',
- *       estimatedMinutes: number,
- *       activities: string[],   // ['trivia', 'verdadero-falso', ...]
- *       status: 'draft' | 'published'
- *     }
- *   Response 201:
- *     {
- *       id: string,
- *       title: string,
- *       version: 1,
- *       createdAt: ISO,
- *       updatedAt: ISO
- *     }
- * 
- * POST /assignments
- *   Request body:
- *     {
- *       readingId: string,
- *       groupId: string,
- *       availableFrom?: ISO,
- *       dueAt?: ISO
- *     }
- *   Response 201:
- *     {
- *       id: string,
- *       readingId: string,
- *       readingVersion: number,
- *       groupId: string,
- *       teacherId: string,
- *       activitySnapshot: [...],
- *       status: 'active',
- *       createdAt: ISO
- *     }
- * 
- * Errores comunes:
- *   400 VALIDATION_ERROR
- *   401 UNAUTHENTICATED
- *   403 FORBIDDEN — no es docente o el grupo no es suyo
- *   404 NOT_FOUND — grupo o lectura no existe
- * 
- * TODO backend: este archivo usa localStorage por ahora.
- * Cuando el backend esté listo:
- *   import { api } from '../../services/apiClient.js';
- *   const lectura = await api.post('/readings', data);
- *   for (const grupoId of gruposSeleccionados) {
- *     await api.post('/assignments', { readingId: lectura.id, groupId: grupoId });
- *   }
+ * Endpoints usados (ya conectado, ver services/):
+ *   GET  /api/v1/groups      → grupos del docente (para elegir a quién asignar)
+ *   POST /api/v1/readings    → crea la lectura en estado 'draft'
+ *
+ * Flujo: aquí se crea el borrador y se pasa al editor de actividades
+ * (activities-edit.html?id=...), donde se guardan las actividades, se
+ * publica la lectura (POST /readings/:id/publish) y se crean las
+ * asignaciones (POST /assignments) de los grupos elegidos. El backend
+ * exige al menos una actividad para publicar, por eso va en ese orden.
+ *
+ * POST /readings  { title, summary, content, difficulty: easy|medium|hard,
+ *                   estimatedMinutes, activities: [] }
+ *   → 201 con la lectura (id en _id). El autor sale de la sesión; el campo
+ *     "autor" del formulario ya no se envía.
+ *
+ * Auth: Bearer token (Supabase) · Rol requerido: teacher
  * ============================================================
  */
 
 // ============================================================
-// CONFIGURACIÓN
+// SERVICIOS
 // ============================================================
-const DOCENTE_ID = 'docente-demo';
-const KEY_GRUPOS = `grupos_${DOCENTE_ID}`;
-const KEY_LECTURAS = 'lecturas_docente';
+import { groupsService } from '../../services/groupsService.js';
+import { teacherReadingService } from '../../services/teacherReadingsService.js';
+
+function escapeHtml(text) {
+  return String(text)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
 
 // ============================================================
 // REFERENCIAS
@@ -85,20 +47,24 @@ const cajaPdf = document.getElementById('formato-pdf');
 const $listaGrupos = document.getElementById('lista-grupos');
 
 // ============================================================
-// CARGAR GRUPOS DEL DOCENTE
+// CARGAR GRUPOS DEL DOCENTE (GET /groups)
 // ============================================================
-function cargarGrupos() {
-  try {
-    return JSON.parse(localStorage.getItem(KEY_GRUPOS) || '[]');
-  } catch {
-    return [];
-  }
-}
-
-function renderGrupos() {
+async function renderGrupos() {
   if (!$listaGrupos) return;
 
-  const grupos = cargarGrupos();
+  let grupos = [];
+  try {
+    const respuesta = await groupsService.list();
+    grupos = respuesta.items || [];
+  } catch (error) {
+    $listaGrupos.innerHTML = `
+      <p class="panel__hint">
+        No se pudieron cargar tus grupos (${escapeHtml(error.message)}).
+        Puedes guardar la lectura y asignarla después.
+      </p>
+    `;
+    return;
+  }
 
   if (grupos.length === 0) {
     $listaGrupos.innerHTML = `
@@ -111,12 +77,10 @@ function renderGrupos() {
 
   $listaGrupos.innerHTML = grupos.map((g) => `
     <label class="check">
-      <input type="checkbox" name="grupos" value="${g.id}">
+      <input type="checkbox" name="grupos" value="${escapeHtml(g._id)}">
       <div>
-        <p class="check__title">${g.nombre}</p>
-        <p class="check__desc">
-          ${g.estudiantes.length} estudiante${g.estudiantes.length === 1 ? '' : 's'} · ${g.year}
-        </p>
+        <p class="check__title">${escapeHtml(g.name)}</p>
+        <p class="check__desc">${escapeHtml(g.schoolYear ?? '')}</p>
       </div>
     </label>
   `).join('');
@@ -136,13 +100,12 @@ radios.forEach((radio) => {
 });
 
 // ============================================================
-// GUARDAR LECTURA
+// GUARDAR LECTURA (POST /readings) → editor de actividades
 // ============================================================
-form.addEventListener('submit', (e) => {
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const titulo = document.getElementById('titulo').value.trim();
-  const autor = document.getElementById('autor').value.trim();
   const nivel = document.getElementById('nivel').value;
   const minutos = Number(document.getElementById('minutos').value) || 15;
   const resumen = document.getElementById('resumen').value.trim();
@@ -153,89 +116,40 @@ form.addEventListener('submit', (e) => {
     alert('El título es obligatorio.');
     return;
   }
+  if (formato === 'pdf') {
+    alert('La carga de PDF todavía no está disponible. Pega el texto de la lectura.');
+    return;
+  }
+  if (!contenido) {
+    alert('Escribe el texto de la lectura.');
+    return;
+  }
 
-  // Generar id
-  const id = titulo.toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    + '-' + Date.now();
-
-  // Actividades seleccionadas
-  const actividadesSeleccionadas = [...document.querySelectorAll('input[name="actividades"]:checked')]
-    .map((c) => c.value);
-
-  // Grupos asignados
   const gruposSeleccionados = [...document.querySelectorAll('input[name="grupos"]:checked')]
     .map((c) => c.value);
-
-  // Fechas
   const fechaInicio = document.getElementById('fecha-inicio').value;
   const fechaEntrega = document.getElementById('fecha-entrega').value;
 
-  // Guardar lectura
-  const lectura = {
-    id,
-    title: titulo,
-    authorName: autor || 'Anónimo',
-    difficulty: nivel === 'basico' ? 'easy' : nivel === 'intermedio' ? 'medium' : 'hard',
-    estimatedMinutes: minutos,
-    summary: resumen || 'Sin resumen.',
-    content: formato === 'texto' ? contenido : '[PDF adjunto]',
-    formato,
-    actividades: actividadesSeleccionadas,
-    gruposAsignados: gruposSeleccionados,
-    fechaInicio,
-    fechaEntrega,
-    createdAt: new Date().toISOString()
-  };
+  const $boton = form.querySelector('[type="submit"]');
+  if ($boton) $boton.disabled = true;
 
-  // Lista global
-  const lecturasGuardadas = JSON.parse(localStorage.getItem(KEY_LECTURAS) || '[]');
-  lecturasGuardadas.push(lectura);
-  localStorage.setItem(KEY_LECTURAS, JSON.stringify(lecturasGuardadas));
-
-  // Guardar por id
-  localStorage.setItem(`lectura_${id}`, JSON.stringify(lectura));
-
-  // Guardar actividades vacías para que reading-activity.js no caiga en el fallback
-  if (!localStorage.getItem(`actividades_${id}`)) {
-    localStorage.setItem(`actividades_${id}`, JSON.stringify({
-      trivia: [],
-      verdaderoFalso: [],
-      detective: { target: '', synonyms: [], distractors: [] },
-      order: [],
-      mindMap: []
-    }));
-  }
-
-  // Crear tareas para los grupos asignados
-  if (gruposSeleccionados.length > 0) {
-    const todosGrupos = cargarGrupos();
-    gruposSeleccionados.forEach((grupoId) => {
-      const grupo = todosGrupos.find((g) => g.id === grupoId);
-      if (!grupo) return;
-
-      grupo.estudiantes.forEach((emailEstudiante) => {
-        const keyAsignaciones = `asignaciones_${emailEstudiante}`;
-        const asignaciones = JSON.parse(localStorage.getItem(keyAsignaciones) || '[]');
-
-        asignaciones.push({
-          id: `${id}_${emailEstudiante}`,
-          lecturaId: id,
-          readingTitle: titulo,
-          readingSummary: resumen,
-          groupName: grupo.nombre,
-          estimatedMinutes: minutos,
-          status: 'pending',
-          dueAt: fechaEntrega || null,
-          assignedAt: new Date().toISOString()
-        });
-
-        localStorage.setItem(keyAsignaciones, JSON.stringify(asignaciones));
-      });
+  try {
+    const lectura = await teacherReadingService.create({
+      title: titulo,
+      summary: resumen || 'Sin resumen.',
+      content: contenido,
+      nivel,
+      estimatedMinutes: minutos
     });
-  }
 
-  alert(`✅ Lectura "${titulo}" publicada correctamente.`);
-  window.location.href = './dashboard-teacher.html';
+    const destino = new URLSearchParams({ id: lectura._id ?? lectura.id });
+    if (gruposSeleccionados.length) destino.set('grupos', gruposSeleccionados.join(','));
+    if (fechaInicio) destino.set('desde', fechaInicio);
+    if (fechaEntrega) destino.set('entrega', fechaEntrega);
+
+    window.location.href = `./activities-edit.html?${destino.toString()}`;
+  } catch (error) {
+    alert(`No se pudo guardar la lectura: ${error.message}`);
+    if ($boton) $boton.disabled = false;
+  }
 });

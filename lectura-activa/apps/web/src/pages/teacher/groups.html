@@ -41,7 +41,7 @@
         <div class="page-header">
           <div>
             <h1>Mis grupos</h1>
-            <p>Crea grupos, comparte el código y tus estudiantes se unirán solos.</p>
+            <p>Crea y administra los grupos a los que asignas tus lecturas.</p>
           </div>
           <button type="button" class="btn btn--orange" id="btn-nuevo-grupo">+ Nuevo grupo</button>
         </div>
@@ -74,13 +74,6 @@
           <label for="grupo-year">Año escolar</label>
           <input type="number" id="grupo-year" min="2024" max="2100">
         </div>
-        <div class="field">
-          <label for="grupo-codigo">Código (compártelo con tus estudiantes)</label>
-          <div class="field-inline">
-            <input type="text" id="grupo-codigo" readonly>
-            <button type="button" class="btn btn--ghost btn--sm" id="btn-regenerar">🔄</button>
-          </div>
-        </div>
       </div>
       <footer class="modal__footer">
         <button type="button" class="btn btn--ghost" data-close>Cancelar</button>
@@ -98,7 +91,6 @@
         <button type="button" class="modal__close" data-close>&times;</button>
       </header>
       <div class="modal__body">
-        <p class="modal__code">Código: <strong id="ver-codigo">—</strong></p>
         <ul class="students-list" id="ver-estudiantes"></ul>
       </div>
       <footer class="modal__footer">
