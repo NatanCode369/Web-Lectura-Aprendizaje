@@ -1,14 +1,76 @@
 /**
- * reading-new.js
- * Maneja el formulario de nueva lectura.
- * Guarda la lectura en localStorage, crea actividades vacías
- * y la asigna a grupos.
+ * ============================================================
+ * CONTRATO DE API — Nueva lectura
+ * ============================================================
  * 
- * TODO backend: reemplazar localStorage por:
+ * Endpoints usados:
+ *   GET  /api/v1/groups              → cargar grupos del docente
+ *   POST /api/v1/readings            → crear lectura
+ *   POST /api/v1/assignments         → crear asignación a un grupo
+ * 
+ * Auth: Bearer token (Supabase)
+ * Rol requerido: teacher
+ * 
+ * POST /readings
+ *   Request body:
+ *     {
+ *       title: string,
+ *       authorName: string,
+ *       summary: string,
+ *       content: string,
+ *       difficulty: 'easy' | 'medium' | 'hard',
+ *       estimatedMinutes: number,
+ *       activities: string[],   // ['trivia', 'verdadero-falso', ...]
+ *       status: 'draft' | 'published'
+ *     }
+ *   Response 201:
+ *     {
+ *       id: string,
+ *       title: string,
+ *       version: 1,
+ *       createdAt: ISO,
+ *       updatedAt: ISO
+ *     }
+ * 
+ * POST /assignments
+ *   Request body:
+ *     {
+ *       readingId: string,
+ *       groupId: string,
+ *       availableFrom?: ISO,
+ *       dueAt?: ISO
+ *     }
+ *   Response 201:
+ *     {
+ *       id: string,
+ *       readingId: string,
+ *       readingVersion: number,
+ *       groupId: string,
+ *       teacherId: string,
+ *       activitySnapshot: [...],
+ *       status: 'active',
+ *       createdAt: ISO
+ *     }
+ * 
+ * Errores comunes:
+ *   400 VALIDATION_ERROR
+ *   401 UNAUTHENTICATED
+ *   403 FORBIDDEN — no es docente o el grupo no es suyo
+ *   404 NOT_FOUND — grupo o lectura no existe
+ * 
+ * TODO backend: este archivo usa localStorage por ahora.
+ * Cuando el backend esté listo:
+ *   import { api } from '../../services/apiClient.js';
  *   const lectura = await api.post('/readings', data);
- *   await api.post('/assignments', { readingId: lectura.id, groupIds });
+ *   for (const grupoId of gruposSeleccionados) {
+ *     await api.post('/assignments', { readingId: lectura.id, groupId: grupoId });
+ *   }
+ * ============================================================
  */
 
+// ============================================================
+// CONFIGURACIÓN
+// ============================================================
 const DOCENTE_ID = 'docente-demo';
 const KEY_GRUPOS = `grupos_${DOCENTE_ID}`;
 const KEY_LECTURAS = 'lecturas_docente';
@@ -34,6 +96,8 @@ function cargarGrupos() {
 }
 
 function renderGrupos() {
+  if (!$listaGrupos) return;
+
   const grupos = cargarGrupos();
 
   if (grupos.length === 0) {
@@ -133,8 +197,7 @@ form.addEventListener('submit', (e) => {
   // Guardar por id
   localStorage.setItem(`lectura_${id}`, JSON.stringify(lectura));
 
-  // ⭐ NUEVO: Guardar actividades vacías para que reading-activity.js
-  // no caiga en el fallback cuando esta lectura no tenga actividades editadas aún.
+  // Guardar actividades vacías para que reading-activity.js no caiga en el fallback
   if (!localStorage.getItem(`actividades_${id}`)) {
     localStorage.setItem(`actividades_${id}`, JSON.stringify({
       trivia: [],

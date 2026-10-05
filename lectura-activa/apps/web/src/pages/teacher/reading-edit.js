@@ -1,20 +1,59 @@
 /**
- * reading-edit.js
- * Maneja la edición de una lectura existente. Mock por ahora.
- */
-
-document.getElementById('reading-edit-form').addEventListener('submit', (e) => {
-  e.preventDefault();
-  alert('Cambios guardados (mock).');
-  window.location.href = './dashboard-teacher.html';
-});/**
- * reading-edit.js
- * Carga una lectura, permite editarla y guardar los cambios.
- * Lee el id desde ?id= en la URL.
+ * ============================================================
+ * CONTRATO DE API — Editar lectura
+ * ============================================================
  * 
- * TODO backend: reemplazar por:
- *   GET /api/v1/readings/:id
- *   PATCH /api/v1/readings/:id
+ * Endpoints usados:
+ *   GET   /api/v1/readings/:id   → cargar lectura para editar
+ *   PATCH /api/v1/readings/:id   → guardar cambios
+ *   GET   /api/v1/groups         → cargar grupos para mostrar asignaciones
+ * 
+ * Auth: Bearer token (Supabase)
+ * Rol requerido: teacher (dueño de la lectura)
+ * 
+ * GET /readings/:id
+ *   Response 200:
+ *     {
+ *       id: string,
+ *       title: string,
+ *       authorName: string,
+ *       summary: string,
+ *       content: string,
+ *       difficulty: 'easy' | 'medium' | 'hard',
+ *       estimatedMinutes: number,
+ *       activities: string[],
+ *       status: 'draft' | 'published',
+ *       authorId: string,
+ *       version: number,
+ *       createdAt: ISO,
+ *       updatedAt: ISO
+ *     }
+ * 
+ * PATCH /readings/:id
+ *   Request body:
+ *     {
+ *       title?: string,
+ *       authorName?: string,
+ *       summary?: string,
+ *       content?: string,
+ *       difficulty?: 'easy' | 'medium' | 'hard',
+ *       estimatedMinutes?: number
+ *     }
+ *   Response 200: lectura actualizada
+ *   Nota: al editar, el backend incrementa `version`.
+ * 
+ * Errores comunes:
+ *   400 VALIDATION_ERROR — datos inválidos
+ *   401 UNAUTHENTICATED — sin token
+ *   403 FORBIDDEN — no es el autor de la lectura
+ *   404 NOT_FOUND — la lectura no existe
+ * 
+ * TODO backend: este archivo usa localStorage por ahora.
+ * Cuando el backend esté listo:
+ *   import { api } from '../../services/apiClient.js';
+ *   const lectura = await api.get(`/readings/${id}`);
+ *   await api.patch(`/readings/${id}`, data);
+ * ============================================================
  */
 
 // ============================================================
@@ -70,7 +109,7 @@ function cargarGrupos() {
 }
 
 // ============================================================
-// CARGAR LECTURA
+// CARGAR LECTURA DESDE ?id=
 // ============================================================
 const params = new URLSearchParams(window.location.search);
 const lecturaId = params.get('id');
@@ -106,17 +145,19 @@ document.getElementById('contenido').value = lectura.content || '';
 const $listaActividades = document.getElementById('lista-actividades');
 const actividadesLectura = lectura.actividades || [];
 
-if (actividadesLectura.length === 0) {
-  $listaActividades.innerHTML = '<p class="panel__hint">Esta lectura no tiene actividades configuradas.</p>';
-} else {
-  $listaActividades.innerHTML = actividadesLectura.map((tipo) => `
-    <label class="check">
-      <input type="checkbox" checked disabled>
-      <div>
-        <p class="check__title">${escapeHtml(ACTIVIDAD_INFO[tipo] || tipo)}</p>
-      </div>
-    </label>
-  `).join('');
+if ($listaActividades) {
+  if (actividadesLectura.length === 0) {
+    $listaActividades.innerHTML = '<p class="panel__hint">Esta lectura no tiene actividades configuradas.</p>';
+  } else {
+    $listaActividades.innerHTML = actividadesLectura.map((tipo) => `
+      <label class="check">
+        <input type="checkbox" checked disabled>
+        <div>
+          <p class="check__title">${escapeHtml(ACTIVIDAD_INFO[tipo] || tipo)}</p>
+        </div>
+      </label>
+    `).join('');
+  }
 }
 
 // ============================================================
@@ -126,28 +167,30 @@ const $asignacionesBody = document.getElementById('asignaciones-body');
 const grupos = cargarGrupos();
 const gruposAsignados = lectura.gruposAsignados || [];
 
-if (gruposAsignados.length === 0) {
-  $asignacionesBody.innerHTML = `
-    <tr>
-      <td colspan="4" style="text-align: center; padding: 20px; color: #64748b;">
-        Esta lectura no está asignada a ningún grupo.
-      </td>
-    </tr>
-  `;
-} else {
-  $asignacionesBody.innerHTML = gruposAsignados.map((grupoId) => {
-    const grupo = grupos.find((g) => g.id === grupoId);
-    if (!grupo) return '';
-
-    return `
+if ($asignacionesBody) {
+  if (gruposAsignados.length === 0) {
+    $asignacionesBody.innerHTML = `
       <tr>
-        <td>${escapeHtml(grupo.nombre)}</td>
-        <td>${formatearFecha(lectura.fechaInicio)}</td>
-        <td>${formatearFecha(lectura.fechaEntrega)}</td>
-        <td><span class="badge badge--ok">En curso</span></td>
+        <td colspan="4" style="text-align: center; padding: 20px; color: #64748b;">
+          Esta lectura no está asignada a ningún grupo.
+        </td>
       </tr>
     `;
-  }).join('');
+  } else {
+    $asignacionesBody.innerHTML = gruposAsignados.map((grupoId) => {
+      const grupo = grupos.find((g) => g.id === grupoId);
+      if (!grupo) return '';
+
+      return `
+        <tr>
+          <td>${escapeHtml(grupo.nombre)}</td>
+          <td>${formatearFecha(lectura.fechaInicio)}</td>
+          <td>${formatearFecha(lectura.fechaEntrega)}</td>
+          <td><span class="badge badge--ok">En curso</span></td>
+        </tr>
+      `;
+    }).join('');
+  }
 }
 
 // ============================================================
