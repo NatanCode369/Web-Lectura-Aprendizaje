@@ -1,223 +1,122 @@
-/**
- * user-profile.js
- * Carga el perfil del estudiante y maneja la unión a grupos por código.
- * Por ahora usa localStorage (mock). Mañana se conecta a GET /api/v1/me.
- */
+/* Pantalla: Mi perfil — Dueño: Omar */
 
-// ============================================================
-// CONFIGURACIÓN
-// ============================================================
-const ESTUDIANTE_EMAIL = 'estudiante@kinal.edu.gt'; // TODO: reemplazar por user.email real
-const STORAGE_KEY_GRUPO = `grupo_estudiante_${ESTUDIANTE_EMAIL}`;
-const KEY_GRUPOS_DOCENTE = 'grupos_docente-demo';
+import { api } from "../../../services/apiClient.js";
+import { getCurrentUser, clearSession } from "../../../state/session.js";
+import { formatRole, getInitials } from "../../../utils/formatters.js";
+import { qs } from "../../../utils/dom.js";
 
-const USER_MOCK = {
-  id: 'user-001',
-  fullName: 'Juan López',
-  email: ESTUDIANTE_EMAIL,
-  role: 'student',
-  institution: { name: 'Fundación Kinal' },
-  profile: { groupName: 'Sin grupo' },
-  createdAt: '2026-08-01T12:00:00Z'
+/* Estado */
+const state = {
+  user: null,
 };
 
-const ETIQUETA_ROL = {
-  student: 'Estudiante',
-  teacher: 'Docente',
-  admin: 'Administrador'
+/* Referencias del DOM */
+const els = {
+  loading: qs("#loading-state"),
+  error: qs("#error-state"),
+  errorMessage: qs('[data-field="errorMessage"]'),
+  content: qs("#profile-content"),
+  headerName: qs('[data-field="headerName"]'),
+  initials: qs('[data-field="initials"]'),
+  fullName: qs('[data-field="fullName"]'),
+  email: qs('[data-field="email"]'),
+  roleLabel: qs('[data-field="roleLabel"]'),
+  logoutButton: qs("#logout-button"),
 };
 
-// ============================================================
-// REFERENCIAS
-// ============================================================
-const $ = (id) => document.getElementById(id);
-const $loading = $('loading-state');
-const $error = $('error-state');
-const $content = $('profile-content');
-
-// ============================================================
-// UTILIDADES
-// ============================================================
-function mostrarSoloCargando() {
-  $loading.hidden = false;
-  $error.hidden = true;
-  $content.hidden = true;
+/* Estados */
+function showState(name) {
+  if (els.loading) els.loading.hidden = name !== "loading";
+  if (els.error) els.error.hidden = name !== "error";
+  if (els.content) els.content.hidden = name !== "content";
 }
 
-function mostrarSoloError(mensaje) {
-  $loading.hidden = true;
-  $error.hidden = false;
-  $content.hidden = true;
-  document.querySelector('[data-field="errorMessage"]').textContent = mensaje;
+function showError(message) {
+  if (els.errorMessage) els.errorMessage.textContent = message;
+  showState("error");
 }
 
-function mostrarSoloContenido() {
-  $loading.hidden = true;
-  $error.hidden = true;
-  $content.hidden = false;
+/* Render del perfil */
+function renderProfile(user) {
+  if (!user) {
+    showError("No pudimos obtener tu información.");
+    return;
+  }
+
+  const fullName = user.fullName || "Estudiante";
+  const email = user.email || "—";
+  const roleLabel = formatRole(user.role) || "Estudiante";
+  const initials = getInitials(fullName);
+
+  if (els.headerName) els.headerName.textContent = fullName;
+  if (els.initials) els.initials.textContent = initials;
+  if (els.fullName) els.fullName.textContent = fullName;
+  if (els.email) els.email.textContent = email;
+  if (els.roleLabel) els.roleLabel.textContent = roleLabel;
+
+  document.title = `${fullName} — Lectura Activa`;
 }
 
-function llenarTodos(campo, valor) {
-  document.querySelectorAll(`[data-field="${campo}"]`).forEach((el) => {
-    el.textContent = valor;
-  });
-}
+/* Cargar usuario: intenta /me, si falla usa session.js */
+async function loadUser() {
+  showState("loading");
 
-function iniciales(nombre) {
-  if (!nombre) return '??';
-  const partes = nombre.trim().split(/\s+/);
-  const primera = partes[0]?.[0] || '';
-  const segunda = partes[1]?.[0] || '';
-  return (primera + segunda).toUpperCase();
-}
-
-function formatearFecha(iso) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  const dia = String(d.getDate()).padStart(2, '0');
-  const mes = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${dia}/${mes}/${year}`;
-}
-
-// ============================================================
-// RENDER PERFIL
-// ============================================================
-function renderPerfil(user) {
-  document.title = `${user.fullName} — Lectura Activa`;
-  llenarTodos('fullName', user.fullName);
-  llenarTodos('email', user.email);
-  llenarTodos('initials', iniciales(user.fullName));
-  llenarTodos('roleLabel', ETIQUETA_ROL[user.role] || user.role);
-  llenarTodos('institution', user.institution?.name || '—');
-  llenarTodos('createdAt', formatearFecha(user.createdAt));
-  llenarTodos('headerName', user.fullName);
-}
-
-// ============================================================
-// CARGA DE PERFIL
-// ============================================================
-async function cargarPerfil() {
-  mostrarSoloCargando();
-  await new Promise((r) => setTimeout(r, 400));
-
-  // TODO backend: reemplazar por api.get('/me')
-  const user = USER_MOCK;
-  renderPerfil(user);
-  mostrarSoloContenido();
-}
-
-cargarPerfil();
-
-// ============================================================
-// GRUPOS — unirse por código
-// ============================================================
-const $sinGrupo = $('sin-grupo');
-const $conGrupo = $('con-grupo');
-const $codigoGrupo = $('codigo-grupo');
-const $unirseMensaje = $('unirse-mensaje');
-const $nombreGrupo = $('nombre-grupo');
-const $yearGrupo = $('year-grupo');
-
-function cargarMiembro() {
+  /* 1. Intentar desde el backend */
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY_GRUPO) || 'null');
-  } catch {
-    return null;
+    const response = await api.get("/me");
+    const user = response?.data ?? response;
+
+    if (user) {
+      state.user = user;
+      renderProfile(user);
+      showState("content");
+      return;
+    }
+  } catch (error) {
+    console.warn(
+      "[user-profile] No se pudo cargar /me, usando session.js:",
+      error,
+    );
   }
+
+  /* 2. Fallback: session.js */
+  const sessionUser = getCurrentUser();
+
+  if (sessionUser) {
+    state.user = sessionUser;
+    renderProfile(sessionUser);
+    showState("content");
+    return;
+  }
+
+  /* 3. Sin usuario: error */
+  showError("No hay sesión activa. Inicia sesión de nuevo.");
 }
 
-function guardarMiembro(data) {
-  if (data) localStorage.setItem(STORAGE_KEY_GRUPO, JSON.stringify(data));
-  else localStorage.removeItem(STORAGE_KEY_GRUPO);
-}
-
-function cargarGruposDocente() {
+/* Logout */
+async function handleLogout() {
   try {
-    return JSON.parse(localStorage.getItem(KEY_GRUPOS_DOCENTE) || '[]');
-  } catch {
-    return [];
+    await api.post("/auth/logout");
+  } catch (error) {
+    console.warn("[user-profile] Error al cerrar sesión:", error);
   }
+
+  clearSession();
+  window.location.href = "../../auth/login.html";
 }
 
-function guardarGruposDocente(grupos) {
-  localStorage.setItem(KEY_GRUPOS_DOCENTE, JSON.stringify(grupos));
+/* Init */
+function init() {
+  console.info("[user-profile] Pantalla cargada.");
+
+  if (els.logoutButton) {
+    els.logoutButton.addEventListener("click", (e) => {
+      e.preventDefault();
+      handleLogout();
+    });
+  }
+
+  loadUser();
 }
 
-function renderMiembro() {
-  const miembro = cargarMiembro();
-  if (miembro) {
-    $sinGrupo.hidden = true;
-    $conGrupo.hidden = false;
-    $nombreGrupo.textContent = miembro.nombreGrupo;
-    $yearGrupo.textContent = miembro.year;
-
-    // Actualizar también el grupo en "Información personal"
-    llenarTodos('group', miembro.nombreGrupo);
-  } else {
-    $sinGrupo.hidden = false;
-    $conGrupo.hidden = true;
-    llenarTodos('group', 'Sin grupo');
-  }
-}
-
-function avisarUnirse(texto, tipo = 'ok') {
-  $unirseMensaje.textContent = texto;
-  $unirseMensaje.style.color = tipo === 'error' ? '#ef4444' : '#22c55e';
-  $unirseMensaje.hidden = false;
-  setTimeout(() => { $unirseMensaje.hidden = true; }, 4000);
-}
-
-// Unirse a un grupo
-$('btn-unirse').addEventListener('click', () => {
-  const codigo = $codigoGrupo.value.trim().toUpperCase();
-  if (!codigo) {
-    avisarUnirse('Ingresa el código del grupo.', 'error');
-    return;
-  }
-
-  const grupos = cargarGruposDocente();
-  const grupo = grupos.find((g) => g.codigo === codigo);
-  if (!grupo) {
-    avisarUnirse('Código no válido o grupo no encontrado.', 'error');
-    return;
-  }
-
-  if (grupo.estudiantes.includes(ESTUDIANTE_EMAIL)) {
-    avisarUnirse('Ya estás en este grupo.', 'error');
-    return;
-  }
-
-  grupo.estudiantes.push(ESTUDIANTE_EMAIL);
-  guardarGruposDocente(grupos);
-
-  guardarMiembro({
-    grupoId: grupo.id,
-    nombreGrupo: grupo.nombre,
-    year: grupo.year
-  });
-
-  avisarUnirse(`Te uniste al grupo "${grupo.nombre}".`);
-  $codigoGrupo.value = '';
-  renderMiembro();
-});
-
-// Salir de un grupo
-$('btn-salir-grupo').addEventListener('click', () => {
-  const miembro = cargarMiembro();
-  if (!miembro) return;
-
-  if (!confirm(`¿Salir del grupo "${miembro.nombreGrupo}"?`)) return;
-
-  const grupos = cargarGruposDocente();
-  const grupo = grupos.find((g) => g.id === miembro.grupoId);
-  if (grupo) {
-    grupo.estudiantes = grupo.estudiantes.filter((e) => e !== ESTUDIANTE_EMAIL);
-    guardarGruposDocente(grupos);
-  }
-
-  guardarMiembro(null);
-  renderMiembro();
-});
-
-renderMiembro();
+init();

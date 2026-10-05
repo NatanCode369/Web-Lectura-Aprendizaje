@@ -1,194 +1,85 @@
-/**
- * my-progress.js
- * Muestra el progreso histórico del estudiante basado en los resultados
- * guardados en localStorage (resultado_${lecturaId}).
- * 
- * TODO backend: reemplazar por GET /api/v1/me/progress
- */
+/* Pantalla: Mi progreso — Dueño: Omar */
 
-// ============================================================
-// CONFIGURACIÓN
-// ============================================================
-const ESTUDIANTE_EMAIL = 'estudiante@kinal.edu.gt'; // TODO: reemplazar con user.email real
+import { assignmentService } from "../../../services/assignmentsService.js";
+import { readingService } from "../../../services/readingsService.js";
+import {
+  formatDate,
+  formatTime,
+  getScoreLevel,
+} from "../../../utils/formatters.js";
+import { qs, escapeHtml } from "../../../utils/dom.js";
 
-// ============================================================
-// REFERENCIAS
-// ============================================================
-const $seccionHistorial = document.querySelector('.progress__section');
-const $vacio = document.querySelector('.progress__empty');
+/* Estado */
+const state = {
+  tasks: [],
+  enriched: [],
+};
 
-// ============================================================
-// UTILIDADES
-// ============================================================
-function escapeHtml(text) {
-  return String(text)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
+/* Referencias del DOM */
+const els = {
+  loading: qs("#loading-state"),
+  error: qs("#error-state"),
+  errorMessage: qs('[data-field="errorMessage"]'),
+  content: qs("#progress-content"),
+  totalReadings: qs('[data-field="totalReadings"]'),
+  completedReadings: qs('[data-field="completedReadings"]'),
+  averageScore: qs('[data-field="averageScore"]'),
+  totalTime: qs('[data-field="totalTime"]'),
+  historyCount: qs('[data-field="historyCount"]'),
+  historyList: qs('[data-field="historyList"]'),
+  empty: qs(".progress__empty"),
+  section: qs(".progress__section"),
+};
+
+/* Estados */
+function showState(name) {
+  if (els.loading) els.loading.hidden = name !== "loading";
+  if (els.error) els.error.hidden = name !== "error";
+  if (els.content) els.content.hidden = name !== "content";
 }
 
-function formatearFecha(iso) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  const dia = String(d.getDate()).padStart(2, '0');
-  const mes = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${dia}/${mes}/${year}`;
+function showError(message) {
+  if (els.errorMessage) els.errorMessage.textContent = message;
+  showState("error");
 }
 
-function formatearTiempo(segundos) {
-  if (!segundos) return '0 min';
-  const min = Math.round(segundos / 60);
-  if (min < 60) return `${min} min`;
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return m === 0 ? `${h}h` : `${h}h ${m}m`;
-}
+/* Render de un item del historial */
+function renderHistoryItem(task) {
+  const reading = task.reading || {};
+  const score = typeof task.score === "number" ? Math.round(task.score) : 0;
+  const scoreLevel = getScoreLevel(score);
 
-function nivelScore(score) {
-  if (score >= 80) return 'high';
-  if (score >= 60) return 'mid';
-  return 'low';
-}
+  const completedAt = task.completedAt ? formatDate(task.completedAt) : "—";
+  const timeSpent = task.timeSpentSeconds
+    ? formatTime(task.timeSpentSeconds)
+    : "—";
 
-function llenarTodos(campo, valor) {
-  document.querySelectorAll(`[data-field="${campo}"]`).forEach((el) => {
-    el.textContent = valor;
-  });
-}
-
-// ============================================================
-// CÁLCULO DE PUNTAJE
-// ============================================================
-/**
- * Calcula el puntaje de una lectura completada.
- * Compara las respuestas del estudiante con las correctas.
- */
-function calcularScore(lecturaId, resultado) {
-  const actividadesGuardadas = localStorage.getItem(`actividades_${lecturaId}`);
-  if (!actividadesGuardadas) return 0;
-
-  const acts = JSON.parse(actividadesGuardadas);
-  const respuestas = resultado.respuestas || {};
-
-  let correctas = 0;
-  let total = 0;
-
-  // Trivia
-  (acts.trivia || []).forEach((q, i) => {
-    const idx = String(i);
-    total++;
-    if (respuestas[idx] === q.correcta) correctas++;
-  });
-
-  // Verdadero / Falso
-  const offset = (acts.trivia || []).length;
-  (acts.verdaderoFalso || []).forEach((v, j) => {
-    const idx = String(offset + j);
-    total++;
-    if (respuestas[idx] === v.respuesta) correctas++;
-  });
-
-  if (total === 0) return 0;
-  return Math.round((correctas / total) * 100);
-}
-
-// ============================================================
-// CARGAR HISTORIAL
-// ============================================================
-function cargarHistorial() {
-  const historial = [];
-
-  // Buscar todas las claves resultado_* en localStorage
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-
-    if (!key || !key.startsWith('resultado_')) continue;
-
-    const lecturaId = key.replace('resultado_', '');
-
-    // Leer el resultado guardado
-    let resultado;
-    try {
-      resultado = JSON.parse(localStorage.getItem(key) || '{}');
-    } catch {
-      continue;
-    }
-
-    // Leer la lectura (para saber el título)
-    const lecturaGuardada = localStorage.getItem(`lectura_${lecturaId}`);
-    const lectura = lecturaGuardada ? JSON.parse(lecturaGuardada) : null;
-
-    // Leer el grupo del estudiante (para saber a qué grupo pertenece)
-    const grupoGuardado = localStorage.getItem(`grupo_estudiante_${ESTUDIANTE_EMAIL}`);
-    const grupo = grupoGuardado ? JSON.parse(grupoGuardado) : null;
-
-    const score = calcularScore(lecturaId, resultado);
-
-    historial.push({
-      id: lecturaId,
-      readingTitle: lectura?.title || 'Lectura',
-      score,
-      completedAt: resultado.fecha,
-      timeSpentSeconds: resultado.tiempoUsadoSegundos || 0,
-      groupName: grupo?.nombreGrupo || 'Sin grupo'
-    });
-  }
-
-  // Ordenar por fecha descendente (más reciente primero)
-  historial.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
-
-  return historial;
-}
-
-// ============================================================
-// RENDER
-// ============================================================
-function renderEstadisticas(historial) {
-  const total = historial.length;
-  const promedio = total > 0
-    ? Math.round(historial.reduce((acc, h) => acc + h.score, 0) / total)
-    : 0;
-  const tiempoTotal = historial.reduce((acc, h) => acc + h.timeSpentSeconds, 0);
-
-  llenarTodos('totalReadings', total);
-  llenarTodos('completedReadings', total);
-  llenarTodos('averageScore', promedio);
-  llenarTodos('totalTime', formatearTiempo(tiempoTotal));
-  llenarTodos('historyCount', total);
-}
-
-function renderHistorial(historial) {
-  const $lista = document.querySelector('[data-field="historyList"]');
-
-  $lista.innerHTML = historial.map((item) => `
+  return `
     <li>
-      <a href="../feedback/feedback.html?id=${encodeURIComponent(item.id)}"
-         class="progress__item"
-         data-id="${escapeHtml(item.id)}">
+      <a
+        href="../feedback/feedback.html?id=${escapeHtml(task._id)}"
+        class="progress__item"
+        aria-label="Ver resultados de ${escapeHtml(reading.title || "lectura")}"
+      >
         <div class="progress__item-header">
-          <h3 class="progress__item-title">${escapeHtml(item.readingTitle)}</h3>
-          <span class="progress__item-score progress__item-score--${nivelScore(item.score)}">
-            ${item.score} / 100
+          <h3 class="progress__item-title">${escapeHtml(reading.title || "Lectura")}</h3>
+          <span class="progress__item-score progress__item-score--${scoreLevel}">
+            ${score} / 100
           </span>
         </div>
+
         <div class="progress__item-meta">
           <span class="progress__item-date">
             <span aria-hidden="true">📅</span>
-            ${formatearFecha(item.completedAt)}
+            <span>${completedAt}</span>
           </span>
           <span class="progress__item-time">
             <span aria-hidden="true">⏱</span>
-            ${formatearTiempo(item.timeSpentSeconds)}
+            <span>${timeSpent}</span>
           </span>
         </div>
+
         <div class="progress__item-footer">
-          <span class="progress__item-group">
-            <span aria-hidden="true">👥</span>
-            Grupo ${escapeHtml(item.groupName)}
-          </span>
           <span class="progress__item-action">
             Ver resultados
             <span aria-hidden="true">→</span>
@@ -196,25 +87,123 @@ function renderHistorial(historial) {
         </div>
       </a>
     </li>
-  `).join('');
+  `;
 }
 
-// ============================================================
-// INICIALIZAR
-// ============================================================
-function init() {
-  const historial = cargarHistorial();
+/* Calcular y renderizar estadísticas */
+function renderStats(items) {
+  const total = items.length;
+  const completed = items.filter((t) => t.status === "completed");
+  const completedCount = completed.length;
 
-  renderEstadisticas(historial);
+  /* Promedio: solo de las completadas con score numérico */
+  const scores = completed
+    .map((t) => t.score)
+    .filter((s) => typeof s === "number" && s >= 0);
+  const average = scores.length
+    ? Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length)
+    : null;
 
-  if (historial.length === 0) {
-    $seccionHistorial.hidden = true;
-    $vacio.hidden = false;
-  } else {
-    $seccionHistorial.hidden = false;
-    $vacio.hidden = true;
-    renderHistorial(historial);
+  /* Tiempo total */
+  const totalTime = completed.reduce(
+    (sum, t) => sum + (t.timeSpentSeconds || 0),
+    0,
+  );
+
+  if (els.totalReadings) els.totalReadings.textContent = String(total);
+  if (els.completedReadings)
+    els.completedReadings.textContent = String(completedCount);
+  if (els.averageScore)
+    els.averageScore.textContent = average != null ? String(average) : "—";
+  if (els.totalTime)
+    els.totalTime.textContent = totalTime ? formatTime(totalTime) : "—";
+}
+
+/* Render del historial */
+function renderHistory(completedTasks) {
+  if (els.historyCount) {
+    els.historyCount.textContent = String(completedTasks.length);
   }
+
+  if (completedTasks.length === 0) {
+    if (els.empty) els.empty.hidden = false;
+    if (els.section) els.section.hidden = true;
+    return;
+  }
+
+  if (els.empty) els.empty.hidden = true;
+  if (els.section) els.section.hidden = false;
+
+  if (els.historyList) {
+    els.historyList.innerHTML = completedTasks.map(renderHistoryItem).join("");
+  }
+}
+
+/* Enriquecer tarea con datos de la lectura */
+async function enrichTask(task) {
+  const readingId = task.assignment?.readingId;
+  if (!readingId) {
+    return { ...task, reading: {} };
+  }
+
+  try {
+    const response = await readingService.getById(readingId);
+    const reading = response?.data ?? response;
+    return {
+      ...task,
+      reading: {
+        ...reading,
+        id: reading.id ?? reading._id?.toString(),
+      },
+    };
+  } catch (error) {
+    console.warn(
+      "[my-progress] No se pudo cargar la lectura:",
+      readingId,
+      error,
+    );
+    return { ...task, reading: {} };
+  }
+}
+
+/* Cargar */
+async function loadProgress() {
+  showState("loading");
+
+  try {
+    /* 1. Cargar todas las tareas del estudiante */
+    const response = await assignmentService.listMine({ limit: 100 });
+    const items = response?.items ?? [];
+
+    state.tasks = items;
+
+    /* 2. Enriquecer con datos de las lecturas */
+    state.enriched = await Promise.all(items.map(enrichTask));
+
+    /* 3. Filtrar solo las completadas para el historial */
+    const completed = state.enriched.filter((t) => t.status === "completed");
+
+    /* 4. Renderizar */
+    renderStats(state.enriched);
+    renderHistory(completed);
+
+    showState("content");
+  } catch (error) {
+    console.error("[my-progress] Error al cargar:", error);
+
+    if (error.status === 401) {
+      window.location.href = "/src/pages/auth/login.html";
+      return;
+    }
+
+    showError(error.message || "No pudimos cargar tu progreso.");
+  }
+}
+
+/* Init */
+function init() {
+  console.info("[my-progress] Pantalla cargada.");
+  loadProgress();
 }
 
 init();
