@@ -1,4 +1,4 @@
-import { getDb } from '../../db/mongo.js';
+import { getDb } from '../../shared/db.js';
 
 export function buildAuditRepository() {
   return {

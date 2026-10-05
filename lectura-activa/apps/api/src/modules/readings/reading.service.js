@@ -1,4 +1,4 @@
-import { forbidden, notFound, conflict } from '../../shared/errors.js';
+import { AppError, ErrorCodes } from '../../shared/errors/AppError.js';
 import { assertCanEdit, assertCanPublish, buildNewReading, buildReadingUpdate, validateReadingInput } from './reading.domain.js';
 
 function sameInstitution(reading, user) {
@@ -12,7 +12,7 @@ function canManage(reading, user) {
 export function buildReadingService({ readingRepository, auditRepository }) {
   return {
     async create(input, user) {
-      if (!['teacher', 'admin'].includes(user.role)) throw forbidden();
+      if (!['teacher', 'admin'].includes(user.role)) throw AppError.forbidden();
       const document = buildNewReading(input, user);
       const created = await readingRepository.create(document);
       await auditRepository.record({ actorId: user._id.toString(), action: 'reading.created', resourceId: created._id.toString() });
@@ -21,13 +21,13 @@ export function buildReadingService({ readingRepository, auditRepository }) {
 
     async update(id, input, user) {
       const reading = await readingRepository.findById(id);
-      if (!reading) throw notFound('Lectura no encontrada');
-      if (!sameInstitution(reading, user)) throw forbidden();
+      if (!reading) throw AppError.notFound('Lectura no encontrada');
+      if (!sameInstitution(reading, user)) throw AppError.forbidden();
       assertCanEdit(reading, user);
 
       const update = buildReadingUpdate(input, reading.version);
       const updated = await readingRepository.updateById(id, { version: reading.version }, update);
-      if (!updated) throw conflict('La lectura cambió mientras se procesaba la actualización; vuelve a cargarla e inténtalo de nuevo');
+      if (!updated) throw AppError.conflict('La lectura cambió mientras se procesaba la actualización; vuelve a cargarla e inténtalo de nuevo');
 
       await auditRepository.record({ actorId: user._id.toString(), action: 'reading.updated', resourceId: id, metadata: { version: updated.version } });
       return updated;
@@ -35,9 +35,9 @@ export function buildReadingService({ readingRepository, auditRepository }) {
 
     async publish(id, user) {
       const reading = await readingRepository.findById(id);
-      if (!reading) throw notFound('Lectura no encontrada');
-      if (!sameInstitution(reading, user)) throw forbidden();
-      if (!canManage(reading, user)) throw forbidden();
+      if (!reading) throw AppError.notFound('Lectura no encontrada');
+      if (!sameInstitution(reading, user)) throw AppError.forbidden();
+      if (!canManage(reading, user)) throw AppError.forbidden();
       assertCanPublish(reading);
 
       const updated = await readingRepository.updateById(
@@ -45,7 +45,7 @@ export function buildReadingService({ readingRepository, auditRepository }) {
         { version: reading.version, status: 'draft' },
         { status: 'published', version: reading.version + 1, updatedAt: new Date() }
       );
-      if (!updated) throw conflict('La lectura cambió mientras se procesaba la publicación; vuelve a cargarla e inténtalo de nuevo');
+      if (!updated) throw AppError.conflict('La lectura cambió mientras se procesaba la publicación; vuelve a cargarla e inténtalo de nuevo');
 
       await auditRepository.record({ actorId: user._id.toString(), action: 'reading.published', resourceId: id, metadata: { version: updated.version } });
       return updated;
@@ -53,11 +53,11 @@ export function buildReadingService({ readingRepository, auditRepository }) {
 
     async getById(id, user) {
       const reading = await readingRepository.findById(id);
-      if (!reading) throw notFound('Lectura no encontrada');
-      if (!reading.institutionId.equals(user.institutionId)) throw forbidden();
+      if (!reading) throw AppError.notFound('Lectura no encontrada');
+      if (!reading.institutionId.equals(user.institutionId)) throw AppError.forbidden();
 
       const isManager = canManage(reading, user);
-      if (reading.status !== 'published' && !isManager) throw notFound('Lectura no encontrada');
+      if (reading.status !== 'published' && !isManager) throw AppError.notFound('Lectura no encontrada');
       return reading;
     },
 
