@@ -9,6 +9,26 @@ export class AppError extends Error {
     this.code = code;
     this.details = details;
   }
+
+  static badRequest(code, message, details) {
+    return new AppError(400, code, message, details);
+  }
+
+  static unauthorized(code, message, details) {
+    return new AppError(401, code, message, details);
+  }
+
+  static forbidden(code, message, details) {
+    return new AppError(403, code, message, details);
+  }
+
+  static notFound(code, message, details) {
+    return new AppError(404, code, message, details);
+  }
+
+  static conflict(code, message, details) {
+    return new AppError(409, code, message, details);
+  }
 }
 
 export const badRequest = (message, details) =>

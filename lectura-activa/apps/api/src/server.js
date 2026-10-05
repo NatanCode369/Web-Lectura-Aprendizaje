@@ -8,7 +8,7 @@ import { dirname } from 'path';
 
 import { env } from './config/env.js';
 import { logger } from './shared/logger.js';
-import { connectDb, closeDb, pingDb } from './shared/db.js';
+import { connectDb, closeDb, getDb, pingDb } from './shared/db.js';
 import { errorHandler } from './shared/errors/errorHandler.js';
 import { requestId } from './shared/middleware/requestId.js';
 
@@ -49,6 +49,48 @@ export async function buildServer({ withDb = true } = {}) {
   });
 
   return fastify;
+}
+
+async function registerSecurityPlugins(fastify) {
+  fastify.addHook('onRequest', requestId);
+  await fastify.register(helmet, { contentSecurityPolicy: false });
+  await fastify.register(cors, {
+    origin: (origin, callback) => {
+      const allowed = new Set((env.CORS_ORIGINS ?? []).map((item) => item.trim()));
+      callback(null, !origin || allowed.has(origin));
+    },
+    credentials: true,
+  });
+  await fastify.register(rateLimit, { max: 120, timeWindow: '1 minute' });
+  fastify.setErrorHandler(errorHandler);
+}
+
+async function registerHealthRoutes(fastify, { withDb }) {
+  fastify.get('/health', async () => ({
+    status: 'ok',
+    service: 'lectura-activa-api',
+    timestamp: new Date().toISOString(),
+  }));
+  fastify.get('/ready', async (request, reply) => {
+    const dbOk = withDb ? await pingDb() : true;
+    if (!dbOk) {
+      return reply.code(503).send({ error: { code: 'DB_NOT_READY', requestId: request.id } });
+    }
+    return { status: 'ready', db: dbOk };
+  });
+}
+
+async function registerModules(fastify, { withDb }) {
+  if (!withDb) return;
+
+  const db = withDb ? getDb() : null;
+  await fastify.register(authRoutes, { prefix: '/api/v1/auth', db });
+  await fastify.register(usersRoutes, { prefix: '/api/v1/users', db });
+  await fastify.register(groupsRoutes, { prefix: '/api/v1/groups', db });
+  await fastify.register(assignmentsRoutes, { prefix: '/api/v1/assignments', db });
+  await fastify.register(studentAssignmentsRoutes, { prefix: '/api/v1/student-assignments', db });
+  await fastify.register(attemptsRoutes, { prefix: '/api/v1/attempts', db });
+  await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics', db });
 }
 
 /*

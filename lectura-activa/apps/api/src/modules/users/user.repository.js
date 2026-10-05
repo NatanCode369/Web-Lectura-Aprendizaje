@@ -1,4 +1,5 @@
-import { getDb } from '../../db/mongo.js';
+import { getDb } from '../../shared/db.js';
+
 
 const projection = {
   authUserId: 1,

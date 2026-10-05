@@ -10,6 +10,8 @@ import { createClient } from '@supabase/supabase-js';
 import { env } from '../config/env.js';
 import { unauthorized, forbidden } from './errors.js';
 
+export { requireRole as requireRoles } from './authorization/policies.js';
+
 // 1. Usar los nombres correctos de las variables (SCREAMING_SNAKE_CASE como en env.js)
 // 2. Validar que no sea el placeholder antes de crear el cliente
 const isValidUrl = env.SUPABASE_URL && !env.SUPABASE_URL.includes('YOUR_PROJECT');
