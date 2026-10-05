@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Catálogo de lecturas disponibles para estudiantes de Lectura Activa" />
+    <meta
+      name="description"
+      content="Catálogo de lecturas disponibles para estudiantes de Lectura Activa"
+    />
     <title>Catálogo de lecturas — Lectura Activa</title>
 
     <link rel="stylesheet" href="../../../styles/base.css" />
@@ -14,21 +17,46 @@
 
     <header class="site-header">
       <div class="site-header__container">
-        <a href="./catalog.html" class="site-header__logo" aria-label="Lectura Activa - Inicio">
+        <a
+          href="/"
+          class="site-header__logo"
+          aria-label="Lectura Activa - Inicio"
+        >
           <span class="site-header__logo-text">Lectura Activa</span>
         </a>
 
         <nav class="site-header__nav" aria-label="Navegación principal">
           <ul class="site-header__nav-list">
-            <li><a href="./catalog.html" class="site-header__nav-link" aria-current="page">Catálogo</a></li>
-            <li><a href="../my-tasks/my-tasks.html" class="site-header__nav-link">Mis tareas</a></li>
-            <li><a href="../my-progress/my-progress.html" class="site-header__nav-link">Mi progreso</a></li>
+            <li>
+              <a
+                href="./catalog.html"
+                class="site-header__nav-link"
+                aria-current="page"
+                >Catálogo</a
+              >
+            </li>
+            <li>
+              <a href="../my-tasks/my-tasks.html" class="site-header__nav-link"
+                >Mis tareas</a
+              >
+            </li>
+            <li>
+              <a
+                href="../my-progress/my-progress.html"
+                class="site-header__nav-link"
+                >Mi progreso</a
+              >
+            </li>
           </ul>
         </nav>
 
         <div class="site-header__user">
           <span class="site-header__user-name">Estudiante</span>
-          <a href="../user-profile/user-profile.html" class="site-header__user-button" aria-label="Ver mi perfil">
+          <a
+            href="../user-profile/user-profile.html"
+            class="site-header__user-button"
+            aria-label="Ver mi perfil"
+          >
             <span aria-hidden="true">👤</span>
           </a>
         </div>
@@ -43,21 +71,36 @@
             <span class="catalog__title-accent">lectura</span>
           </h1>
           <p class="catalog__subtitle">
-            Lee, comprende y mejora tus habilidades lectoras mientras descubres nuevas historias.
+            Lee, comprende y mejora tus habilidades lectoras mientras descubres
+            nuevas historias.
           </p>
         </div>
       </section>
 
       <section class="catalog__controls" aria-label="Buscador y filtros">
         <div class="catalog__search">
-          <label for="search-input" class="visually-hidden">Buscar lecturas</label>
+          <label for="search-input" class="visually-hidden"
+            >Buscar lecturas</label
+          >
           <span class="catalog__search-icon" aria-hidden="true">🔍</span>
-          <input type="search" id="search-input" class="catalog__search-input" placeholder="Buscar por título o descripción..." autocomplete="off" />
+          <input
+            type="search"
+            id="search-input"
+            class="catalog__search-input"
+            placeholder="Buscar por título o descripción..."
+            autocomplete="off"
+            aria-describedby="search-help"
+          />
+          <span id="search-help" class="visually-hidden">
+            Escribe para buscar por título o descripción
+          </span>
         </div>
 
         <div class="catalog__filters">
           <div class="catalog__filter">
-            <label for="filter-difficulty" class="visually-hidden">Filtrar por dificultad</label>
+            <label for="filter-difficulty" class="visually-hidden"
+              >Filtrar por dificultad</label
+            >
             <select id="filter-difficulty" class="catalog__select">
               <option value="">Todas las dificultades</option>
               <option value="easy">Fácil</option>
@@ -67,7 +110,9 @@
           </div>
 
           <div class="catalog__filter">
-            <label for="filter-duration" class="visually-hidden">Filtrar por duración</label>
+            <label for="filter-duration" class="visually-hidden"
+              >Filtrar por duración</label
+            >
             <select id="filter-duration" class="catalog__select">
               <option value="">Todas las duraciones</option>
               <option value="10">Menos de 10 min</option>
@@ -80,20 +125,69 @@
       </section>
 
       <p class="catalog__count" aria-live="polite">
-        <strong>6</strong> lecturas disponibles
+        <strong>0</strong> lecturas disponibles
       </p>
 
-      <section id="readings-container" class="catalog__results" aria-busy="false">
-        <div id="catalog-carousel" class="catalog__carousel">
-          <button type="button" id="carousel-prev" class="catalog__carousel-button catalog__carousel-button--prev" aria-label="Ver lecturas anteriores" hidden>
+      <section
+        id="readings-container"
+        class="catalog__results"
+        aria-busy="false"
+      >
+        <div id="loading-state" class="catalog__state" hidden>
+          <div class="catalog__skeleton-grid">
+            <div class="catalog__skeleton-card"></div>
+            <div class="catalog__skeleton-card"></div>
+            <div class="catalog__skeleton-card"></div>
+            <div class="catalog__skeleton-card"></div>
+          </div>
+          <p class="catalog__state-text">Cargando lecturas...</p>
+        </div>
+
+        <div id="empty-state" class="catalog__state" hidden>
+          <div class="catalog__state-icon" aria-hidden="true">📚</div>
+          <h2 class="catalog__state-title">No hay lecturas disponibles</h2>
+          <p class="catalog__state-text">
+            Intenta cambiar los filtros o la búsqueda
+          </p>
+        </div>
+
+        <div id="error-state" class="catalog__state" hidden>
+          <div class="catalog__state-icon" aria-hidden="true">⚠️</div>
+          <h2 class="catalog__state-title">Algo salió mal</h2>
+          <p class="catalog__state-text" id="error-message">
+            No pudimos cargar las lecturas.
+          </p>
+          <button type="button" id="retry-button" class="catalog__retry-button">
+            Reintentar
+          </button>
+        </div>
+
+        <div id="catalog-carousel" class="catalog__carousel" hidden>
+          <button
+            type="button"
+            id="carousel-prev"
+            class="catalog__carousel-button catalog__carousel-button--prev"
+            aria-label="Ver lecturas anteriores"
+            aria-controls="readings-grid"
+          >
             <span aria-hidden="true">←</span>
           </button>
 
-          <div id="readings-grid" class="catalog__grid" role="region" aria-label="Lecturas disponibles" tabindex="0">
-            <!-- Se rellena con JS -->
-          </div>
+          <div
+            id="readings-grid"
+            class="catalog__grid"
+            role="region"
+            aria-label="Lecturas disponibles"
+            tabindex="0"
+          ></div>
 
-          <button type="button" id="carousel-next" class="catalog__carousel-button catalog__carousel-button--next" aria-label="Ver más lecturas" hidden>
+          <button
+            type="button"
+            id="carousel-next"
+            class="catalog__carousel-button catalog__carousel-button--next"
+            aria-label="Ver más lecturas"
+            aria-controls="readings-grid"
+          >
             <span aria-hidden="true">→</span>
           </button>
         </div>
