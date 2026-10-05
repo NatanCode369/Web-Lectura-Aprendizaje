@@ -32,6 +32,30 @@ export async function buildServer({ withDb = true } = {}) {
   const fastify = Fastify({
     loggerInstance: logger,
     genReqId: () => randomUUID(),
+    trustProxy: true,
+  });
+
+  await registerSecurityPlugins(fastify);
+  await registerHealthRoutes(fastify, { withDb });
+
+  if (withDb) {
+    await connectDb();
+  }
+
+  await registerModules(fastify, { withDb });
+
+  fastify.addHook('onClose', async () => {
+    if (withDb) await closeDb();
+  });
+
+  return fastify;
+}
+
+/*
+export async function buildServer({ withDb = true } = {}) {
+  const fastify = Fastify({
+    loggerInstance: logger,
+    genReqId: () => randomUUID(),
     trustProxy: true, // Cloud Run va detrás de un proxy
   });
 
@@ -42,7 +66,16 @@ export async function buildServer({ withDb = true } = {}) {
   await fastify.register(helmet, { contentSecurityPolicy: false });
 
   await fastify.register(cors, {
-    origin: env.CORS_ORIGINS || '*',
+    origin: (origin, callback) => {
+      const allowed = new Set((env.CORS_ORIGINS ?? []).map((item) => item.trim()));
+
+      if (!origin || allowed.has(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error('CORS no permitido para este origen'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
@@ -60,6 +93,7 @@ export async function buildServer({ withDb = true } = {}) {
       },
     }),
   });
+
 
   // ---- Manejo de errores global ----
   fastify.setErrorHandler(errorHandler);
@@ -128,6 +162,7 @@ export async function buildServer({ withDb = true } = {}) {
 
   return fastify;
 }
+*/
 
 export async function start() {
   const fastify = await buildServer({ withDb: true });
