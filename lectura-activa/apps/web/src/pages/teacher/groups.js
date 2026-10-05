@@ -1,12 +1,70 @@
 /**
- * groups.js
- * Crea, lista y elimina grupos. Los estudiantes se unen con el código.
+ * ============================================================
+ * CONTRATO DE API — Grupos del docente
+ * ============================================================
  * 
- * Por ahora guarda en localStorage. Mañana se conecta a:
- *   GET /api/v1/groups
- *   POST /api/v1/groups
- *   GET /api/v1/groups/:id
- *   DELETE /api/v1/groups/:id
+ * Endpoints usados:
+ *   GET    /api/v1/groups              → listar grupos del docente
+ *   POST   /api/v1/groups              → crear grupo
+ *   GET    /api/v1/groups/:id          → ver un grupo
+ *   DELETE /api/v1/groups/:id          → eliminar grupo (borrado lógico)
+ * 
+ * Endpoint extra (NO está en el MD, requiere ADR):
+ *   POST   /api/v1/groups/join         → unirse por código (rol: student)
+ * 
+ * Auth: Bearer token (Supabase)
+ * Rol requerido: teacher
+ * 
+ * GET /groups
+ *   Response 200:
+ *     {
+ *       data: [
+ *         {
+ *           id: string,
+ *           name: string,
+ *           schoolYear: number,
+ *           code: string,
+ *           studentIds: string[],
+ *           studentEmails: string[],
+ *           status: 'active' | 'archived',
+ *           createdAt: ISO,
+ *           updatedAt: ISO
+ *         }
+ *       ],
+ *       meta: { page: 1, limit: 20, total: 1 }
+ *     }
+ * 
+ * POST /groups
+ *   Request body:
+ *     { name: string, schoolYear: number, studentIds: string[] }
+ *   Response 201:
+ *     {
+ *       id: string,
+ *       name: string,
+ *       schoolYear: number,
+ *       code: string,          // generado por el backend
+ *       studentIds: [],
+ *       status: 'active',
+ *       createdAt: ISO
+ *     }
+ * 
+ * DELETE /groups/:id
+ *   Response 204 (no content)
+ * 
+ * Errores comunes:
+ *   400 VALIDATION_ERROR
+ *   401 UNAUTHENTICATED
+ *   403 FORBIDDEN — no es docente o el grupo no es suyo
+ *   404 NOT_FOUND — grupo no existe
+ *   409 CONFLICT — código ya existe (raro, el backend lo genera)
+ * 
+ * TODO backend: este archivo usa localStorage por ahora.
+ * Cuando el backend esté listo:
+ *   import { api } from '../../services/apiClient.js';
+ *   const grupos = await api.get('/groups');
+ *   const nuevo = await api.post('/groups', { name, schoolYear });
+ *   await api.delete(`/groups/${id}`);
+ * ============================================================
  */
 
 // ============================================================
@@ -33,6 +91,7 @@ function escapeHtml(text) {
 
 function avisar(texto, tipo = 'ok') {
   const $msg = $('mensaje');
+  if (!$msg) return;
   $msg.textContent = texto;
   $msg.className = `alert alert--${tipo}`;
   $msg.hidden = false;
@@ -72,6 +131,7 @@ function guardarGrupos() {
 function renderGrupos() {
   const $grid = $('groups-grid');
   const $sin = $('sin-grupos');
+  if (!$grid || !$sin) return;
 
   if (grupos.length === 0) {
     $grid.innerHTML = '';
@@ -188,8 +248,32 @@ document.addEventListener('DOMContentLoaded', () => {
   renderGrupos();
 });
 
-$('btn-nuevo-grupo').addEventListener('click', abrirModalNuevo);
-$('btn-guardar-grupo').addEventListener('click', crearGrupo);
+// Solo conectar los eventos si los elementos existen
+if ($('btn-nuevo-grupo')) $('btn-nuevo-grupo').addEventListener('click', abrirModalNuevo);
+if ($('btn-guardar-grupo')) $('btn-guardar-grupo').addEventListener('click', crearGrupo);
+if ($('btn-regenerar')) {
+  $('btn-regenerar').addEventListener('click', () => {
+    const nombre = $('grupo-nombre').value.trim() || 'GRUPO';
+    const year = Number($('grupo-year').value) || new Date().getFullYear();
+    $('grupo-codigo').value = generarCodigo(nombre, year);
+  });
+}
+
+if ($('grupo-nombre')) {
+  $('grupo-nombre').addEventListener('input', () => {
+    const nombre = $('grupo-nombre').value.trim() || 'GRUPO';
+    const year = Number($('grupo-year').value) || new Date().getFullYear();
+    $('grupo-codigo').value = generarCodigo(nombre, year);
+  });
+}
+
+if ($('grupo-year')) {
+  $('grupo-year').addEventListener('input', () => {
+    const nombre = $('grupo-nombre').value.trim() || 'GRUPO';
+    const year = Number($('grupo-year').value) || new Date().getFullYear();
+    $('grupo-codigo').value = generarCodigo(nombre, year);
+  });
+}
 
 document.addEventListener('click', (e) => {
   // Cerrar modales
@@ -222,27 +306,6 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Regenerar código
-$('btn-regenerar').addEventListener('click', () => {
-  const nombre = $('grupo-nombre').value.trim() || 'GRUPO';
-  const year = Number($('grupo-year').value) || new Date().getFullYear();
-  $('grupo-codigo').value = generarCodigo(nombre, year);
-});
-
-// Auto-regenerar cuando cambia el nombre o el año
-$('grupo-nombre').addEventListener('input', () => {
-  const nombre = $('grupo-nombre').value.trim() || 'GRUPO';
-  const year = Number($('grupo-year').value) || new Date().getFullYear();
-  $('grupo-codigo').value = generarCodigo(nombre, year);
-});
-
-$('grupo-year').addEventListener('input', () => {
-  const nombre = $('grupo-nombre').value.trim() || 'GRUPO';
-  const year = Number($('grupo-year').value) || new Date().getFullYear();
-  $('grupo-codigo').value = generarCodigo(nombre, year);
-});
-
-// Cerrar con Escape
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') cerrarModales();
 });
