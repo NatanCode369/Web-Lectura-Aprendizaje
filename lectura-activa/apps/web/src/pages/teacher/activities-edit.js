@@ -1,12 +1,56 @@
 /**
- * activities-edit.js
- * Editor de las 5 actividades de una lectura.
- * Usa la misma clave que espera reading-activity.js: `actividades_${lecturaId}`.
+ * ============================================================
+ * CONTRATO DE API — Editor de actividades
+ * ============================================================
  * 
- * Ahora lee las lecturas REALES del docente desde localStorage.
+ * Endpoints usados:
+ *   GET  /api/v1/readings                    → cargar lista de lecturas
+ *   GET  /api/v1/readings/:id/activities     → cargar actividades de una lectura
+ *   PUT  /api/v1/readings/:id/activities     → guardar actividades de una lectura
+ * 
+ * Auth: Bearer token (Supabase)
+ * Rol requerido: teacher (dueño de la lectura)
+ * 
+ * GET /readings
+ *   Response 200:
+ *     {
+ *       data: [
+ *         { id: string, title: string, ... }
+ *       ]
+ *     }
+ * 
+ * GET /readings/:id/activities
+ *   Response 200:
+ *     {
+ *       trivia: [{ pregunta: string, opciones: string[], correcta: number }],
+ *       verdaderoFalso: [{ afirmacion: string, respuesta: boolean }],
+ *       detective: { target: string, synonyms: string[], distractors: string[] },
+ *       order: string[],
+ *       mindMap: [{ a: string, b: string }]
+ *     }
+ * 
+ * PUT /readings/:id/activities
+ *   Request body: mismo formato que GET /readings/:id/activities
+ *   Response 200: { updated: true }
+ * 
+ * Errores comunes:
+ *   400 VALIDATION_ERROR
+ *   401 UNAUTHENTICATED
+ *   403 FORBIDDEN — no es dueño de la lectura
+ *   404 NOT_FOUND — lectura no existe
+ * 
+ * TODO backend: este archivo usa localStorage por ahora.
+ * Cuando el backend esté listo:
+ *   import { api } from '../../services/apiClient.js';
+ *   const lecturas = await api.get('/readings');
+ *   const acts = await api.get(`/readings/${id}/activities`);
+ *   await api.put(`/readings/${id}/activities`, acts);
+ * ============================================================
  */
 
-// ---------- Cargar lecturas del docente ----------
+// ============================================================
+// CARGA DE LECTURAS DEL DOCENTE
+// ============================================================
 const KEY_LECTURAS = 'lecturas_docente';
 
 const lecturasReales = (() => {
@@ -30,6 +74,9 @@ const LECTURAS = [
   ...LECTURAS_MOCK
 ];
 
+// ============================================================
+// REFERENCIAS
+// ============================================================
 const $ = (id) => document.getElementById(id);
 const $lectura = $('lectura');
 const $listaTrivia = $('lista-trivia');
@@ -41,7 +88,9 @@ const $mensaje = $('mensaje');
 let actividades = null;
 let lecturaActual = null;
 
-// ---------- Carga y guardado ----------
+// ============================================================
+// CARGA Y GUARDADO
+// ============================================================
 function cargarActividades(lecturaId) {
   const guardadas = localStorage.getItem(`actividades_${lecturaId}`);
   if (guardadas) return JSON.parse(guardadas);
@@ -58,7 +107,9 @@ function guardarActividades(lecturaId, acts) {
   localStorage.setItem(`actividades_${lecturaId}`, JSON.stringify(acts));
 }
 
-// ---------- Render ----------
+// ============================================================
+// RENDER
+// ============================================================
 function renderTrivia() {
   $listaTrivia.innerHTML = actividades.trivia.map((q, i) => `
     <div class="q-item">
@@ -130,7 +181,9 @@ function renderTodo() {
   $('detective-distractors').value = (actividades.detective.distractors || []).join(', ');
 }
 
-// ---------- Cambio de lectura ----------
+// ============================================================
+// CAMBIO DE LECTURA
+// ============================================================
 function cambiarLectura() {
   lecturaActual = $lectura.value;
   actividades = cargarActividades(lecturaActual);
@@ -139,7 +192,9 @@ function cambiarLectura() {
 
 $lectura.addEventListener('change', cambiarLectura);
 
-// ---------- Edición ----------
+// ============================================================
+// EDICIÓN
+// ============================================================
 document.addEventListener('input', (e) => {
   const el = e.target;
   const tipo = el.dataset.tipo;
@@ -171,7 +226,9 @@ $('detective-target').addEventListener('input', (e) => actividades.detective.tar
 $('detective-synonyms').addEventListener('input', (e) => actividades.detective.synonyms = e.target.value.split(',').map(s => s.trim()).filter(Boolean));
 $('detective-distractors').addEventListener('input', (e) => actividades.detective.distractors = e.target.value.split(',').map(s => s.trim()).filter(Boolean));
 
-// ---------- Agregar / quitar ----------
+// ============================================================
+// AGREGAR / QUITAR
+// ============================================================
 $('add-trivia').addEventListener('click', () => {
   actividades.trivia.push({ pregunta: '', opciones: ['', '', '', ''], correcta: 0 });
   renderTrivia();
@@ -199,7 +256,9 @@ document.addEventListener('click', (e) => {
   if (tipo === 'mindmap') { actividades.mindMap.splice(index, 1); renderParejas(); }
 });
 
-// ---------- Guardar ----------
+// ============================================================
+// GUARDAR
+// ============================================================
 $('activities-form').addEventListener('submit', (e) => {
   e.preventDefault();
   guardarActividades(lecturaActual, actividades);
@@ -208,6 +267,8 @@ $('activities-form').addEventListener('submit', (e) => {
   setTimeout(() => $mensaje.hidden = true, 3000);
 });
 
-// ---------- Inicializar ----------
+// ============================================================
+// INICIALIZAR
+// ============================================================
 $lectura.innerHTML = LECTURAS.map(l => `<option value="${l.id}">${l.titulo}</option>`).join('');
 cambiarLectura();
