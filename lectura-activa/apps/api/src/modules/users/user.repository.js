@@ -1,6 +1,5 @@
 import { getDb } from '../../shared/db.js';
 
-
 const projection = {
   authUserId: 1,
   email: 1,

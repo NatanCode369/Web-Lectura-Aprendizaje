@@ -2,15 +2,16 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import multipart from '@fastify/multipart';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
 import { env } from './config/env.js';
 import { logger } from './shared/logger.js';
-import { connectDb, closeDb, getDb, pingDb } from './shared/db.js';
+import { connectDb, closeDb, pingDb } from './shared/db.js';
 import { errorHandler } from './shared/errors/errorHandler.js';
 import { requestId } from './shared/middleware/requestId.js';
+import { registerEdgeGuard, clientKey } from './shared/edge.js';
 
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { usersRoutes } from './modules/users/users.routes.js';
@@ -20,7 +21,6 @@ import { studentAssignmentsRoutes } from './modules/studentAssignments/studentAs
 import { attemptsRoutes } from './modules/attempts/attempts.routes.js';
 import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
 
-// Módulos integrados desde ft/2023146 (Adrián - Persona 3)
 import { buildUserRepository } from './modules/users/user.repository.js';
 import { buildReadingRepository } from './modules/readings/reading.repository.js';
 import { buildAuditRepository } from './modules/readings/audit.repository.js';
@@ -35,76 +35,8 @@ export async function buildServer({ withDb = true } = {}) {
     trustProxy: true,
   });
 
-  await registerSecurityPlugins(fastify);
-  await registerHealthRoutes(fastify, { withDb });
-
-  if (withDb) {
-    await connectDb();
-  }
-
-  await registerModules(fastify, { withDb });
-
-  fastify.addHook('onClose', async () => {
-    if (withDb) await closeDb();
-  });
-
-  return fastify;
-}
-
-async function registerSecurityPlugins(fastify) {
-  fastify.addHook('onRequest', requestId);
-  await fastify.register(helmet, { contentSecurityPolicy: false });
-  await fastify.register(cors, {
-    origin: (origin, callback) => {
-      const allowed = new Set((env.CORS_ORIGINS ?? []).map((item) => item.trim()));
-      callback(null, !origin || allowed.has(origin));
-    },
-    credentials: true,
-  });
-  await fastify.register(rateLimit, { max: 120, timeWindow: '1 minute' });
-  fastify.setErrorHandler(errorHandler);
-}
-
-async function registerHealthRoutes(fastify, { withDb }) {
-  fastify.get('/health', async () => ({
-    status: 'ok',
-    service: 'lectura-activa-api',
-    timestamp: new Date().toISOString(),
-  }));
-  fastify.get('/ready', async (request, reply) => {
-    const dbOk = withDb ? await pingDb() : true;
-    if (!dbOk) {
-      return reply.code(503).send({ error: { code: 'DB_NOT_READY', requestId: request.id } });
-    }
-    return { status: 'ready', db: dbOk };
-  });
-}
-
-async function registerModules(fastify, { withDb }) {
-  if (!withDb) return;
-
-  const db = withDb ? getDb() : null;
-  await fastify.register(authRoutes, { prefix: '/api/v1/auth', db });
-  await fastify.register(usersRoutes, { prefix: '/api/v1/users', db });
-  await fastify.register(groupsRoutes, { prefix: '/api/v1/groups', db });
-  await fastify.register(assignmentsRoutes, { prefix: '/api/v1/assignments', db });
-  await fastify.register(studentAssignmentsRoutes, { prefix: '/api/v1/student-assignments', db });
-  await fastify.register(attemptsRoutes, { prefix: '/api/v1/attempts', db });
-  await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics', db });
-}
-
-/*
-export async function buildServer({ withDb = true } = {}) {
-  const fastify = Fastify({
-    loggerInstance: logger,
-    genReqId: () => randomUUID(),
-    trustProxy: true, // Cloud Run va detrás de un proxy
-  });
-
-  // ---- Middleware transversal ----
   fastify.addHook('onRequest', requestId);
 
-  // ---- Plugins de seguridad ----
   await fastify.register(helmet, { contentSecurityPolicy: false });
 
   await fastify.register(cors, {
@@ -124,9 +56,17 @@ export async function buildServer({ withDb = true } = {}) {
     exposedHeaders: ['x-request-id'],
   });
 
+  // ⭐ Cloudflare: bloquea accesos directos si REQUIRE_EDGE=true
+  registerEdgeGuard(fastify, {
+    secret: env.ORIGIN_SHARED_SECRET,
+    requireEdge: env.REQUIRE_EDGE,
+  });
+
   await fastify.register(rateLimit, {
     max: 120,
     timeWindow: '1 minute',
+    // ⭐ Cloudflare: usa la IP real que envía el Worker
+    keyGenerator: (req) => clientKey(req, env.ORIGIN_SHARED_SECRET),
     errorResponseBuilder: (req) => ({
       error: {
         code: 'RATE_LIMITED',
@@ -136,8 +76,15 @@ export async function buildServer({ withDb = true } = {}) {
     }),
   });
 
+  // ⭐ multipart para subir PDFs
+  await fastify.register(multipart, {
+    limits: {
+      fileSize: 20 * 1024 * 1024, // 20 MB
+      files: 1,
+      fields: 5,
+    },
+  });
 
-  // ---- Manejo de errores global ----
   fastify.setErrorHandler(errorHandler);
 
   fastify.setNotFoundHandler((req, reply) => {
@@ -150,13 +97,11 @@ export async function buildServer({ withDb = true } = {}) {
     });
   });
 
-  // ---- Conexión a Base de Datos (opcional para tests) ----
   let db = null;
   if (withDb) {
     db = await connectDb();
   }
 
-  // ---- Health checks ----
   fastify.get('/health', async () => ({
     status: 'ok',
     service: 'lectura-activa-api',
@@ -177,7 +122,6 @@ export async function buildServer({ withDb = true } = {}) {
     return { status: 'ready', db: dbOk };
   });
 
-  // ---- Rutas de Negocio ----
   await fastify.register(authRoutes, { prefix: '/api/v1/auth', db });
   await fastify.register(usersRoutes, { prefix: '/api/v1/users', db });
   await fastify.register(groupsRoutes, { prefix: '/api/v1/groups', db });
@@ -186,7 +130,6 @@ export async function buildServer({ withDb = true } = {}) {
   await fastify.register(attemptsRoutes, { prefix: '/api/v1/attempts', db });
   await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics', db });
 
-  // ---- Inyección y Rutas de Readings (ft/2023146) ----
   const userRepository = buildUserRepository();
   const readingRepository = buildReadingRepository();
   const auditRepository = buildAuditRepository();
@@ -195,7 +138,6 @@ export async function buildServer({ withDb = true } = {}) {
 
   await registerReadingRoutes(fastify, { auth, readingService, prefix: '/api/v1/readings' });
 
-  // ---- Cierre ordenado de conexiones ----
   fastify.addHook('onClose', async () => {
     if (withDb) {
       await closeDb();
@@ -204,7 +146,6 @@ export async function buildServer({ withDb = true } = {}) {
 
   return fastify;
 }
-*/
 
 export async function start() {
   const fastify = await buildServer({ withDb: true });
@@ -224,8 +165,8 @@ export async function start() {
   process.on('SIGINT', () => shutdown('SIGINT'));
 
   try {
-    const port = env.PORT;
-    const host = env.HOST;
+    const port = Number(env.PORT ?? process.env.PORT ?? 3000);
+    const host = env.HOST ?? process.env.HOST ?? '0.0.0.0';
 
     await fastify.listen({ port, host });
     logger.info(`✅ API escuchando en http://${host}:${port}`);
@@ -235,12 +176,8 @@ export async function start() {
   }
 }
 
-// ==========================================
-// ARRANQUE DEL SERVIDOR (Entry Point)
-// ==========================================
 const __filename = fileURLToPath(import.meta.url);
 
-// Verificación robusta para Windows y Linux/Mac
 const isMainModule =
   process.argv[1] === __filename ||
   process.argv[1]?.replace(/\\/g, '/') === __filename ||

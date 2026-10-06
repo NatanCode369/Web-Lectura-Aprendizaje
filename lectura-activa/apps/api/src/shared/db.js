@@ -49,6 +49,11 @@ export function getDb() {
   return db;
 }
 
+export function setDbForTests(testDb, testClient = testDb?.client) {
+  db = testDb;
+  client = testClient ?? null;
+}
+
 /**
  * Cierra la conexión. Se llama en el apagado ordenado del servidor.
  */

@@ -122,4 +122,39 @@ describe('assignments.domain', () => {
       expect(snap[0].activityId).toBe('from-id');
     });
   });
+  describe('buildActivitySnapshot — ordering y matching', () => {
+  it('incluye items para ordering', () => {
+    const reading = {
+      activities: [
+        {
+          activityId: 'o1',
+          type: 'ordering',
+          prompt: 'Ordena',
+          items: ['A', 'B', 'C'],
+          correctAnswer: ['A', 'B', 'C'],
+          points: 3
+        }
+      ]
+    };
+    const snap = buildActivitySnapshot(reading);
+    expect(snap[0].items).toEqual(['A', 'B', 'C']);
+  });
+
+  it('incluye pairs para matching', () => {
+    const reading = {
+      activities: [
+        {
+          activityId: 'm1',
+          type: 'matching',
+          prompt: 'Empareja',
+          pairs: [{ left: 'x', right: 'y' }],
+          correctAnswer: [{ left: 'x', right: 'y' }],
+          points: 4
+        }
+      ]
+    };
+    const snap = buildActivitySnapshot(reading);
+    expect(snap[0].pairs).toEqual([{ left: 'x', right: 'y' }]);
+  });
+});
 });

@@ -27,9 +27,7 @@ export async function setupTestDb() {
     db = client.db('lectura-activa-test');
 
     const dbModule = await import('../../src/shared/db.js');
-    // Forzamos la conexión a la instancia de prueba
-    //dbModule.getDb = () => db;
-    await dbModule.connectDb().catch(() => null);
+    dbModule.setDbForTests(db, client);
   });
 
   afterAll(async () => {

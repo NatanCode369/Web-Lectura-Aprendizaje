@@ -1,74 +1,32 @@
 /**
  * ============================================================
- * CONTRATO DE API — Editar lectura
+ * CONTRATO DE API — Editar lectura (ya conectado)
  * ============================================================
- * 
- * Endpoints usados:
- *   GET   /api/v1/readings/:id   → cargar lectura para editar
- *   PATCH /api/v1/readings/:id   → guardar cambios
- *   GET   /api/v1/groups         → cargar grupos para mostrar asignaciones
- * 
- * Auth: Bearer token (Supabase)
- * Rol requerido: teacher (dueño de la lectura)
- * 
- * GET /readings/:id
- *   Response 200:
- *     {
- *       id: string,
- *       title: string,
- *       authorName: string,
- *       summary: string,
- *       content: string,
- *       difficulty: 'easy' | 'medium' | 'hard',
- *       estimatedMinutes: number,
- *       activities: string[],
- *       status: 'draft' | 'published',
- *       authorId: string,
- *       version: number,
- *       createdAt: ISO,
- *       updatedAt: ISO
- *     }
- * 
- * PATCH /readings/:id
- *   Request body:
- *     {
- *       title?: string,
- *       authorName?: string,
- *       summary?: string,
- *       content?: string,
- *       difficulty?: 'easy' | 'medium' | 'hard',
- *       estimatedMinutes?: number
- *     }
- *   Response 200: lectura actualizada
- *   Nota: al editar, el backend incrementa `version`.
- * 
- * Errores comunes:
- *   400 VALIDATION_ERROR — datos inválidos
- *   401 UNAUTHENTICATED — sin token
- *   403 FORBIDDEN — no es el autor de la lectura
- *   404 NOT_FOUND — la lectura no existe
- * 
- * TODO backend: este archivo usa localStorage por ahora.
- * Cuando el backend esté listo:
- *   import { api } from '../../services/apiClient.js';
- *   const lectura = await api.get(`/readings/${id}`);
- *   await api.patch(`/readings/${id}`, data);
+ *
+ * Endpoints usados (ver services/):
+ *   GET   /api/v1/readings/:id   → carga la lectura (el autor ve sus borradores)
+ *   PATCH /api/v1/readings/:id   → { title, summary, content, difficulty,
+ *                                    estimatedMinutes } (suben la version)
+ *   GET   /api/v1/assignments    → asignaciones del docente (se filtran por lectura)
+ *   GET   /api/v1/groups         → nombres de los grupos
+ *
+ * Las actividades se editan en activities-edit.html. El autor sale de la
+ * sesión: el backend no permite cambiarlo, por eso el campo va bloqueado.
+ *
+ * Auth: Bearer token (Supabase) · Rol requerido: teacher (autor)
  * ============================================================
  */
 
-// ============================================================
-// CONFIGURACIÓN
-// ============================================================
-const KEY_LECTURAS = 'lecturas_docente';
-const DOCENTE_ID = 'docente-demo';
-const KEY_GRUPOS = `grupos_${DOCENTE_ID}`;
+import { teacherReadingService, nivelFromApi } from '../../services/teacherReadingsService.js';
+import { teacherAssignmentService } from '../../services/teacherAssignmentsService.js';
+import { groupsService } from '../../services/groupsService.js';
 
-const ACTIVIDAD_INFO = {
-  trivia: 'Preguntas tipo trivia',
-  'verdadero-falso': 'Verdadero o falso rápido',
-  detective: 'Detective de palabras',
-  ordenar: 'Ordena la historia',
-  mapa: 'Mapa mental'
+const TIPO_INFO = {
+  multiple_choice: 'Preguntas tipo trivia',
+  true_false: 'Verdadero o falso rápido',
+  ordering: 'Ordena la historia',
+  matching: 'Mapa mental',
+  short_answer: 'Respuesta corta'
 };
 
 // ============================================================
@@ -88,146 +46,137 @@ function formatearFecha(iso) {
   const d = new Date(iso);
   const dia = String(d.getDate()).padStart(2, '0');
   const mes = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${dia}/${mes}/${year}`;
+  return `${dia}/${mes}/${d.getFullYear()}`;
 }
 
-function cargarLecturas() {
-  try {
-    return JSON.parse(localStorage.getItem(KEY_LECTURAS) || '[]');
-  } catch {
-    return [];
-  }
-}
-
-function cargarGrupos() {
-  try {
-    return JSON.parse(localStorage.getItem(KEY_GRUPOS) || '[]');
-  } catch {
-    return [];
-  }
-}
+const $ = (id) => document.getElementById(id);
 
 // ============================================================
-// CARGAR LECTURA DESDE ?id=
+// RENDER
 // ============================================================
-const params = new URLSearchParams(window.location.search);
-const lecturaId = params.get('id');
+function renderActividades(actividades) {
+  const $lista = $('lista-actividades');
+  if (!$lista) return;
 
-if (!lecturaId) {
-  alert('No se especificó qué lectura editar.');
-  window.location.href = './dashboard-teacher.html';
-}
-
-const lecturas = cargarLecturas();
-const lectura = lecturas.find((l) => l.id === lecturaId);
-
-if (!lectura) {
-  alert('Lectura no encontrada.');
-  window.location.href = './dashboard-teacher.html';
-}
-
-// ============================================================
-// RELLENAR FORMULARIO
-// ============================================================
-document.getElementById('titulo').value = lectura.title || '';
-document.getElementById('autor').value = lectura.authorName || '';
-document.getElementById('nivel').value =
-  lectura.difficulty === 'easy' ? 'basico' :
-  lectura.difficulty === 'medium' ? 'intermedio' : 'avanzado';
-document.getElementById('minutos').value = lectura.estimatedMinutes || 15;
-document.getElementById('resumen').value = lectura.summary || '';
-document.getElementById('contenido').value = lectura.content || '';
-
-// ============================================================
-// LISTA DE ACTIVIDADES
-// ============================================================
-const $listaActividades = document.getElementById('lista-actividades');
-const actividadesLectura = lectura.actividades || [];
-
-if ($listaActividades) {
-  if (actividadesLectura.length === 0) {
-    $listaActividades.innerHTML = '<p class="panel__hint">Esta lectura no tiene actividades configuradas.</p>';
-  } else {
-    $listaActividades.innerHTML = actividadesLectura.map((tipo) => `
-      <label class="check">
-        <input type="checkbox" checked disabled>
-        <div>
-          <p class="check__title">${escapeHtml(ACTIVIDAD_INFO[tipo] || tipo)}</p>
-        </div>
-      </label>
-    `).join('');
-  }
-}
-
-// ============================================================
-// ASIGNACIONES EXISTENTES
-// ============================================================
-const $asignacionesBody = document.getElementById('asignaciones-body');
-const grupos = cargarGrupos();
-const gruposAsignados = lectura.gruposAsignados || [];
-
-if ($asignacionesBody) {
-  if (gruposAsignados.length === 0) {
-    $asignacionesBody.innerHTML = `
-      <tr>
-        <td colspan="4" style="text-align: center; padding: 20px; color: #64748b;">
-          Esta lectura no está asignada a ningún grupo.
-        </td>
-      </tr>
-    `;
-  } else {
-    $asignacionesBody.innerHTML = gruposAsignados.map((grupoId) => {
-      const grupo = grupos.find((g) => g.id === grupoId);
-      if (!grupo) return '';
-
-      return `
-        <tr>
-          <td>${escapeHtml(grupo.nombre)}</td>
-          <td>${formatearFecha(lectura.fechaInicio)}</td>
-          <td>${formatearFecha(lectura.fechaEntrega)}</td>
-          <td><span class="badge badge--ok">En curso</span></td>
-        </tr>
-      `;
-    }).join('');
-  }
-}
-
-// ============================================================
-// GUARDAR CAMBIOS
-// ============================================================
-document.getElementById('reading-edit-form').addEventListener('submit', (e) => {
-  e.preventDefault();
-
-  const titulo = document.getElementById('titulo').value.trim();
-  const autor = document.getElementById('autor').value.trim();
-  const nivel = document.getElementById('nivel').value;
-  const minutos = Number(document.getElementById('minutos').value) || 15;
-  const resumen = document.getElementById('resumen').value.trim();
-  const contenido = document.getElementById('contenido').value.trim();
-
-  if (!titulo) {
-    alert('El título es obligatorio.');
+  if (!actividades.length) {
+    $lista.innerHTML = '<p class="panel__hint">Esta lectura no tiene actividades configuradas.</p>';
     return;
   }
 
-  // Actualizar la lectura
-  lectura.title = titulo;
-  lectura.authorName = autor || 'Anónimo';
-  lectura.difficulty = nivel === 'basico' ? 'easy' : nivel === 'intermedio' ? 'medium' : 'hard';
-  lectura.estimatedMinutes = minutos;
-  lectura.summary = resumen || 'Sin resumen.';
-  lectura.content = contenido;
-  lectura.updatedAt = new Date().toISOString();
+  $lista.innerHTML = actividades.map((a) => `
+    <label class="check">
+      <input type="checkbox" checked disabled>
+      <div>
+        <p class="check__title">${escapeHtml(TIPO_INFO[a.type] || a.type)}</p>
+        <p class="check__desc">${escapeHtml(a.prompt)}</p>
+      </div>
+    </label>
+  `).join('');
+}
 
-  // Guardar en la lista global
-  const index = lecturas.findIndex((l) => l.id === lecturaId);
-  lecturas[index] = lectura;
-  localStorage.setItem(KEY_LECTURAS, JSON.stringify(lecturas));
+async function renderAsignaciones(lecturaId) {
+  const $body = $('asignaciones-body');
+  if (!$body) return;
 
-  // Guardar por id
-  localStorage.setItem(`lectura_${lecturaId}`, JSON.stringify(lectura));
+  const fila = (texto) => `
+    <tr>
+      <td colspan="4" style="text-align: center; padding: 20px; color: #64748b;">${texto}</td>
+    </tr>
+  `;
 
-  alert('✅ Cambios guardados.');
-  window.location.href = './dashboard-teacher.html';
-});
+  try {
+    const [asignaciones, grupos] = await Promise.all([
+      teacherAssignmentService.list(),
+      groupsService.list()
+    ]);
+    const nombres = new Map((grupos.items || []).map((g) => [g._id, g.name]));
+    const propias = (asignaciones.items || []).filter((a) => a.readingId === lecturaId);
+
+    if (!propias.length) {
+      $body.innerHTML = fila('Esta lectura no está asignada a ningún grupo.');
+      return;
+    }
+
+    $body.innerHTML = propias.map((a) => `
+      <tr>
+        <td>${escapeHtml(nombres.get(a.groupId) || 'Grupo')}</td>
+        <td>${formatearFecha(a.availableFrom)}</td>
+        <td>${formatearFecha(a.dueAt)}</td>
+        <td><span class="badge badge--ok">${a.status === 'closed' ? 'Cerrada' : 'En curso'}</span></td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    $body.innerHTML = fila(`No se pudieron cargar las asignaciones (${escapeHtml(error.message)}).`);
+  }
+}
+
+// ============================================================
+// INICIAR: cargar la lectura desde ?id=
+// ============================================================
+async function init() {
+  const lecturaId = new URLSearchParams(window.location.search).get('id');
+  if (!lecturaId) {
+    alert('No se especificó qué lectura editar.');
+    window.location.href = './dashboard-teacher.html';
+    return;
+  }
+
+  let lectura;
+  try {
+    lectura = await teacherReadingService.getById(lecturaId);
+  } catch (error) {
+    alert(`No se pudo cargar la lectura: ${error.message}`);
+    window.location.href = './dashboard-teacher.html';
+    return;
+  }
+
+  $('titulo').value = lectura.title || '';
+  $('autor').value = '';
+  $('autor').placeholder = 'Se toma de tu sesión';
+  $('autor').disabled = true;
+  $('nivel').value = nivelFromApi(lectura.difficulty);
+  $('minutos').value = lectura.estimatedMinutes || 15;
+  $('resumen').value = lectura.summary || '';
+  $('contenido').value = lectura.content || '';
+
+  renderActividades(lectura.activities || []);
+  renderAsignaciones(lecturaId);
+
+  // ============================================================
+  // GUARDAR CAMBIOS (PATCH /readings/:id)
+  // ============================================================
+  $('reading-edit-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const titulo = $('titulo').value.trim();
+    const contenido = $('contenido').value.trim();
+    if (!titulo) {
+      alert('El título es obligatorio.');
+      return;
+    }
+    if (!contenido) {
+      alert('El texto de la lectura no puede quedar vacío.');
+      return;
+    }
+
+    const $boton = e.target.querySelector('[type="submit"]');
+    if ($boton) $boton.disabled = true;
+
+    try {
+      await teacherReadingService.update(lecturaId, {
+        title: titulo,
+        summary: $('resumen').value.trim() || 'Sin resumen.',
+        content: contenido,
+        nivel: $('nivel').value,
+        estimatedMinutes: Number($('minutos').value) || 15
+      });
+      alert('✅ Cambios guardados.');
+      window.location.href = './dashboard-teacher.html';
+    } catch (error) {
+      alert(`No se pudieron guardar los cambios: ${error.message}`);
+      if ($boton) $boton.disabled = false;
+    }
+  });
+}
+
+init();
