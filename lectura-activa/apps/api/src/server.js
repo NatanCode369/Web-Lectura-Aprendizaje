@@ -11,6 +11,7 @@ import { logger } from './shared/logger.js';
 import { connectDb, closeDb, pingDb } from './shared/db.js';
 import { errorHandler } from './shared/errors/errorHandler.js';
 import { requestId } from './shared/middleware/requestId.js';
+import { registerEdgeGuard, clientKey } from './shared/edge.js';
 
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { usersRoutes } from './modules/users/users.routes.js';
@@ -49,9 +50,18 @@ export async function buildServer({ withDb = true } = {}) {
     exposedHeaders: ['x-request-id'],
   });
 
+  // Si REQUIRE_EDGE=true, solo se acepta tráfico que venga del Worker.
+  registerEdgeGuard(fastify, {
+    secret: env.ORIGIN_SHARED_SECRET,
+    requireEdge: env.REQUIRE_EDGE,
+  });
+
   await fastify.register(rateLimit, {
     max: 120,
     timeWindow: '1 minute',
+    // Detrás de Cloudflare todas las peticiones llegan con IPs de Cloudflare:
+    // se usa la IP real que reenvía el Worker (solo si trae el secreto).
+    keyGenerator: (req) => clientKey(req, env.ORIGIN_SHARED_SECRET),
     errorResponseBuilder: (req) => ({
       error: {
         code: 'RATE_LIMITED',
