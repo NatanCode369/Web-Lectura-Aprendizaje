@@ -3,76 +3,47 @@
  * CONTRATO DE API — Editor de actividades
  * ============================================================
  * 
- * Endpoints usados:
- *   GET  /api/v1/readings                    → cargar lista de lecturas
- *   GET  /api/v1/readings/:id/activities     → cargar actividades de una lectura
- *   PUT  /api/v1/readings/:id/activities     → guardar actividades de una lectura
- * 
- * Auth: Bearer token (Supabase)
- * Rol requerido: teacher (dueño de la lectura)
- * 
- * GET /readings
- *   Response 200:
- *     {
- *       data: [
- *         { id: string, title: string, ... }
- *       ]
- *     }
- * 
- * GET /readings/:id/activities
- *   Response 200:
- *     {
- *       trivia: [{ pregunta: string, opciones: string[], correcta: number }],
- *       verdaderoFalso: [{ afirmacion: string, respuesta: boolean }],
- *       detective: { target: string, synonyms: string[], distractors: string[] },
- *       order: string[],
- *       mindMap: [{ a: string, b: string }]
- *     }
- * 
- * PUT /readings/:id/activities
- *   Request body: mismo formato que GET /readings/:id/activities
- *   Response 200: { updated: true }
- * 
- * Errores comunes:
- *   400 VALIDATION_ERROR
- *   401 UNAUTHENTICATED
- *   403 FORBIDDEN — no es dueño de la lectura
- *   404 NOT_FOUND — lectura no existe
- * 
- * TODO backend: este archivo usa localStorage por ahora.
- * Cuando el backend esté listo:
- *   import { api } from '../../services/apiClient.js';
- *   const lecturas = await api.get('/readings');
- *   const acts = await api.get(`/readings/${id}/activities`);
- *   await api.put(`/readings/${id}/activities`, acts);
+ * Endpoints usados (ya conectado, ver services/teacherReadingsService.js):
+ *   GET   /api/v1/readings        → lecturas PUBLICADAS (el API no lista borradores)
+ *   GET   /api/v1/readings/:id    → detalle con sus actividades (autor ve borradores)
+ *   PATCH /api/v1/readings/:id    → guarda { activities: [...] }
+ *   POST  /api/v1/readings/:id/publish → draft → published (≥ 1 actividad)
+ *   POST  /api/v1/assignments     → una por cada grupo elegido en "Nueva lectura"
+ *
+ * Las actividades viajan EMBEBIDAS en la lectura (no existe /readings/:id/activities):
+ *   trivia → multiple_choice · verdaderoFalso → true_false
+ *   order → ordering · mindMap → matching · detective → aún no soportado
+ *
+ * Auth: Bearer token (Supabase) · Rol requerido: teacher (autor de la lectura)
  * ============================================================
  */
 
 // ============================================================
-// CARGA DE LECTURAS DEL DOCENTE
+// SERVICIOS Y PARÁMETROS DE LA URL
 // ============================================================
-const KEY_LECTURAS = 'lecturas_docente';
+// ?id=<lectura>            → lectura a editar (viene de "Nueva lectura")
+// ?grupos=a,b&desde=&entrega= → asignaciones que se crean al publicar
+import {
+  teacherReadingService,
+  activitiesToApi,
+  activitiesFromApi
+} from '../../services/teacherReadingsService.js';
+import { teacherAssignmentService } from '../../services/teacherAssignmentsService.js';
 
-const lecturasReales = (() => {
-  try {
-    return JSON.parse(localStorage.getItem(KEY_LECTURAS) || '[]');
-  } catch {
-    return [];
-  }
-})();
+const params = new URLSearchParams(window.location.search);
+const lecturaIdUrl = params.get('id');
+const gruposAsignar = (params.get('grupos') || '').split(',').filter(Boolean);
+const fechaDesde = params.get('desde') || '';
+const fechaEntrega = params.get('entrega') || '';
 
-// Mocks de fallback (por si no hay lecturas creadas)
-const LECTURAS_MOCK = [
-  { id: 'liebre-tortuga', titulo: 'La liebre y la tortuga' },
-  { id: 'leon-raton', titulo: 'El león y el ratón' },
-  { id: 'zorra-uvas', titulo: 'La zorra y las uvas' }
-];
-
-// Combinar: primero las reales, luego los mocks
-const LECTURAS = [
-  ...lecturasReales.map((l) => ({ id: l.id, titulo: l.title })),
-  ...LECTURAS_MOCK
-];
+function escapeHtml(text) {
+  return String(text)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
 
 // ============================================================
 // REFERENCIAS
@@ -84,27 +55,26 @@ const $listaVF = $('lista-vf');
 const $listaEventos = $('lista-eventos');
 const $listaParejas = $('lista-parejas');
 const $mensaje = $('mensaje');
+const $publicar = $('publish-btn');
 
-let actividades = null;
+let actividades = activitiesFromApi([]);
 let lecturaActual = null;
+let lecturaDetalle = null;
 
 // ============================================================
 // CARGA Y GUARDADO
 // ============================================================
-function cargarActividades(lecturaId) {
-  const guardadas = localStorage.getItem(`actividades_${lecturaId}`);
-  if (guardadas) return JSON.parse(guardadas);
-  return {
-    trivia: [{ pregunta: '', opciones: ['', '', '', ''], correcta: 0 }],
-    verdaderoFalso: [{ afirmacion: '', respuesta: true }],
-    detective: { target: '', synonyms: [], distractors: [] },
-    order: ['', '', '', ''],
-    mindMap: [{ a: '', b: '' }]
-  };
+function mostrarMensaje(texto, esError = false) {
+  $mensaje.textContent = texto;
+  $mensaje.hidden = false;
+  if (!esError) setTimeout(() => ($mensaje.hidden = true), 4000);
 }
 
-function guardarActividades(lecturaId, acts) {
-  localStorage.setItem(`actividades_${lecturaId}`, JSON.stringify(acts));
+/** Guarda las actividades en la lectura (PATCH). Devuelve los avisos. */
+async function guardarActividades() {
+  const { activities, warnings } = activitiesToApi(actividades);
+  lecturaDetalle = await teacherReadingService.update(lecturaActual, { activities });
+  return warnings;
 }
 
 // ============================================================
@@ -184,10 +154,17 @@ function renderTodo() {
 // ============================================================
 // CAMBIO DE LECTURA
 // ============================================================
-function cambiarLectura() {
+async function cambiarLectura() {
   lecturaActual = $lectura.value;
-  actividades = cargarActividades(lecturaActual);
-  renderTodo();
+  if (!lecturaActual) return;
+  try {
+    lecturaDetalle = await teacherReadingService.getById(lecturaActual);
+    actividades = activitiesFromApi(lecturaDetalle.activities);
+    renderTodo();
+    $publicar.hidden = lecturaDetalle.status !== 'draft';
+  } catch (error) {
+    mostrarMensaje(`⚠️ ${error.message}`, true);
+  }
 }
 
 $lectura.addEventListener('change', cambiarLectura);
@@ -259,16 +236,92 @@ document.addEventListener('click', (e) => {
 // ============================================================
 // GUARDAR
 // ============================================================
-$('activities-form').addEventListener('submit', (e) => {
+$('activities-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  guardarActividades(lecturaActual, actividades);
-  $mensaje.textContent = '✅ Actividades guardadas correctamente.';
-  $mensaje.hidden = false;
-  setTimeout(() => $mensaje.hidden = true, 3000);
+  if (!lecturaActual) return mostrarMensaje('⚠️ Elige una lectura.', true);
+  try {
+    const avisos = await guardarActividades();
+    mostrarMensaje(
+      '✅ Actividades guardadas.' + (avisos.length ? ` ⚠️ ${avisos.join(' ')}` : '')
+    );
+  } catch (error) {
+    mostrarMensaje(`⚠️ ${error.message}`, true);
+  }
+});
+
+// ============================================================
+// PUBLICAR (draft → published) Y ASIGNAR A GRUPOS
+// ============================================================
+$publicar.addEventListener('click', async () => {
+  if (!lecturaActual) return;
+  $publicar.disabled = true;
+  try {
+    const avisos = await guardarActividades();
+    await teacherReadingService.publish(lecturaActual);
+
+    const fallos = [];
+    for (const groupId of gruposAsignar) {
+      try {
+        await teacherAssignmentService.create({
+          readingId: lecturaActual,
+          groupId,
+          availableFrom: fechaDesde,
+          dueAt: fechaEntrega
+        });
+      } catch (error) {
+        fallos.push(error.message);
+      }
+    }
+
+    $publicar.hidden = true;
+    let texto = '✅ Lectura publicada.';
+    if (gruposAsignar.length) {
+      texto += fallos.length
+        ? ` ⚠️ No se pudo asignar a ${fallos.length} grupo(s): ${fallos[0]}`
+        : ` Asignada a ${gruposAsignar.length} grupo(s).`;
+    }
+    if (avisos.length) texto += ` ⚠️ ${avisos.join(' ')}`;
+    mostrarMensaje(texto, fallos.length > 0);
+  } catch (error) {
+    mostrarMensaje(`⚠️ ${error.message}`, true);
+  } finally {
+    $publicar.disabled = false;
+  }
 });
 
 // ============================================================
 // INICIALIZAR
 // ============================================================
-$lectura.innerHTML = LECTURAS.map(l => `<option value="${l.id}">${l.titulo}</option>`).join('');
-cambiarLectura();
+// El API solo lista lecturas PUBLICADAS; un borrador recién creado se
+// agrega aparte usando el ?id= de la URL.
+async function init() {
+  let lecturas = [];
+  try {
+    const respuesta = await teacherReadingService.listPublished({ limit: 50 });
+    lecturas = (respuesta.data || []).map((l) => ({ id: l.id, titulo: l.title }));
+  } catch (error) {
+    mostrarMensaje(`⚠️ No se pudieron cargar las lecturas: ${error.message}`, true);
+  }
+
+  if (lecturaIdUrl && !lecturas.some((l) => l.id === lecturaIdUrl)) {
+    try {
+      const borrador = await teacherReadingService.getById(lecturaIdUrl);
+      lecturas.unshift({ id: lecturaIdUrl, titulo: `${borrador.title} (borrador)` });
+    } catch (error) {
+      mostrarMensaje(`⚠️ ${error.message}`, true);
+    }
+  }
+
+  if (!lecturas.length) {
+    $lectura.innerHTML = '<option value="">Sin lecturas disponibles</option>';
+    return;
+  }
+
+  $lectura.innerHTML = lecturas
+    .map((l) => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.titulo)}</option>`)
+    .join('');
+  if (lecturaIdUrl) $lectura.value = lecturaIdUrl;
+  await cambiarLectura();
+}
+
+init();

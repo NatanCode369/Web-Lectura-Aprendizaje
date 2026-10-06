@@ -1,4 +1,4 @@
-import { AppError } from '../errors/index.js';
+import { AppError } from '../errors/AppError.js';
 
 /**
  * Middleware de Fastify para exigir que el usuario esté autenticado.
