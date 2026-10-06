@@ -1,10 +1,10 @@
 import { sendError } from '../../shared/http.js';
-import { requireRoles } from '../../shared/auth.js';
+import { requireRole } from '../../shared/authorization/policies.js';
 import { AppError } from '../../shared/errors/AppError.js';
 import { readingListQuery, readingPatchBody, readingWriteBody } from './reading.schemas.js';
 
-export async function registerReadingRoutes(app, { auth, readingService }) {
-  app.get('/api/v1/readings', { preHandler: [auth, requireRoles('student', 'teacher', 'admin')], schema: { querystring: readingListQuery } }, async (request, reply) => {
+export async function registerReadingRoutes(app, { authenticate, readingService }) {
+  app.get('/api/v1/readings', { preHandler: [authenticate, requireRoles('student', 'teacher', 'admin')], schema: { querystring: readingListQuery } }, async (request, reply) => {
     try {
       const query = {
         ...request.query,
@@ -17,7 +17,7 @@ export async function registerReadingRoutes(app, { auth, readingService }) {
     }
   });
 
-  app.get('/api/v1/readings/:id', { preHandler: auth }, async (request, reply) => {
+  app.get('/api/v1/readings/:id', { preHandler: authenticate }, async (request, reply) => {
     try {
       return reply.send(await readingService.getById(request.params.id, request.user));
     } catch (error) {
@@ -26,7 +26,7 @@ export async function registerReadingRoutes(app, { auth, readingService }) {
   });
 
   app.post('/api/v1/readings', {
-    preHandler: [auth, requireRoles('teacher', 'admin')],
+    preHandler: [authenticate, requireRoles('teacher', 'admin')],
     schema: { body: readingWriteBody }
   }, async (request, reply) => {
     try {
@@ -38,7 +38,7 @@ export async function registerReadingRoutes(app, { auth, readingService }) {
   });
 
   app.patch('/api/v1/readings/:id', {
-    preHandler: [auth, requireRoles('teacher', 'admin')],
+    preHandler: [authenticate, requireRoles('teacher', 'admin')],
     schema: { body: readingPatchBody }
   }, async (request, reply) => {
     try {
@@ -49,7 +49,7 @@ export async function registerReadingRoutes(app, { auth, readingService }) {
   });
 
   app.post('/api/v1/readings/:id/publish', {
-    preHandler: [auth, requireRoles('teacher', 'admin')]
+    preHandler: [authenticate, requireRoles('teacher', 'admin')]
   }, async (request, reply) => {
     try {
       return reply.send(await readingService.publish(request.params.id, request.user));
@@ -64,7 +64,7 @@ export async function registerReadingRoutes(app, { auth, readingService }) {
    */
   app.post(
     '/api/v1/readings/:id/media',
-    { preHandler: [auth, requireRoles('teacher', 'admin')] },
+    { preHandler: [authenticate, requireRoles('teacher', 'admin')] },
     async (request, reply) => {
       try {
         const data = await request.file();
