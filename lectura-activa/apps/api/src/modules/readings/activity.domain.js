@@ -87,7 +87,7 @@ export function validateActivities(activities = []) {
     if (!ACTIVITY_TYPES.has(activity.type)) throw AppError.badRequest(`Tipo de actividad no soportado: ${activity.type}`);
     assertNonEmptyString(activity.prompt, `activity(${activity.id}).prompt`, LIMITS.maxPromptLength);
     if (!Number.isInteger(activity.points) || activity.points < 1 || activity.points > 100) {
-      throw AppError.badRequest(´Puntos inválidos en actividad ${activity.id}´);
+      throw AppError.badRequest(`Puntos inválidos en actividad ${activity.id}`);
     }
     validateConfig(activity.type, activity.config);
   }

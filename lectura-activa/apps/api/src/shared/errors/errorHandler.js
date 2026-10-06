@@ -1,26 +1,13 @@
-/**
- * Manejador central de errores de Fastify.
- *
- * Reglas:
- * - Los AppError se devuelven tal cual (statusCode, code, message).
- * - Los errores de validación de Fastify (schema) se mapean a 400 VALIDATION_ERROR.
- * - Los errores desconocidos se registran con stack completo y se devuelve
- *   un 500 genérico SIN exponer detalles internos (contexto técnico §7).
- * - Todas las respuestas incluyen `requestId` para trazabilidad.
- *
- * Formato de error:
- *   { "error": { "code", "message", "requestId", "details"? } }
- */
-
 import { AppError, ErrorCodes } from './AppError.js';
+import { env } from '../../config/env.js';
 
 export function errorHandler(err, req, reply) {
   const requestId = req.id;
 
-  // ---------- 1. Errores controlados (AppError) ----------
+  // ---------- 1. Errores controlados (AppError y subclases) ----------
   if (err instanceof AppError) {
     req.log.warn(
-      { err: { code: err.code, statusCode: err.statusCode, meta: err.meta } },
+      { err: { code: err.code, statusCode: err.statusCode, details: err.details } },
       err.message
     );
     return reply.code(err.statusCode).send({
@@ -28,6 +15,7 @@ export function errorHandler(err, req, reply) {
         code: err.code,
         message: err.message,
         requestId,
+        ...(err.details ? { details: err.details } : {}),
       },
     });
   }
@@ -59,7 +47,7 @@ export function errorHandler(err, req, reply) {
     });
   }
 
-  // ---------- 4. Errores de CORS ----------
+  // ---------- 4. Media type no soportado ----------
   if (err.statusCode === 403 && err.code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE') {
     return reply.code(415).send({
       error: {
@@ -70,19 +58,18 @@ export function errorHandler(err, req, reply) {
     });
   }
 
-  // ---------- 5. Errores desconocidos (bugs, fallos de red) ----------
+  // ---------- 5. Errores desconocidos ----------
   req.log.error(
     { err: { message: err.message, stack: err.stack, name: err.name } },
     'Error no controlado'
   );
 
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = env.NODE_ENV === 'production';
   return reply.code(500).send({
     error: {
       code: ErrorCodes.INTERNAL_ERROR,
       message: 'Ocurrió un error inesperado.',
       requestId,
-      // Solo en desarrollo exponemos el mensaje real para depurar.
       ...(isProduction ? {} : { devMessage: err.message }),
     },
   });
