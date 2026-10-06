@@ -22,6 +22,7 @@ export async function registerReadingRoutes(
     } catch (error) {
       return sendError(reply, error, request.id);
     }
+  }
   );
 
   app.get(
@@ -80,6 +81,7 @@ export async function registerReadingRoutes(
     } catch (error) {
       return sendError(reply, error, request.id);
     }
+  }
   );
 
   app.post(
