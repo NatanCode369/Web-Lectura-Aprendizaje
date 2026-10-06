@@ -1,10 +1,7 @@
 import { attemptsRepository } from './attempts.repository.js';
 import { studentAssignmentsRepository } from '../studentAssignments/studentAssignments.repository.js';
 import { assignmentsRepository } from '../assignments/assignments.repository.js';
-import {
-  mergeActivityProgress,
-  isAssignmentCompleted
-} from '../studentAssignments/studentAssignments.domain.js';
+import { mergeActivityProgress, isAssignmentCompleted } from '../studentAssignments/studentAssignments.domain.js';
 import {
   scoreAnswer,
   findActivityInSnapshot,
@@ -28,18 +25,6 @@ async function loadContext(user, assignmentId) {
   return { assignment, sa };
 }
 
-/**
- * Crea una copia del activitySnapshot sin correctAnswer (seguridad).
- * El estudiante no debe ver las respuestas correctas.
- */
-function sanitizeActivitySnapshot(snapshot) {
-  if (!Array.isArray(snapshot)) return [];
-  return snapshot.map((activity) => {
-    const { correctAnswer, ...safeActivity } = activity;
-    return safeActivity;
-  });
-}
-
 export const attemptsService = {
   /**
    * POST /assignments/:id/start
@@ -55,7 +40,9 @@ export const attemptsService = {
       const isMember = group?.studentIds?.some(
         (studentId) => String(studentId) === String(user.userId)
       );
-      if (!isMember) throw new ForbiddenError('No tienes esta tarea asignada');
+      if (!isMember) {
+        throw AppError.forbidden('FORBIDDEN', 'No tienes esta tarea asignada');
+      }
       studentAssignment = await studentAssignmentsRepository.ensure({
         assignmentId: assignment._id,
         studentId: user.userId
@@ -71,10 +58,10 @@ export const attemptsService = {
     return {
       requestId,
       studentAssignment,
-      activitySnapshot: sanitizeActivitySnapshot(assignment.activitySnapshot),
+      activitySnapshot: toPublicSnapshot(assignment.activitySnapshot),
       dueAt: assignment.dueAt,
       availableFrom: assignment.availableFrom,
-      timeLimit: assignment.timeLimit ?? null
+      timeLimitMinutes: assignment.timeLimitMinutes ?? 20
     };
   },
 
@@ -91,20 +78,17 @@ export const attemptsService = {
       throw AppError.conflict('CONFLICT', 'Esta tarea ya fue completada');
     }
 
-    // 1. Idempotencia: si el requestId ya existe, devolver el intento previo
     const existing = await attemptsRepository.findByRequestId(payload.requestId);
     if (existing) {
       logger.info({ requestId: payload.requestId }, 'attempt deduplicated');
       return { deduplicated: true, attempt: existing };
     }
 
-    // 2. Localizar la actividad en el snapshot
     const activity = findActivityInSnapshot(
       assignment.activitySnapshot,
       payload.activityId
     );
 
-    // 3. Calcular puntuación (dominio puro)
     const score = scoreAnswer(activity, payload.answers);
     const attemptNumber = await attemptsRepository.nextAttemptNumber(
       sa._id,
@@ -124,7 +108,6 @@ export const attemptsService = {
       submittedAt: new Date()
     };
 
-    // 4. Transacción Atlas: inserta intento + actualiza progreso del studentAssignment
     const db = getDb();
     const client = db.client;
     const session = client.startSession();

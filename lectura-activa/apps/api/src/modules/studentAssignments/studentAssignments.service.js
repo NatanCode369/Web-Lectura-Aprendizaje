@@ -60,9 +60,13 @@ export const studentAssignmentsService = {
     );
 
     const enriched = items.map((sa) => {
-      const a = byId.get(sa.assignmentId.toString());
-      const readingTitle = a?.readingId ? readingById.get(a.readingId.toString()) : null;
-      const groupName = a?.groupId ? groupById.get(a.groupId.toString()) : null;
+      const a = assignmentsById.get(sa.assignmentId.toString());
+      const readingTitle = a?.readingId
+        ? readingById.get(a.readingId.toString()) ?? null
+        : null;
+      const groupName = a?.groupId
+        ? groupById.get(a.groupId.toString()) ?? null
+        : null;
       return {
         ...sa,
         readingTitle,
@@ -72,9 +76,9 @@ export const studentAssignmentsService = {
           ? {
               _id: a._id,
               readingId: a.readingId,
-              readingTitle: reading?.title ?? null,
+              readingTitle,
               groupId: a.groupId,
-              groupName: group?.name ?? null,
+              groupName,
               availableFrom: a.availableFrom,
               dueAt: a.dueAt,
               timeLimitMinutes: a.timeLimitMinutes ?? 20,
@@ -120,8 +124,12 @@ export const studentAssignmentsService = {
         ? {
             _id: assignment._id,
             readingId: assignment.readingId,
+            readingTitle,
+            groupId: assignment.groupId,
+            groupName,
             availableFrom: assignment.availableFrom,
             dueAt: assignment.dueAt,
+            timeLimitMinutes: assignment.timeLimitMinutes ?? 20,
             status: assignment.status
           }
         : null
