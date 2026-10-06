@@ -3,7 +3,7 @@ export async function registerReadingsModule(fastify) {
     const readingRepository = buildReadingRepository();
     const auditRepository = buildAuditRepository();
     const readingService = buildReadingService({ readingRepository, auditRepository });
-    const auth = buildAuth({ userRepository });
+    const auth = authenticate(db);
 
     await registerReadingRoutes(fastify, { auth, readingService, prefix: '/api/v1/readings' });
 }

@@ -1,8 +1,8 @@
 import { MongoClient } from 'mongodb';
 
 const uri = process.env.MONGODB_URI;
-const dbName = process.env.MONGODB_DB_NAME;
-if (!uri || !dbName) throw new Error('MONGODB_URI and MONGODB_DB_NAME are required');
+const dbName = process.env.MONGODB_DB;
+if (!uri || !dbName) throw new Error('MONGODB_URI and MONGODB_DB are required');
 
 const client = new MongoClient(uri);
 await client.connect();

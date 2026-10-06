@@ -47,7 +47,9 @@ export function validateReadingInput(input, { partial = false } = {}) {
 
 export function assertCanEdit(reading, user) {
   const isAdmin = user.role === 'admin';
-  const isOwner = reading.authorId === user._id.toString();
+  const isOwner =
+    reading.authorId.equals(user._id) ||
+    reading.authorId.toString() === user._id.toString();
   if (!isAdmin && !isOwner) throw AppError.forbidden('La lectura no pertenece al docente autenticado');
   if (reading.status === 'archived') throw AppError.conflict('Una lectura archivada no puede editarse');
 }
