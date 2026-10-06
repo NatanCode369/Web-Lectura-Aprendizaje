@@ -1,7 +1,6 @@
 /* Pantalla: Feedback (Resultados) — Dueño: Omar */
 
 import { assignmentService } from "../../../services/assignmentsService.js";
-import { readingService } from "../../../services/readingsService.js";
 import {
   formatDateTime,
   formatTime,
@@ -13,7 +12,6 @@ import { qs, getParam } from "../../../utils/dom.js";
 const state = {
   studentAssignmentId: null,
   studentAssignment: null,
-  reading: null,
 };
 
 /* Referencias del DOM */
@@ -45,7 +43,6 @@ function showError(message) {
   showState("error");
 }
 
-/* Determinar nivel del puntaje (high/mid/low) */
 function getScoreLevel(score) {
   if (score >= 80) return "high";
   if (score >= 60) return "mid";
@@ -53,37 +50,31 @@ function getScoreLevel(score) {
 }
 
 /* Render */
-function renderFeedback(studentAssignment, reading) {
-  const score =
-    typeof studentAssignment.score === "number" ? studentAssignment.score : 0;
+function renderFeedback(sa) {
+  const score = typeof sa.score === "number" ? sa.score : 0;
   const scoreLevel = getScoreLevel(score);
+  const readingTitle =
+    sa.readingTitle || sa.assignment?.readingTitle || "Lectura";
 
-  /* Título de la lectura */
-  if (els.readingTitle) {
-    els.readingTitle.textContent = reading?.title || "Lectura";
-  }
+  if (els.readingTitle) els.readingTitle.textContent = readingTitle;
 
-  /* Puntaje */
   if (els.score) {
     els.score.textContent = String(Math.round(score));
     els.score.className = `feedback__score-value feedback__score-value--${scoreLevel}`;
   }
 
-  /* Tiempo */
   if (els.timeSpent) {
-    els.timeSpent.textContent = studentAssignment.timeSpentSeconds
-      ? formatTime(studentAssignment.timeSpentSeconds)
+    els.timeSpent.textContent = sa.timeSpentSeconds
+      ? formatTime(sa.timeSpentSeconds)
       : "—";
   }
 
-  /* Fecha de completado */
   if (els.completedAt) {
-    els.completedAt.textContent = studentAssignment.completedAt
-      ? formatDateTime(studentAssignment.completedAt)
+    els.completedAt.textContent = sa.completedAt
+      ? formatDateTime(sa.completedAt)
       : "—";
   }
 
-  /* Barra de progreso */
   if (els.scoreProgressBar) {
     els.scoreProgressBar.setAttribute("aria-valuenow", String(score));
   }
@@ -92,22 +83,19 @@ function renderFeedback(studentAssignment, reading) {
     els.scoreProgressFill.className = `feedback__progress-fill feedback__progress-fill--${scoreLevel}`;
   }
 
-  /* Mensaje motivacional */
   if (els.motivation) {
     els.motivation.textContent = getMotivationMessage(score);
   }
 
-  /* Contador de actividades */
-  const progress = Array.isArray(studentAssignment.activityProgress)
-    ? studentAssignment.activityProgress
+  const progress = Array.isArray(sa.activityProgress)
+    ? sa.activityProgress
     : [];
   const completed = progress.filter((p) => p.status === "completed").length;
 
   if (els.completedCount) els.completedCount.textContent = String(completed);
   if (els.totalCount) els.totalCount.textContent = String(progress.length);
 
-  /* Título de la pestaña */
-  document.title = `Resultados: ${reading?.title || "Lectura"} — Lectura Activa`;
+  document.title = `Resultados: ${readingTitle} — Lectura Activa`;
 }
 
 /* Cargar */
@@ -120,7 +108,6 @@ async function loadFeedback() {
   showState("loading");
 
   try {
-    /* 1. Cargar el studentAssignment */
     const saResponse = await assignmentService.getMine(
       state.studentAssignmentId,
     );
@@ -132,21 +119,7 @@ async function loadFeedback() {
     }
 
     state.studentAssignment = studentAssignment;
-
-    /* 2. Cargar la lectura (si existe) */
-    const readingId = studentAssignment.assignment?.readingId;
-    if (readingId) {
-      try {
-        const readingResponse = await readingService.getById(readingId);
-        state.reading = readingResponse?.data ?? readingResponse;
-      } catch (readingError) {
-        console.warn("[feedback] No se pudo cargar la lectura:", readingError);
-        state.reading = null;
-      }
-    }
-
-    /* 3. Renderizar */
-    renderFeedback(studentAssignment, state.reading);
+    renderFeedback(studentAssignment);
     showState("content");
   } catch (error) {
     console.error("[feedback] Error al cargar:", error);

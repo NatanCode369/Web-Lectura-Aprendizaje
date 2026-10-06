@@ -90,18 +90,6 @@ function showError(message) {
 
 /* ============================================================
    PDF
-   ============================================================
-   Estrategia:
-   1. Intentar obtener la URL del PDF desde el `reading` (varios posibles campos).
-   2. Si viene, cargarla en el <iframe>.
-   3. Si NO viene, mostrar un mensaje claro indicando que el PDF
-      aún no está disponible.
-
-   ⚠️ PENDIENTE BACKEND (Adrián): el endpoint GET /readings/:id debe
-   devolver la URL firmada del PDF en uno de estos campos:
-     - reading.media.pdfUrl
-     - reading.pdfUrl
-     - reading.contentUrl
    ============================================================ */
 function renderPdf(reading) {
   if (!els.pdf) return;
@@ -114,7 +102,6 @@ function renderPdf(reading) {
     null;
 
   if (!pdfUrl) {
-    /* Sin PDF: mostrar mensaje en lugar del iframe */
     if (els.pdfWrapper) {
       els.pdfWrapper.innerHTML = `
         <div class="activity__pdf-empty">
@@ -131,7 +118,6 @@ function renderPdf(reading) {
     return;
   }
 
-  /* Con PDF: cargarlo en el iframe */
   els.pdf.src = pdfUrl;
   els.pdf.title = reading.title || "Lectura";
 }
@@ -314,7 +300,7 @@ async function loadActivity() {
   showState("loading");
 
   try {
-    /* 1. Cargar la tarea */
+    /* 1. Cargar la tarea (con readingTitle, groupName, timeLimitMinutes) */
     const saResponse = await assignmentService.getMine(
       state.studentAssignmentId,
     );
@@ -334,7 +320,7 @@ async function loadActivity() {
 
     state.studentAssignment = studentAssignment;
 
-    /* 2. Cargar la lectura (para obtener el PDF) */
+    /* 2. Cargar la lectura (para el PDF) */
     const readingId = studentAssignment.assignment?.readingId;
     if (readingId) {
       try {
@@ -365,8 +351,9 @@ async function loadActivity() {
       }
     });
 
-    /* 5. Rellenar el título */
+    /* 5. Rellenar el título — usamos readingTitle del backend */
     const title =
+      studentAssignment.readingTitle ||
       state.reading?.title ||
       studentAssignment.assignment?.readingTitle ||
       "Lectura";
@@ -387,9 +374,10 @@ async function loadActivity() {
       els.completedCount.textContent = String(state.completedActivityIds.size);
     }
 
-    /* 8. Temporizador (20 min por defecto)
-       ⚠️ PENDIENTE BACKEND (Aaron): usar assignment.timeLimit */
-    state.totalSeconds = 20 * 60;
+    /* 8. Temporizador — usamos timeLimitMinutes del backend */
+    const timeLimitMinutes =
+      studentAssignment.assignment?.timeLimitMinutes ?? 20;
+    state.totalSeconds = timeLimitMinutes * 60;
     state.remainingSeconds = state.totalSeconds;
     if (els.timer) els.timer.textContent = formatTimer(state.remainingSeconds);
     startTimer();

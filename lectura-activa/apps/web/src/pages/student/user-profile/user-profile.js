@@ -36,7 +36,7 @@ function showError(message) {
   showState("error");
 }
 
-/* Render del perfil */
+/* Render */
 function renderProfile(user) {
   if (!user) {
     showError("No pudimos obtener tu información.");
@@ -61,12 +61,14 @@ function renderProfile(user) {
 async function loadUser() {
   showState("loading");
 
-  /* 1. Intentar desde el backend */
   try {
     const response = await api.get("/me");
-    const user = response?.data ?? response;
 
-    if (user) {
+    /* El backend devuelve { user: {...} }.
+       Aceptamos también { data: {...} } por si acaso. */
+    const user = response?.user ?? response?.data ?? response;
+
+    if (user && (user._id || user.email)) {
       state.user = user;
       renderProfile(user);
       showState("content");
@@ -79,7 +81,7 @@ async function loadUser() {
     );
   }
 
-  /* 2. Fallback: session.js */
+  /* Fallback: session.js */
   const sessionUser = getCurrentUser();
 
   if (sessionUser) {
@@ -89,7 +91,6 @@ async function loadUser() {
     return;
   }
 
-  /* 3. Sin usuario: error */
   showError("No hay sesión activa. Inicia sesión de nuevo.");
 }
 
