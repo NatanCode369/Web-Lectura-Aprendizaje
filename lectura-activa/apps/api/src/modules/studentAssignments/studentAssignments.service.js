@@ -7,7 +7,7 @@ import { AppError } from '../../shared/errors/AppError.js';
 
 export const studentAssignmentsService = {
   /**
-   * ADR-0003: materializa los studentAssignments para los estudiantes del grupo.
+   * ADR-0003: materializa studentAssignments para los estudiantes del grupo.
    * Idempotente por el índice único { assignmentId, studentId }.
    */
   async materializeForGroup(assignment, group) {
@@ -39,7 +39,7 @@ export const studentAssignmentsService = {
     const assignments = await Promise.all(
       assignmentIds.map((id) => assignmentsRepository.findById(id))
     );
-    const byId = new Map(
+    const assignmentsById = new Map(
       assignments.filter(Boolean).map((a) => [a._id.toString(), a])
     );
 
@@ -72,8 +72,12 @@ export const studentAssignmentsService = {
           ? {
               _id: a._id,
               readingId: a.readingId,
+              readingTitle: reading?.title ?? null,
+              groupId: a.groupId,
+              groupName: group?.name ?? null,
               availableFrom: a.availableFrom,
               dueAt: a.dueAt,
+              timeLimitMinutes: a.timeLimitMinutes ?? 20,
               status: a.status
             }
           : null

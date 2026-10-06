@@ -37,7 +37,11 @@ export const assignmentsService = {
     await studentAssignmentsService.materializeForGroup(assignment, group);
 
     logger.info(
-      { assignmentId: assignment._id, groupId: group._id, teacherId: user.userId },
+      {
+        assignmentId: assignment._id,
+        groupId: group._id,
+        teacherId: user.userId
+      },
       'assignment created'
     );
     return assignment;

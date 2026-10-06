@@ -5,6 +5,7 @@ import {
   buildProgressEntry
 } from '../../src/modules/attempts/attempts.domain.js';
 import { ValidationError } from '../../src/shared/errors/index.js';
+import { toPublicSnapshot } from '../../src/modules/attempts/attempts.domain.js';
 
 describe('attempts.domain', () => {
   describe('scoreAnswer', () => {
@@ -94,4 +95,76 @@ describe('attempts.domain', () => {
       expect(entry.submittedAt).toBeInstanceOf(Date);
     });
   });
+  describe('toPublicSnapshot', () => {
+  it('excluye correctAnswer de cada actividad', () => {
+    const snapshot = [
+      {
+        activityId: 'a1',
+        type: 'multiple_choice',
+        prompt: '¿?',
+        options: ['A', 'B'],
+        correctAnswer: 'B',
+        points: 5,
+        order: 0
+      }
+    ];
+    const pub = toPublicSnapshot(snapshot);
+    expect(pub[0]).not.toHaveProperty('correctAnswer');
+    expect(pub[0].activityId).toBe('a1');
+    expect(pub[0].options).toEqual(['A', 'B']);
+  });
+
+  it('preserva items para ordering y pairs para matching', () => {
+    const snapshot = [
+      { activityId: 'a1', type: 'ordering', items: ['1', '2'], points: 3 },
+      { activityId: 'a2', type: 'matching', pairs: [{ left: 'x', right: 'y' }], points: 4 }
+    ];
+    const pub = toPublicSnapshot(snapshot);
+    expect(pub[0].items).toEqual(['1', '2']);
+    expect(pub[1].pairs).toEqual([{ left: 'x', right: 'y' }]);
+  });
+
+  it('devuelve [] si el snapshot no es arreglo', () => {
+    expect(toPublicSnapshot(null)).toEqual([]);
+    expect(toPublicSnapshot(undefined)).toEqual([]);
+  });
+});
+
+describe('scoreAnswer — short_answer', () => {
+  it('acepta short_answer igual que short_text', () => {
+    const activity = { type: 'short_answer', correctAnswer: 'París', points: 4 };
+    expect(scoreAnswer(activity, { text: 'paris' })).toBe(4);
+  });
+});
+
+describe('scoreAnswer — matching', () => {
+  it('acierta si todos los pares coinciden', () => {
+    const activity = {
+      type: 'matching',
+      correctAnswer: [
+        { left: 'a', right: '1' },
+        { left: 'b', right: '2' }
+      ],
+      points: 6
+    };
+    const answers = {
+      matches: [
+        { left: 'a', right: '1' },
+        { left: 'b', right: '2' }
+      ]
+    };
+    expect(scoreAnswer(activity, answers)).toBe(6);
+  });
+
+  it('falla si un par no coincide', () => {
+    const activity = {
+      type: 'matching',
+      correctAnswer: [{ left: 'a', right: '1' }],
+      points: 6
+    };
+    expect(
+      scoreAnswer(activity, { matches: [{ left: 'a', right: '2' }] })
+    ).toBe(0);
+  });
+});
 });

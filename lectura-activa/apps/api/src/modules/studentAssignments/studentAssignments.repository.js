@@ -75,7 +75,7 @@ export const studentAssignmentsRepository = {
     return result.value ?? result;
   },
 
-  async applyAttemptResult(id, { activityProgress, addScore, addTime, completed }) {
+  async applyAttemptResult(id, { activityProgress, addScore, addTime, completed }, session) {
     const now = new Date();
     const set = { updatedAt: now };
     if (completed) {
@@ -88,7 +88,7 @@ export const studentAssignmentsRepository = {
         $set: { ...set, activityProgress },
         $inc: { score: addScore, timeSpentSeconds: addTime }
       },
-      { returnDocument: 'after' }
+      { returnDocument: 'after', ...(session ? { session } : {}) }
     );
     return result.value ?? result;
   }
