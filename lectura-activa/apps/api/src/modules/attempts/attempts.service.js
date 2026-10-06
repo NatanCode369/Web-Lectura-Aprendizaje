@@ -12,7 +12,8 @@ import {
   toPublicSnapshot
 } from './attempts.domain.js';
 import { assertAssignmentIsOpen } from '../assignments/assignments.domain.js';
-import { getDb } from '../../config/db.js';
+import { groupsRepository } from '../groups/groups.repository.js';
+import { getDb } from '../../shared/db.js';
 import {
   NotFoundError,
   ForbiddenError,
@@ -42,6 +43,11 @@ export const attemptsService = {
 
     let studentAssignment = sa;
     if (!studentAssignment) {
+      const group = await groupsRepository.findById(assignment.groupId);
+      const isMember = group?.studentIds?.some(
+        (studentId) => String(studentId) === String(user.userId)
+      );
+      if (!isMember) throw new ForbiddenError('No tienes esta tarea asignada');
       studentAssignment = await studentAssignmentsRepository.ensure({
         assignmentId: assignment._id,
         studentId: user.userId
@@ -77,17 +83,20 @@ export const attemptsService = {
       throw new ConflictError('Esta tarea ya fue completada');
     }
 
+    // 1. Idempotencia: si el requestId ya existe, devolver el intento previo
     const existing = await attemptsRepository.findByRequestId(payload.requestId);
     if (existing) {
       logger.info({ requestId: payload.requestId }, 'attempt deduplicated');
       return { deduplicated: true, attempt: existing };
     }
 
+    // 2. Localizar la actividad en el snapshot
     const activity = findActivityInSnapshot(
       assignment.activitySnapshot,
       payload.activityId
     );
 
+    // 3. Calcular puntuación (dominio puro)
     const score = scoreAnswer(activity, payload.answers);
     const attemptNumber = await attemptsRepository.nextAttemptNumber(
       sa._id,
@@ -107,6 +116,7 @@ export const attemptsService = {
       submittedAt: new Date()
     };
 
+    // 4. Transacción Atlas: inserta intento + actualiza progreso del studentAssignment
     const db = getDb();
     const client = db.client;
     const session = client.startSession();
@@ -140,7 +150,8 @@ export const attemptsService = {
             addScore: score,
             addTime: payload.timeSpentSeconds,
             completed
-          }
+          },
+          session
         );
       });
     } finally {

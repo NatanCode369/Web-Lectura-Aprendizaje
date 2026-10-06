@@ -43,7 +43,6 @@ export const analyticsService = {
         throw new ForbiddenError('Este grupo no te pertenece');
       }
     }
-
     const rows = await analyticsRepository.findByGroup(groupId, { from, to });
     return {
       groupId,

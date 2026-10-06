@@ -112,7 +112,6 @@ export const studentAssignmentsService = {
     if (!sa || sa.studentId.toString() !== studentId) {
       throw new NotFoundError('Tarea');
     }
-
     const assignment = await assignmentsRepository.findById(sa.assignmentId);
     const reading = assignment
       ? await readingsRepository.findById(assignment.readingId)
