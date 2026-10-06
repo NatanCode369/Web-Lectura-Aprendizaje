@@ -1,10 +1,14 @@
 /**
- * Middleware de autenticación — FLUJO ÚNICO (ADR 0001).
+ * Middleware de autenticación — FLUJO ÚNICO (ADR 0001 + ADR 0004).
  *
- * 1. Extrae el Bearer token.
+ * 1. Extrae el token del header Authorization O de la cookie HttpOnly.
  * 2. Valida el JWT contra Supabase.
  * 3. Lazy provisioning en MongoDB.
  * 4. Inyecta `request.user` con el objeto completo del usuario.
+ *
+ * Orden de prioridad:
+ *   1. Header `Authorization: Bearer <JWT>` (para tests, CLI, móvil).
+ *   2. Cookie `sb-access-token` (para navegador).
  */
 
 import { supabaseAuth, supabaseReady } from '../../config/supabase.js';
@@ -24,9 +28,20 @@ export function authenticate(db) {
       });
     }
 
+    // --- Extraer token: header primero, cookie como fallback ---
+    let authToken = null;
+
     const header = req.headers.authorization ?? '';
     const [scheme, token] = header.split(' ');
-    if (scheme !== 'Bearer' || !token) {
+    if (scheme === 'Bearer' && token) {
+      authToken = token;
+    }
+
+    if (!authToken) {
+      authToken = req.cookies?.['sb-access-token'] ?? null;
+    }
+
+    if (!authToken) {
       return reply.code(401).send({
         error: {
           code: 'UNAUTHENTICATED',
@@ -36,7 +51,8 @@ export function authenticate(db) {
       });
     }
 
-    const { data, error } = await supabaseAuth.auth.getUser(token);
+    // --- Validar JWT contra Supabase ---
+    const { data, error } = await supabaseAuth.auth.getUser(authToken);
     if (error || !data?.user) {
       return reply.code(401).send({
         error: {
@@ -54,6 +70,7 @@ export function authenticate(db) {
       user_metadata: supaUser.user_metadata ?? {},
     };
 
+    // --- Lazy provisioning ---
     let appUser;
     try {
       appUser = await service.ensureUserFromJwt(claims);
@@ -76,7 +93,7 @@ export function authenticate(db) {
       });
     }
 
-    // Inyectar el usuario completo de Mongo (con _id, authUserId, role, etc.)
+    // --- Inyectar usuario completo (convención request.user) ---
     req.user = appUser;
   };
 }
