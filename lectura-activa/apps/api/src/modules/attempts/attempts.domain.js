@@ -2,7 +2,6 @@ import { ValidationError } from '../../shared/errors/index.js';
 
 /**
  * Cálculo de puntuación por tipo de actividad. Función pura: sin I/O.
- * Cada actividad tiene un `type` y su `correctAnswer` en el snapshot.
  */
 export function scoreAnswer(activity, answers) {
   const { type, correctAnswer, points } = activity;
@@ -13,10 +12,11 @@ export function scoreAnswer(activity, answers) {
       return answers?.choice === correctAnswer ? points : 0;
 
     case 'short_text':
+    case 'short_answer':
     case 'open_text': {
       const given = String(answers?.text ?? '').trim().toLowerCase();
       const expected = String(correctAnswer ?? '').trim().toLowerCase();
-      if (!expected) return 0; // revisión manual, no auto-puntúa
+      if (!expected) return 0;
       return given === expected ? points : 0;
     }
 
@@ -36,6 +36,19 @@ export function scoreAnswer(activity, answers) {
       return JSON.stringify(given) === JSON.stringify(expected) ? points : 0;
     }
 
+    case 'matching': {
+      const given = answers?.matches ?? [];
+      const expected = correctAnswer ?? [];
+      if (given.length !== expected.length) return 0;
+      const map = new Map(
+        given.map((m) => [String(m.left), String(m.right)])
+      );
+      for (const pair of expected) {
+        if (map.get(String(pair.left)) !== String(pair.right)) return 0;
+      }
+      return points;
+    }
+
     default:
       throw new ValidationError(`Tipo de actividad desconocido: ${type}`);
   }
@@ -46,7 +59,9 @@ export function findActivityInSnapshot(snapshot, activityId) {
     (a) => String(a.activityId) === String(activityId)
   );
   if (!found) {
-    throw new ValidationError(`Actividad ${activityId} no pertenece a esta asignación`);
+    throw new ValidationError(
+      `Actividad ${activityId} no pertenece a esta asignación`
+    );
   }
   return found;
 }
@@ -60,4 +75,23 @@ export function buildProgressEntry(activity, answers, score, attemptNumber) {
     attemptNumber,
     submittedAt: new Date()
   };
+}
+
+/**
+ * Devuelve el snapshot sin campos sensibles (correctAnswer).
+ * Se usa en /start para que el estudiante vea las preguntas pero no las respuestas.
+ */
+export function toPublicSnapshot(snapshot) {
+  if (!Array.isArray(snapshot)) return [];
+  return snapshot.map((a) => ({
+    activityId: String(a.activityId),
+    type: a.type,
+    prompt: a.prompt,
+    options: a.options ?? null,
+    items: a.items ?? null,
+    pairs: a.pairs ?? null,
+    points: a.points,
+    order: a.order
+    // ⚠️ NO incluir correctAnswer
+  }));
 }

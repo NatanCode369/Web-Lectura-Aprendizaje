@@ -29,6 +29,7 @@ export const assignmentsService = {
       teacherId: user.userId,
       availableFrom: new Date(payload.availableFrom),
       dueAt: new Date(payload.dueAt),
+      timeLimitMinutes: payload.timeLimitMinutes ?? 20,
       activitySnapshot: buildActivitySnapshot(reading),
       status: 'published'
     });
@@ -36,7 +37,11 @@ export const assignmentsService = {
     await studentAssignmentsService.materializeForGroup(assignment, group);
 
     logger.info(
-      { assignmentId: assignment._id, groupId: group._id, teacherId: user.userId },
+      {
+        assignmentId: assignment._id,
+        groupId: group._id,
+        teacherId: user.userId
+      },
       'assignment created'
     );
     return assignment;
@@ -47,13 +52,19 @@ export const assignmentsService = {
   },
 
   async getByIdForTeacher(user, id) {
-    const assignment = await assignmentsRepository.findByIdForTeacher(id, user.userId);
+    const assignment = await assignmentsRepository.findByIdForTeacher(
+      id,
+      user.userId
+    );
     if (!assignment) throw new NotFoundError('Asignación');
     return assignment;
   },
 
   async close(user, id) {
-    const assignment = await assignmentsRepository.findByIdForTeacher(id, user.userId);
+    const assignment = await assignmentsRepository.findByIdForTeacher(
+      id,
+      user.userId
+    );
     if (!assignment) throw new NotFoundError('Asignación');
     return assignmentsRepository.updateStatus(id, 'closed');
   }

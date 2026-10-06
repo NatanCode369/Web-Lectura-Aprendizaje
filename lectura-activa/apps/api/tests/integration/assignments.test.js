@@ -131,4 +131,34 @@ describe('assignments integration', () => {
     expect(closed.statusCode).toBe(200);
     expect(closed.json().status).toBe('closed');
   });
+  it('POST /assignments guarda timeLimitMinutes', async () => {
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/v1/assignments',
+    payload: {
+      readingId: readingId.toString(),
+      groupId: groupId.toString(),
+      availableFrom: '2026-01-01T00:00:00Z',
+      dueAt: '2026-02-01T00:00:00Z',
+      timeLimitMinutes: 45
+    }
+  });
+  expect(res.statusCode).toBe(201);
+  expect(res.json().timeLimitMinutes).toBe(45);
+});
+
+it('POST /assignments usa 20 por defecto si no viene timeLimitMinutes', async () => {
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/v1/assignments',
+    payload: {
+      readingId: readingId.toString(),
+      groupId: groupId.toString(),
+      availableFrom: '2026-01-01T00:00:00Z',
+      dueAt: '2026-02-01T00:00:00Z'
+    }
+  });
+  expect(res.statusCode).toBe(201);
+  expect(res.json().timeLimitMinutes).toBe(20);
+});
 });

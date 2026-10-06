@@ -27,17 +27,29 @@ export function assertAssignmentIsOpen(assignment, now = new Date()) {
 }
 
 /**
- * ADR-0003: copiar sólo lo necesario para calificar sin depender de la lectura viva.
+ * ADR-0003: copia actividades al asignar para que editar la lectura no
+ * altere la calificación de tareas ya entregadas.
  */
 export function buildActivitySnapshot(reading) {
   const activities = Array.isArray(reading.activities) ? reading.activities : [];
-  return activities.map((a) => ({
-    activityId: String(a.activityId ?? a._id ?? a.id),
-    type: a.type,
-    prompt: a.prompt ?? null,
-    options: a.options ?? null,
-    correctAnswer: a.correctAnswer ?? null,
-    points: Number(a.points ?? 1),
-    order: Number(a.order ?? 0)
-  }));
+  return activities.map((a) => {
+    const base = {
+      activityId: String(a.activityId ?? a._id ?? a.id),
+      type: a.type,
+      prompt: a.prompt ?? null,
+      options: a.options ?? null,
+      correctAnswer: a.correctAnswer ?? null,
+      points: Number(a.points ?? 1),
+      order: Number(a.order ?? 0)
+    };
+
+    if (a.type === 'ordering') {
+      base.items = a.items ?? a.options ?? [];
+    }
+    if (a.type === 'matching') {
+      base.pairs = a.pairs ?? [];
+    }
+
+    return base;
+  });
 }

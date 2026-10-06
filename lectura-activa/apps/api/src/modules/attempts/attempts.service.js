@@ -1,22 +1,30 @@
 import { attemptsRepository } from './attempts.repository.js';
 import { studentAssignmentsRepository } from '../studentAssignments/studentAssignments.repository.js';
 import { assignmentsRepository } from '../assignments/assignments.repository.js';
-import { mergeActivityProgress, isAssignmentCompleted } from '../studentAssignments/studentAssignments.domain.js';
+import {
+  mergeActivityProgress,
+  isAssignmentCompleted
+} from '../studentAssignments/studentAssignments.domain.js';
 import {
   scoreAnswer,
   findActivityInSnapshot,
-  buildProgressEntry
+  buildProgressEntry,
+  toPublicSnapshot
 } from './attempts.domain.js';
 import { assertAssignmentIsOpen } from '../assignments/assignments.domain.js';
-import { getDb } from '../../shared/db.js';
-import { NotFoundError, ForbiddenError, ConflictError } from '../../shared/errors/index.js';
+import { getDb } from '../../config/db.js';
+import {
+  NotFoundError,
+  ForbiddenError,
+  ConflictError
+} from '../../shared/errors/index.js';
 import { logger } from '../../shared/logger/index.js';
 
 async function loadContext(user, assignmentId) {
   const assignment = await assignmentsRepository.findById(assignmentId);
   if (!assignment) throw new NotFoundError('Asignación');
 
-  let sa = await studentAssignmentsRepository.findByAssignmentAndStudent(
+  const sa = await studentAssignmentsRepository.findByAssignmentAndStudent(
     assignmentId,
     user.userId
   );
@@ -26,7 +34,7 @@ async function loadContext(user, assignmentId) {
 export const attemptsService = {
   /**
    * POST /assignments/:id/start
-   * Abre la tarea del estudiante. Idempotente por requestId.
+   * Abre la tarea del estudiante. Devuelve snapshot público (sin correctAnswer).
    */
   async start(user, assignmentId, { requestId }) {
     const { assignment, sa } = await loadContext(user, assignmentId);
@@ -34,7 +42,6 @@ export const attemptsService = {
 
     let studentAssignment = sa;
     if (!studentAssignment) {
-      // El estudiante pertenece al grupo pero aún no se materializó (se agregó después)
       studentAssignment = await studentAssignmentsRepository.ensure({
         assignmentId: assignment._id,
         studentId: user.userId
@@ -42,21 +49,24 @@ export const attemptsService = {
     }
 
     if (studentAssignment.status === 'pending') {
-      studentAssignment = await studentAssignmentsRepository.start(studentAssignment._id);
+      studentAssignment = await studentAssignmentsRepository.start(
+        studentAssignment._id
+      );
     }
 
     return {
       requestId,
       studentAssignment,
-      activitySnapshot: assignment.activitySnapshot,
+      activitySnapshot: toPublicSnapshot(assignment.activitySnapshot),
       dueAt: assignment.dueAt,
-      availableFrom: assignment.availableFrom
+      availableFrom: assignment.availableFrom,
+      timeLimitMinutes: assignment.timeLimitMinutes ?? 20
     };
   },
 
   /**
    * POST /assignments/:id/attempts
-   * Idempotente por requestId. Usa transacción Atlas porque toca 2 documentos.
+   * Idempotente por requestId. Transacción Atlas.
    */
   async submit(user, assignmentId, payload) {
     const { assignment, sa } = await loadContext(user, assignmentId);
@@ -67,20 +77,17 @@ export const attemptsService = {
       throw new ConflictError('Esta tarea ya fue completada');
     }
 
-    // 1. Idempotencia: si el requestId ya existe, devolver el intento previo
     const existing = await attemptsRepository.findByRequestId(payload.requestId);
     if (existing) {
       logger.info({ requestId: payload.requestId }, 'attempt deduplicated');
       return { deduplicated: true, attempt: existing };
     }
 
-    // 2. Localizar la actividad en el snapshot
     const activity = findActivityInSnapshot(
       assignment.activitySnapshot,
       payload.activityId
     );
 
-    // 3. Calcular puntuación (dominio puro)
     const score = scoreAnswer(activity, payload.answers);
     const attemptNumber = await attemptsRepository.nextAttemptNumber(
       sa._id,
@@ -100,7 +107,6 @@ export const attemptsService = {
       submittedAt: new Date()
     };
 
-    // 4. Transacción Atlas: inserta intento + actualiza progreso del studentAssignment
     const db = getDb();
     const client = db.client;
     const session = client.startSession();
@@ -151,6 +157,10 @@ export const attemptsService = {
       'attempt submitted'
     );
 
-    return { deduplicated: false, attempt: savedAttempt, studentAssignment: updatedSA };
+    return {
+      deduplicated: false,
+      attempt: savedAttempt,
+      studentAssignment: updatedSA
+    };
   }
 };
