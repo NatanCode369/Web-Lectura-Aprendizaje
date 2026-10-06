@@ -11,7 +11,7 @@ import { usersRepo } from './users.repository.js';
 import { usersService } from './users.service.js';
 import { patchMeSchema } from './users.schemas.js';
 import { authenticate } from '../../shared/middleware/authenticate.js';
-import { AppError, ErrorCodes } from '../../shared/errors.js';
+import { AppError, ErrorCodes } from '../../shared/errors/index.js';
 
 export async function usersRoutes(fastify, opts) {
   const { db } = opts;

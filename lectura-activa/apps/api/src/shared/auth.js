@@ -8,7 +8,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { env } from '../config/env.js';
-import { unauthorized, forbidden } from './errors.js';
+import { unauthorized, forbidden } from './errors/index.js';
 
 export { requireRole as requireRoles } from './authorization/policies.js';
 
