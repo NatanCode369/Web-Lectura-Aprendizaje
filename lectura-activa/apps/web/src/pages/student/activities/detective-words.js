@@ -1,82 +1,160 @@
-    const params = new URLSearchParams(window.location.search);
-    const lecturaId = params.get('lectura') || 'liebre-tortuga';
-    const tipo = 'detective';
-    const claveCompletada = `completada_${lecturaId}_${tipo}`;
+/* Actividad: detective — Dueño: Omar */
 
-    const yaCompletada = localStorage.getItem(claveCompletada);
-    if (yaCompletada) {
-      const r = JSON.parse(yaCompletada);
-      document.getElementById('body').innerHTML = `
-        <div class="activity__finish">
-          <h2>Ya completaste esta actividad</h2>
-          <p class="activity__score">${r.puntaje} / ${r.total}</p>
-          <p class="activity__msg">No puedes repetirla.</p>
-          <div class="activity__actions">
-            <a href="../catalog/catalog.html" class="btn btn--primary">Volver al inicio</a>
-          </div>
-        </div>
-      `;
-      document.getElementById('timer').textContent = '✔';
-      throw new Error('stop');
+import {
+  loadActivityContext,
+  submitAttempt,
+  showActivityError,
+  showActivitySuccess,
+} from "./shared.js";
+
+const $body = document.getElementById("body");
+const $timer = document.getElementById("timer");
+
+const state = {
+  studentAssignment: null,
+  activity: null,
+  target: "",
+  synonyms: [],
+  distractors: [],
+  words: [],
+  found: 0,
+  timeLeft: 60,
+  terminado: false,
+  interval: null,
+  startTime: Date.now(),
+};
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render() {
+  $body.innerHTML = `
+    <p class="activity__hint">
+      Encuentra sinónimos de: <strong>${state.target}</strong>
+    </p>
+    <div class="word-grid" id="grid">
+      ${state.words.map((w) => `<span class="word">${w}</span>`).join("")}
+    </div>
+  `;
+
+  document.querySelectorAll(".word").forEach((word) => {
+    word.addEventListener("click", () => handleClick(word));
+  });
+}
+
+function handleClick(word) {
+  if (state.terminado) return;
+  if (word.classList.contains("is-found")) return;
+  if (word.classList.contains("is-wrong")) return;
+
+  const texto = word.textContent;
+
+  if (state.synonyms.includes(texto)) {
+    word.classList.add("is-found");
+    state.found++;
+    if (state.found === state.synonyms.length) {
+      clearInterval(state.interval);
+      finish();
     }
+  } else {
+    word.classList.add("is-wrong");
+  }
+}
 
-    const synonyms = ['rapidez', 'celeridad', 'prisa', 'agilidad', 'ligereza'];
-    let found = 0, timeLeft = 60, terminado = false;
-    const $timer = document.getElementById('timer');
-    const $body = document.getElementById('body');
+/* ============================================================
+   TIMER
+   ============================================================ */
+function startTimer() {
+  state.timeLeft = 60;
+  if ($timer) $timer.textContent = `⏱ ${state.timeLeft}s`;
 
-    $body.innerHTML = `
-      <p class="activity__hint">Encuentra sinónimos de: <strong>velocidad</strong></p>
-      <div class="word-grid" id="grid">
-        <span class="word">rapidez</span>
-        <span class="word">lentitud</span>
-        <span class="word">celeridad</span>
-        <span class="word">calma</span>
-        <span class="word">prisa</span>
-        <span class="word">pausa</span>
-        <span class="word">agilidad</span>
-        <span class="word">tranquilidad</span>
-        <span class="word">ligereza</span>
-      </div>
-    `;
-
-    const interval = setInterval(() => {
-      timeLeft--;
-      $timer.textContent = `⏱ ${timeLeft}s`;
-      if (timeLeft <= 0) { clearInterval(interval); endGame(); }
-    }, 1000);
-
-    document.querySelectorAll('.word').forEach(word => {
-      word.addEventListener('click', () => {
-        if (terminado) return;
-        if (word.classList.contains('is-found') || word.classList.contains('is-wrong')) return;
-        if (synonyms.includes(word.textContent)) {
-          word.classList.add('is-found');
-          found++;
-          if (found === synonyms.length) { clearInterval(interval); endGame(); }
-        } else word.classList.add('is-wrong');
-      });
-    });
-
-    function endGame() {
-      if (terminado) return;
-      terminado = true;
-      const puntaje = found, total = synonyms.length;
-
-      localStorage.setItem(claveCompletada, JSON.stringify({
-        puntaje, total, fecha: new Date().toISOString()
-      }));
-
-      $body.innerHTML = `
-        <div class="activity__finish">
-          <h2>¡Tiempo terminado!</h2>
-          <p class="activity__score">${puntaje} / ${total}</p>
-          <p class="activity__msg">Encontraste ${puntaje} sinónimos.</p>
-          <p class="activity__msg">Ya no puedes repetir esta actividad.</p>
-          <div class="activity__actions">
-            <a href="../catalog/catalog.html" class="btn btn--primary">Volver al inicio</a>
-          </div>
-        </div>
-      `;
+  state.interval = setInterval(() => {
+    state.timeLeft--;
+    if ($timer) $timer.textContent = `⏱ ${state.timeLeft}s`;
+    if (state.timeLeft <= 0) {
+      clearInterval(state.interval);
+      finish();
     }
-  
+  }, 1000);
+}
+
+/* ============================================================
+   FIN
+   ============================================================ */
+async function finish() {
+  if (state.terminado) return;
+  state.terminado = true;
+
+  const puntaje = state.found;
+  const total = state.synonyms.length;
+
+  try {
+    const timeSpent = Math.round((Date.now() - state.startTime) / 1000);
+
+    await submitAttempt(
+      state.studentAssignment,
+      state.activity.activityId,
+      { found: puntaje, total },
+      timeSpent
+    );
+
+    showActivitySuccess(
+      $body,
+      {
+        title: "¡Tiempo terminado!",
+        score: puntaje,
+        total,
+        message: `Encontraste ${puntaje} sinónimos.`,
+      },
+      state.studentAssignment._id
+    );
+  } catch (error) {
+    console.error("[detective] Error al enviar:", error);
+    showActivityError($body, "No pudimos enviar tu actividad.");
+  }
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+async function init() {
+  try {
+    const { studentAssignment, activity } = await loadActivityContext();
+    state.studentAssignment = studentAssignment;
+    state.activity = activity;
+
+    const config = activity.config || {};
+
+    state.target = config.target || activity.target || "velocidad";
+    state.synonyms = config.synonyms || activity.synonyms || [
+      "rapidez",
+      "celeridad",
+      "prisa",
+      "agilidad",
+      "ligereza",
+    ];
+    state.distractors = config.distractors || activity.distractors || [
+      "lentitud",
+      "calma",
+      "pausa",
+      "tranquilidad",
+    ];
+
+    // Mezclar sinónimos + distractores
+    state.words = [...state.synonyms, ...state.distractors].sort(
+      () => Math.random() - 0.5
+    );
+
+    state.startTime = Date.now();
+    render();
+    startTimer();
+  } catch (error) {
+    console.error("[detective] Error:", error);
+    showActivityError(
+      $body,
+      error.message || "No pudimos cargar la actividad."
+    );
+  }
+}
+
+init();

@@ -145,9 +145,14 @@ export async function buildServer({ withDb = true } = {}) {
   const readingRepository = buildReadingRepository();
   const auditRepository = buildAuditRepository();
   const readingService = buildReadingService({ readingRepository, auditRepository });
-  const auth = buildAuth({ userRepository });
 
-  await registerReadingRoutes(fastify, { auth, readingService, prefix: '/api/v1/readings' });
+  const authenticate = buildAuth({ userRepository });   // ← CAMBIADO: "auth" → "authenticate"
+
+  await registerReadingRoutes(fastify, {
+    authenticate,                                          // ← CAMBIADO: pasa "authenticate"
+    readingService,
+    prefix: '/api/v1/readings',
+  });
 
   // ---- Cierre ordenado ----
   fastify.addHook('onClose', async () => {
