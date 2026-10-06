@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { getDb } from '../../db/mongo.js';
+import { getDb } from '../../shared/db.js';
 
 const collection = () => getDb().collection('readings');
 
