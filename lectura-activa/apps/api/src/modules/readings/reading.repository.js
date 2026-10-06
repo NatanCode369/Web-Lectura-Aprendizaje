@@ -11,7 +11,7 @@ export function buildReadingRepository() {
   return {
     async create(document) {
       const result = await collection().insertOne(document);
-      return collection().findOne({ _id: result.insertedId });
+      return { _id: result.insertedId, ...document };
     },
 
     async findById(id) {
@@ -25,11 +25,12 @@ export function buildReadingRepository() {
       const _id = toObjectId(id);
       if (!_id) return null;
 
-      return collection().findOneAndUpdate(
+      const result = await collection().findOneAndUpdate(
         { _id, ...filter, deletedAt: { $exists: false } },
         { $set: update },
         { returnDocument: 'after' }
       );
+      return result.value ?? null;
     },
 
     async list({ institutionId, search, difficulty, maxMinutes, page, limit }) {
@@ -100,7 +101,7 @@ export function buildReadingRepository() {
       );
 
       // Insertar el nuevo
-      return collection().findOneAndUpdate(
+      const result = await collection().findOneAndUpdate(
         { _id, deletedAt: { $exists: false } },
         {
           $push: { media: mediaItem },
@@ -108,6 +109,7 @@ export function buildReadingRepository() {
         },
         { returnDocument: 'after' }
       );
+      return result?.value ?? null;
     },
   };
 }

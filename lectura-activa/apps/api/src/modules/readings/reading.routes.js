@@ -7,24 +7,20 @@ import {
   readingWriteBody,
 } from './reading.schemas.js';
 
-export async function registerReadingRoutes(app, { auth, readingService }) {
-  app.get(
-    '/api/v1/readings',
-    {
-      preHandler: [auth, requireRoles('student', 'teacher', 'admin')],
-      schema: { querystring: readingListQuery },
-    },
-    async (request, reply) => {
-      try {
-        const query = {
-          ...request.query,
-          page: request.query.page ?? 1,
-          limit: request.query.limit ?? 20,
-        };
-        return reply.send(await readingService.list(query, request.user));
-      } catch (error) {
-        return sendError(reply, error, request.id);
-      }
+export async function registerReadingRoutes(
+  app,
+  { authenticate, readingService, prefix = '/api/v1/readings' }
+) {
+  app.get('/api/v1/readings', { preHandler: [authenticate, requireRoles('student', 'teacher', 'admin')], schema: { querystring: readingListQuery } }, async (request, reply) => {
+    try {
+      const query = {
+        ...request.query,
+        page: request.query.page ?? 1,
+        limit: request.query.limit ?? 20
+      };
+      return reply.send(await readingService.list(query, request.user));
+    } catch (error) {
+      return sendError(reply, error, request.id);
     }
   );
 
@@ -76,16 +72,13 @@ export async function registerReadingRoutes(app, { auth, readingService }) {
   );
 
   app.post(
-    '/api/v1/readings/:id/publish',
-    { preHandler: [auth, requireRoles('teacher', 'admin')] },
-    async (request, reply) => {
-      try {
-        return reply.send(
-          await readingService.publish(request.params.id, request.user)
-        );
-      } catch (error) {
-        return sendError(reply, error, request.id);
-      }
+    `${prefix}/:id/media`, {
+    preHandler: [authenticate, requireRoles('teacher', 'admin')]
+  }, async (request, reply) => {
+    try {
+      return reply.send(await readingService.publish(request.params.id, request.user));
+    } catch (error) {
+      return sendError(reply, error, request.id);
     }
   );
 
