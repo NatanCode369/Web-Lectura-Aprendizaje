@@ -13,6 +13,7 @@
  */
 
 import { AppError, ErrorCodes } from './AppError.js';
+import { env } from '../../config/env.js';
 
 export function errorHandler(err, req, reply) {
   const requestId = req.id;
@@ -76,7 +77,7 @@ export function errorHandler(err, req, reply) {
     'Error no controlado'
   );
 
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = env.NODE_ENV === 'production';
   return reply.code(500).send({
     error: {
       code: ErrorCodes.INTERNAL_ERROR,

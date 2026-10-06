@@ -20,37 +20,49 @@ const optionalInDev = (name) =>
         : z.string().min(1).optional();
 
 const schema = z.object({
-  NODE_ENV: z
-      .enum(['development', 'test', 'production'])
-      .default('development'),
+    NODE_ENV: z
+        .enum(['development', 'test', 'production'])
+        .default('development'),
+    //Validar cual de las dos es la correcta
+    //PORT: z.coerce.number().int().positive().default(3000),
+    PORT: z.coerce.number().int().positive().default(8080),
+    HOST: z.string().min(1).default('0.0.0.0'),
 
-  PORT: z.coerce.number().int().positive().default(8080),
+    LOG_LEVEL: z
+        .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
+        .default('info'),
 
-  LOG_LEVEL: z
-      .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
-      .default('info'),
+    // ---------- MongoDB ----------
+    MONGODB_URI: z
+        .string()
+        .url()
+        .default('mongodb://localhost:27017'),
+    MONGODB_DB: z.string().min(1).default('lectura_activa'),
 
-  // ---------- MongoDB ----------
-  MONGODB_URI: z
-      .string()
-      .url()
-      .default('mongodb://localhost:27017'),
-  MONGODB_DB: z.string().min(1).default('lectura_activa'),
+    // ---------- Supabase (opcionales en dev) ----------
+    SUPABASE_URL: optionalInDev('SUPABASE_URL'),
+    SUPABASE_ANON_KEY: optionalInDev('SUPABASE_ANON_KEY'),
+    SUPABASE_SERVICE_ROLE_KEY: optionalInDev('SUPABASE_SERVICE_ROLE_KEY'),
 
-  // ---------- Supabase (opcionales en dev) ----------
-  SUPABASE_URL: optionalInDev('SUPABASE_URL'),
-  SUPABASE_ANON_KEY: optionalInDev('SUPABASE_ANON_KEY'),
-  SUPABASE_SERVICE_ROLE_KEY: optionalInDev('SUPABASE_SERVICE_ROLE_KEY'),
+    // ---------- Secreto del hook de dominio ----------
+    INTERNAL_HOOK_SECRET: isProd
+        ? z
+            .string()
+            .min(32, 'INTERNAL_HOOK_SECRET debe tener al menos 32 caracteres')
+        : z
+            .string()
+            .min(32)
+            .default('dev-secret-0123456789abcdef0123456789abcdef'),
 
-  // ---------- Secreto del hook de dominio ----------
-  INTERNAL_HOOK_SECRET: isProd
-      ? z
-          .string()
-          .min(32, 'INTERNAL_HOOK_SECRET debe tener al menos 32 caracteres')
-      : z
-          .string()
-          .min(32)
-          .default('dev-secret-0123456789abcdef0123456789abcdef'),
+    // ---------- Secreto de jobs de analítica ----------
+    ANALYTICS_JOB_SECRET: isProd
+        ? z
+            .string()
+            .min(32, 'ANALYTICS_JOB_SECRET debe tener al menos 32 caracteres')
+        : z
+            .string()
+            .min(1)
+            .optional(),
 
   // ---------- CORS ----------
   CORS_ORIGINS: z
@@ -83,15 +95,15 @@ const schema = z.object({
 });
 
 function loadEnv() {
-  const parsed = schema.safeParse(process.env);
-  if (!parsed.success) {
-    const issues = parsed.error.issues
-        .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
-        .join('\n');
-    console.error(`Configuración de entorno inválida:\n${issues}`);
-    process.exit(1);
-  }
-  return parsed.data;
+    const parsed = schema.safeParse(process.env);
+    if (!parsed.success) {
+        const issues = parsed.error.issues
+            .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
+            .join('\n');
+        console.error(`Configuración de entorno inválida:\n${issues}`);
+        process.exit(1);
+    }
+    return parsed.data;
 }
 
 export const env = loadEnv();

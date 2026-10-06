@@ -10,7 +10,7 @@
 import { env } from '../../config/env.js';
 import { validateDomainSchema } from './auth.schemas.js';
 import { authService } from './auth.service.js';
-import { AppError } from '../../shared/errors.js';
+import { AppError, ErrorCodes } from '../../shared/errors.js';
 
 export async function authRoutes(fastify, opts) {
   const { db } = opts;

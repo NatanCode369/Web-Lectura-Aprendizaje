@@ -29,7 +29,7 @@ export const submitAttemptSchema = z.object({
   activityId: z.string().min(1),
   answers: z.record(z.string(), z.unknown()),
   timeSpentSeconds: z.number()
-    .integer()
+    .int()
     .min(0)
     .max(60 * 60 * 6)
     .default(0)

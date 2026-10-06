@@ -13,3 +13,12 @@ export const unauthorized = (message = 'Autenticación requerida') => new AppErr
 export const forbidden = (message = 'No tienes permisos para realizar esta operación') => new AppError(403, 'FORBIDDEN', message);
 export const notFound = (message = 'Recurso no encontrado') => new AppError(404, 'NOT_FOUND', message);
 export const conflict = (message, details) => new AppError(409, 'CONFLICT', message, details);
+
+export {
+  ErrorCodes,
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+  UnauthorizedError,
+  ForbiddenError,
+} from './errors/AppError.js';
