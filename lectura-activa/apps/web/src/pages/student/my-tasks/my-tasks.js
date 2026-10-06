@@ -1,12 +1,12 @@
+/* Pantalla: Mis tareas — Dueño: Omar */
+
 import { assignmentService } from "../../../services/assignmentsService.js";
-import { readingService } from "../../../services/readingsService.js";
 import { formatDateTime } from "../../../utils/formatters.js";
 import { qs, qsa, escapeHtml } from "../../../utils/dom.js";
 
 /* Estado */
 const state = {
   tasks: [],
-  enriched: [],
 };
 
 /* Referencias del DOM */
@@ -67,16 +67,18 @@ function isDueSoon(isoDate) {
   return diffDays >= 0 && diffDays <= 3;
 }
 
-/* Render de una tarjeta */
+/* Render de una tarjeta — usa los campos enriquecidos del backend */
 function renderTaskCard(task) {
   const config = STATUS_CONFIG[task.status] || STATUS_CONFIG.pending;
-  const reading = task.reading || {};
   const assignment = task.assignment || {};
+
+  const readingTitle =
+    task.readingTitle || assignment.readingTitle || "Lectura";
+  const groupName = task.groupName || assignment.groupName || null;
 
   const dueText = assignment.dueAt
     ? `Vence: ${formatDateTime(assignment.dueAt)}`
     : "";
-
   const dueSoon = isDueSoon(assignment.dueAt);
 
   const scoreText =
@@ -89,17 +91,13 @@ function renderTaskCard(task) {
       ? `Completada el ${formatDateTime(task.completedAt)}`
       : "";
 
-  const groupText = reading.groupName
-    ? `Grupo: ${escapeHtml(reading.groupName)}`
-    : "";
-
   return `
     <li>
       <a
         href="${config.href(task._id)}"
         class="task-card task-card--${task.status.replace("_", "-")}"
         data-id="${escapeHtml(task._id)}"
-        aria-label="${escapeHtml(config.action)} ${escapeHtml(reading.title || "lectura")}"
+        aria-label="${escapeHtml(config.action)} ${escapeHtml(readingTitle)}"
       >
         <div class="task-card__header">
           <span
@@ -108,7 +106,7 @@ function renderTaskCard(task) {
           >
             ${config.icon}
           </span>
-          <h3 class="task-card__title">${escapeHtml(reading.title || "Lectura")}</h3>
+          <h3 class="task-card__title">${escapeHtml(readingTitle)}</h3>
           ${
             scoreText
               ? `<span class="task-card__score">${scoreText}</span>`
@@ -120,21 +118,8 @@ function renderTaskCard(task) {
           }
         </div>
 
-        ${
-          reading.summary
-            ? `<p class="task-card__summary">${escapeHtml(reading.summary)}</p>`
-            : ""
-        }
-
         <div class="task-card__meta">
-          ${groupText ? `<span class="task-card__group">${groupText}</span>` : ""}
-          ${
-            reading.estimatedMinutes
-              ? `<span class="task-card__minutes">
-                  <span aria-hidden="true">⏱</span> ${reading.estimatedMinutes} min
-                </span>`
-              : ""
-          }
+          ${groupName ? `<span class="task-card__group">Grupo: ${escapeHtml(groupName)}</span>` : ""}
           ${
             completedText
               ? `<span class="task-card__completed-date">${completedText}</span>`
@@ -171,56 +156,27 @@ function renderGroup(status, tasks) {
 /* Render completo */
 function renderAll() {
   const grouped = {
-    pending: state.enriched.filter((t) => t.status === "pending"),
-    in_progress: state.enriched.filter((t) => t.status === "in_progress"),
-    completed: state.enriched.filter((t) => t.status === "completed"),
+    pending: state.tasks.filter((t) => t.status === "pending"),
+    in_progress: state.tasks.filter((t) => t.status === "in_progress"),
+    completed: state.tasks.filter((t) => t.status === "completed"),
   };
 
   renderGroup("pending", grouped.pending);
   renderGroup("in_progress", grouped.in_progress);
   renderGroup("completed", grouped.completed);
 
-  const total = state.enriched.length;
+  const total = state.tasks.length;
 
   if (els.empty) els.empty.hidden = total > 0;
   if (els.listContainer) els.listContainer.hidden = total === 0;
   if (els.statsContainer) els.statsContainer.hidden = total === 0;
 }
 
-/* Enriquecer una tarea con datos de la lectura */
-async function enrichTask(task) {
-  const readingId = task.assignment?.readingId;
-  if (!readingId) {
-    return { ...task, reading: {} };
-  }
-
-  try {
-    const response = await readingService.getById(readingId);
-    const reading = response?.data ?? response;
-    return {
-      ...task,
-      reading: {
-        ...reading,
-        id: reading.id ?? reading._id?.toString(),
-      },
-    };
-  } catch (error) {
-    console.warn("[my-tasks] No se pudo cargar la lectura:", readingId, error);
-    return { ...task, reading: {} };
-  }
-}
-
-/* Cargar todas las tareas y enriquecerlas */
+/* Cargar todas las tareas */
 async function loadTasks() {
   try {
     const response = await assignmentService.listMine({ limit: 50 });
-    const items = response?.items ?? [];
-
-    state.tasks = items;
-
-    /* Enriquecer en paralelo */
-    state.enriched = await Promise.all(items.map(enrichTask));
-
+    state.tasks = response?.items ?? [];
     renderAll();
   } catch (error) {
     console.error("[my-tasks] Error al cargar tareas:", error);
@@ -243,18 +199,15 @@ function setupFilters() {
       const filter = btn.dataset.filter;
       const isActive = btn.getAttribute("aria-pressed") === "true";
 
-      /* Si estaba activo, quitar filtro */
       if (isActive) {
         btn.setAttribute("aria-pressed", "false");
         renderAll();
         return;
       }
 
-      /* Desactivar los demás */
       els.filters.forEach((b) => b.setAttribute("aria-pressed", "false"));
       btn.setAttribute("aria-pressed", "true");
 
-      /* Mostrar solo el grupo seleccionado */
       Object.entries(els.groups).forEach(([status, group]) => {
         if (group) group.hidden = status !== filter;
       });

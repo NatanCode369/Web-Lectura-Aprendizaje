@@ -2,9 +2,9 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import multipart from '@fastify/multipart';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
 import { env } from './config/env.js';
 import { logger } from './shared/logger.js';
@@ -21,7 +21,6 @@ import { studentAssignmentsRoutes } from './modules/studentAssignments/studentAs
 import { attemptsRoutes } from './modules/attempts/attempts.routes.js';
 import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
 
-// Módulos integrados desde ft/2023146 (Adrián - Persona 3)
 import { buildUserRepository } from './modules/users/user.repository.js';
 import { buildReadingRepository } from './modules/readings/reading.repository.js';
 import { buildAuditRepository } from './modules/readings/audit.repository.js';
@@ -33,17 +32,24 @@ export async function buildServer({ withDb = true } = {}) {
   const fastify = Fastify({
     loggerInstance: logger,
     genReqId: () => randomUUID(),
-    trustProxy: true, // Cloud Run va detrás de un proxy
+    trustProxy: true,
   });
 
-  // ---- Middleware transversal ----
   fastify.addHook('onRequest', requestId);
 
-  // ---- Plugins de seguridad ----
   await fastify.register(helmet, { contentSecurityPolicy: false });
 
   await fastify.register(cors, {
-    origin: env.CORS_ORIGINS || '*',
+    origin: (origin, callback) => {
+      const allowed = new Set((env.CORS_ORIGINS ?? []).map((item) => item.trim()));
+
+      if (!origin || allowed.has(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error('CORS no permitido para este origen'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
@@ -71,7 +77,15 @@ export async function buildServer({ withDb = true } = {}) {
     }),
   });
 
-  // ---- Manejo de errores global ----
+  // ⭐ multipart para subir PDFs
+  await fastify.register(multipart, {
+    limits: {
+      fileSize: 20 * 1024 * 1024, // 20 MB
+      files: 1,
+      fields: 5,
+    },
+  });
+
   fastify.setErrorHandler(errorHandler);
 
   fastify.setNotFoundHandler((req, reply) => {
@@ -84,13 +98,11 @@ export async function buildServer({ withDb = true } = {}) {
     });
   });
 
-  // ---- Conexión a Base de Datos (opcional para tests) ----
   let db = null;
   if (withDb) {
     db = await connectDb();
   }
 
-  // ---- Health checks ----
   fastify.get('/health', async () => ({
     status: 'ok',
     service: 'lectura-activa-api',
@@ -111,7 +123,6 @@ export async function buildServer({ withDb = true } = {}) {
     return { status: 'ready', db: dbOk };
   });
 
-  // ---- Rutas de Negocio ----
   await fastify.register(authRoutes, { prefix: '/api/v1/auth', db });
   await fastify.register(usersRoutes, { prefix: '/api/v1/users', db });
   await fastify.register(groupsRoutes, { prefix: '/api/v1/groups', db });
@@ -120,7 +131,6 @@ export async function buildServer({ withDb = true } = {}) {
   await fastify.register(attemptsRoutes, { prefix: '/api/v1/attempts', db });
   await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics', db });
 
-  // ---- Inyección y Rutas de Readings (ft/2023146) ----
   const userRepository = buildUserRepository();
   const readingRepository = buildReadingRepository();
   const auditRepository = buildAuditRepository();
@@ -129,7 +139,6 @@ export async function buildServer({ withDb = true } = {}) {
 
   await registerReadingRoutes(fastify, { auth, readingService, prefix: '/api/v1/readings' });
 
-  // ---- Cierre ordenado de conexiones ----
   fastify.addHook('onClose', async () => {
     if (withDb) {
       await closeDb();
@@ -168,12 +177,8 @@ export async function start() {
   }
 }
 
-// ==========================================
-// ARRANQUE DEL SERVIDOR (Entry Point)
-// ==========================================
 const __filename = fileURLToPath(import.meta.url);
 
-// Verificación robusta para Windows y Linux/Mac
 const isMainModule =
   process.argv[1] === __filename ||
   process.argv[1]?.replace(/\\/g, '/') === __filename ||

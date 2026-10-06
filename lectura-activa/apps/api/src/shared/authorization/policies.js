@@ -2,7 +2,7 @@
  * Políticas de autorización para Lectura Activa.
  * Define quién puede hacer qué según su rol.
  */
-import { ForbiddenError } from '../errors/index.js';
+import { AppError } from '../errors/AppError.js';
 
 /**
  * Verifica si el usuario tiene el rol requerido
@@ -86,7 +86,7 @@ export function isStudentInGroup(group, studentAuthId) {
 export function requireRole(...allowedRoles) {
   return async (request, reply) => {
     if (!request.user || !allowedRoles.includes(request.user.role)) {
-      throw new ForbiddenError(
+      throw AppError.forbidden(
         'FORBIDDEN',
         `Se requiere uno de los siguientes roles: ${allowedRoles.join(', ')}`
       );
@@ -100,7 +100,7 @@ export function requireRole(...allowedRoles) {
  */
 export function requireTeacherOrAdmin(request, reply) {
   if (!request.user || !isTeacherOrAdmin(request.user)) {
-    throw new ForbiddenError('FORBIDDEN', 'Acceso denegado: se requieren permisos de docente o administrador');
+    throw AppError.forbidden('FORBIDDEN', 'Acceso denegado: se requieren permisos de docente o administrador');
   }
 }
 
@@ -109,7 +109,7 @@ export function requireTeacherOrAdmin(request, reply) {
  */
 export function requireAdmin(request, reply) {
   if (!request.user || !isAdmin(request.user)) {
-    throw new ForbiddenError('FORBIDDEN', 'Acceso denegado: se requieren permisos de administrador');
+    throw AppError.forbidden('FORBIDDEN', 'Acceso denegado: se requieren permisos de administrador');
   }
 }
 
@@ -118,7 +118,7 @@ export function requireAdmin(request, reply) {
  */
 export function requireGroupOwner(request, reply) {
   if (!request.user || !isTeacherOrAdmin(request.user)) {
-    throw new ForbiddenError('FORBIDDEN', 'Acceso denegado');
+    throw AppError.forbidden('FORBIDDEN', 'Acceso denegado');
   }
   
   // Esta validación requiere acceso al recurso, se hace en el servicio

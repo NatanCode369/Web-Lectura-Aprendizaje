@@ -1,688 +1,358 @@
-# Guía de conexión del frontend con el backend
+# Pendientes del backend para terminar el frontend
 
 **Autor:** Omar (Persona 5)
 **Fecha:** 2026-10-05
-**Propósito:** Documentar qué endpoints usa cada pantalla, qué contratos espera el frontend y qué falta en el backend.
+**Propósito:** Lista de todo lo que falta en el backend para terminar la conexión con el frontend del estudiante y del docente.
 
 ---
 
-## Índice
+## 🔴 CRÍTICOS (bloquean el frontend completo)
 
-1. [Arquitectura general](#1-arquitectura-general)
-2. [Cliente HTTP base](#2-cliente-http-base)
-3. [Servicios del frontend](#3-servicios-del-frontend)
-4. [Endpoints del backend](#4-endpoints-del-backend)
-5. [Pantallas del estudiante](#5-pantallas-del-estudiante)
-6. [Pantallas del docente](#6-pantallas-del-docente)
-7. [Pendientes del backend](#7-pendientes-del-backend)
-8. [Cómo probar](#8-cómo-probar)
+### 1. Prefijo duplicado en rutas
+
+**Archivos afectados:**
+
+- `apps/api/src/modules/groups/groups.routes.js`
+- `apps/api/src/modules/assignments/assignments.routes.js`
+- `apps/api/src/modules/analytics/analytics.routes.js`
+
+**Problema:**
+
+En `server.js` se registran con prefijo:
+
+```js
+await fastify.register(groupsRoutes, { prefix: "/api/v1/groups", db });
+```
+
+Y dentro de cada archivo las rutas **vuelven a incluir el recurso**:
+
+```js
+// groups.routes.js
+fastify.get('/groups', ...)  // ❌ URL final: /api/v1/groups/groups
+```
+
+**URL real:** `/api/v1/groups/groups`
+**URL esperada:** `/api/v1/groups`
+
+**Solución:** cambiar las rutas internas a `/`.
+
+**Afecta a:**
+
+| Archivo                 | Ruta actual                       | Ruta correcta              |
+| ----------------------- | --------------------------------- | -------------------------- |
+| `groups.routes.js`      | `/groups`                         | `/`                        |
+| `groups.routes.js`      | `/groups/:id`                     | `/:id`                     |
+| `groups.routes.js`      | `/groups/:id/students`            | `/:id/students`            |
+| `groups.routes.js`      | `/groups/:id/students/:studentId` | `/:id/students/:studentId` |
+| `assignments.routes.js` | `/assignments`                    | `/`                        |
+| `assignments.routes.js` | `/assignments/:id`                | `/:id`                     |
+| `assignments.routes.js` | `/assignments/:id/start`          | `/:id/start`               |
+| `assignments.routes.js` | `/assignments/:id/attempts`       | `/:id/attempts`            |
+| `assignments.routes.js` | `/assignments/:id/close`          | `/:id/close`               |
+| `analytics.routes.js`   | `/analytics/groups/:groupId`      | `/groups/:groupId`         |
+| `analytics.routes.js`   | `/analytics/readings/:readingId`  | `/readings/:readingId`     |
+| `analytics.routes.js`   | `/analytics/jobs/daily`           | `/jobs/daily`              |
+
+**Responsable:** Aaron / líder.
 
 ---
 
-## 1. Arquitectura general
+### 2. Bug en `studentAssignments.service.js`
 
-```
-Navegador
-  │ HTTPS
-  ▼
-Cloudflare Pages ── HTML/CSS/JS estáticos
-  │ HTTPS + cookie de sesión
-  ▼
-API Fastify (Cloud Run)
-  ├── módulos de negocio y autorización
-  ├── MongoDB Atlas (datos)
-  ├── Supabase Auth (identidad)
-  └── Supabase Storage (archivos)
+**Ubicación:** método `listMine()`, dentro del `.map()` que construye `enriched`.
+
+**Problema:**
+
+```js
+const enriched = items.map((sa) => {
+  const a = byId.get(sa.assignmentId.toString());  // ❌ byId no existe
+  ...
+});
 ```
 
-**El frontend nunca se conecta directo a MongoDB.** Todo pasa por el API.
+**Solución:**
+
+```js
+const a = assignmentsById.get(sa.assignmentId.toString()); // ✅
+```
+
+**Sin esto, el endpoint falla** y `my-tasks.js` y `my-progress.js` no pueden listar las tareas del estudiante.
+
+**Responsable:** Aaron.
 
 ---
 
-## 2. Cliente HTTP base
+### 3. Auth completo (Supabase)
 
-**Archivo:** `apps/web/src/services/apiClient.js`
+**Estado:** no implementado. El frontend sigue mockeado.
 
-- **URL base:** `/api/v1` (relativo, pasa por el proxy de Vite).
-- **Credenciales:** `credentials: 'include'` (cookies HttpOnly).
-- **Headers:** `Content-Type: application/json`.
-- **Respuestas:** JSON o `null` (para 204).
-
-**Formato de error esperado del backend:**
-
-```json
-{
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Descripción legible",
-    "requestId": "req_abc123"
-  }
-}
-```
-
-El frontend lee:
-
-- `error.code` → para diferenciar errores (401, 403, 404, 500).
-- `error.message` → para mostrar al usuario.
-- `error.status` (HTTP) → para manejar redirecciones.
-
----
-
-## 3. Servicios del frontend
-
-### 3.1. `services/authService.js`
-
-**Endpoints que usa:**
-
-| Endpoint                | Método | Body                                  | Uso                            |
-| ----------------------- | ------ | ------------------------------------- | ------------------------------ |
-| `/auth/login`           | POST   | `{ email, password }`                 | `login.js`                     |
-| `/auth/register`        | POST   | `{ email, password, fullName, role }` | `register.js`                  |
-| `/auth/logout`          | POST   | —                                     | `user-profile.js`              |
-| `/auth/forgot-password` | POST   | `{ email }`                           | `forgot-password.js`           |
-| `/me`                   | GET    | —                                     | `user-profile.js`, `fetchMe()` |
-
-**⚠️ PENDIENTE:** este módulo **no está implementado** en el backend. Solo existe `POST /internal/validate-domain` (hook de Supabase).
-
-**Flujo esperado:** Supabase Auth en el frontend → JWT → backend valida.
-
-### 3.2. `services/readingsService.js`
-
-**Endpoints que usa:**
-
-| Endpoint        | Método | Params                                          | Uso                                                                                        |
-| --------------- | ------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `/readings`     | GET    | `?search=&difficulty=&maxMinutes=&page=&limit=` | `catalog.js`                                                                               |
-| `/readings/:id` | GET    | —                                               | `reading-detail.js`, `my-tasks.js`, `my-progress.js`, `feedback.js`, `reading-activity.js` |
-
-### 3.3. `services/assignmentsService.js`
-
-**Endpoints que usa:**
-
-| Endpoint                                  | Método | Params/Body                                            | Uso                                                  |
-| ----------------------------------------- | ------ | ------------------------------------------------------ | ---------------------------------------------------- |
-| `/student-assignments/me/assignments`     | GET    | `?status=&page=&limit=`                                | `my-tasks.js`, `my-progress.js`                      |
-| `/student-assignments/me/assignments/:id` | GET    | —                                                      | `reading-activity.js`, `feedback.js`, `activities/*` |
-| `/assignments/:id/start`                  | POST   | `{ requestId }`                                        | `reading-activity.js`, `activities/*`                |
-| `/assignments/:id/attempts`               | POST   | `{ requestId, activityId, answers, timeSpentSeconds }` | `activities/*`                                       |
-
-### 3.4. `services/apiClient.js`
-
-Cliente HTTP base. Ya implementado.
-
----
-
-## 4. Endpoints del backend
-
-### 4.1. Lecturas (`readings`)
-
-#### `GET /api/v1/readings`
-
-**Query params:**
-
-- `search` (string, opcional)
-- `difficulty` (`easy` | `medium` | `hard`, opcional)
-- `maxMinutes` (integer, opcional)
-- `page` (integer, default 1)
-- `limit` (integer, default 20, máx 50)
-
-**Response 200:**
-
-```json
-{
-  "data": [
-    {
-      "id": "reading_001",
-      "title": "El principito",
-      "summary": "Un piloto conoce...",
-      "difficulty": "easy",
-      "estimatedMinutes": 15,
-      "authorName": "Ana López",
-      "version": 1,
-      "createdAt": "2026-09-15T10:30:00.000Z",
-      "updatedAt": "2026-09-20T14:00:00.000Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 47,
-    "totalPages": 3
-  }
-}
-```
-
-#### `GET /api/v1/readings/:id`
-
-**Response 200:**
-
-```json
-{
-  "_id": "reading_001",
-  "title": "El principito",
-  "summary": "Un piloto conoce...",
-  "content": "...",
-  "difficulty": "easy",
-  "estimatedMinutes": 15,
-  "media": {
-    "pdfUrl": "https://.../firmada?token=..." // ⚠️ PENDIENTE
-  },
-  "activities": [
-    {
-      "id": "act_001",
-      "type": "multiple_choice",
-      "prompt": "¿Quién es el protagonista?",
-      "points": 10,
-      "config": {
-        "options": ["El piloto", "El principito", "La rosa"],
-        "correctIndex": 1
-      }
-    }
-  ],
-  "status": "published",
-  "authorId": "...",
-  "version": 1
-}
-```
-
-**⚠️ PENDIENTE (Adrián):** agregar `media.pdfUrl` con URL firmada (Supabase Storage). El frontend lee `reading.media.pdfUrl`, `reading.pdfUrl`, `reading.contentUrl` o `reading.content.pdfUrl`.
-
-### 4.2. Tareas del estudiante (`studentAssignments`)
-
-#### `GET /api/v1/student-assignments/me/assignments`
-
-**Query params:**
-
-- `status` (`pending` | `in_progress` | `completed`, opcional)
-- `page` (default 1)
-- `limit` (default 20)
-
-**Response 200:**
-
-```json
-{
-  "items": [
-    {
-      "_id": "sa_001",
-      "assignmentId": "as_001",
-      "studentId": "u_001",
-      "status": "pending",
-      "score": 0,
-      "timeSpentSeconds": 0,
-      "activityProgress": [],
-      "createdAt": "...",
-      "updatedAt": "...",
-      "assignment": {
-        "_id": "as_001",
-        "readingId": "reading_001",
-        "availableFrom": "...",
-        "dueAt": "2026-10-15T18:00:00Z",
-        "status": "published"
-      }
-    }
-  ],
-  "total": 6,
-  "page": 1,
-  "limit": 20
-}
-```
-
-**⚠️ PENDIENTE (Aaron):**
-
-- Incluir `readingTitle` dentro de `assignment`.
-- Incluir `groupName` en cada item.
-- Incluir `completedAt` en cada item.
-- Verificar que `activityProgress` venga con `status` y `activityId`.
-
-#### `GET /api/v1/student-assignments/me/assignments/:id`
-
-**Response 200:** el mismo `studentAssignment` de arriba.
-
-### 4.3. Asignaciones (`assignments`)
-
-#### `POST /api/v1/assignments/:id/start`
-
-**Body:**
-
-```json
-{ "requestId": "uuid-válido" }
-```
-
-**Response 200:**
-
-```json
-{
-  "requestId": "uuid",
-  "studentAssignment": {
-    /* mismo de arriba */
-  },
-  "activitySnapshot": [
-    {
-      "activityId": "act_001",
-      "type": "multiple_choice",
-      "prompt": "¿Quién es el protagonista?",
-      "options": ["El piloto", "El principito", "La rosa"],
-      "correctAnswer": 1, // ⚠️ EXCLUIR del response
-      "points": 10,
-      "order": 0
-    }
-  ],
-  "dueAt": "2026-10-15T18:00:00Z",
-  "availableFrom": "..."
-}
-```
-
-**⚠️ PENDIENTE (Aaron):**
-
-- **Excluir `correctAnswer`** del `activitySnapshot` (seguridad).
-- Para `ordering`, incluir `items` en el snapshot.
-- Para `matching`, incluir `pairs` en el snapshot.
-- Para `short_answer`, confirmar tipo (`short_answer` o `short_text`).
-- Agregar `timeLimit` al `assignment`.
-
-#### `POST /api/v1/assignments/:id/attempts`
-
-**Body:**
-
-```json
-{
-  "requestId": "uuid",
-  "activityId": "act_001",
-  "answers": { "choice": "El principito" },
-  "timeSpentSeconds": 45
-}
-```
-
-**Formas de `answers` por tipo:**
-
-| Tipo              | Forma                                    |
-| ----------------- | ---------------------------------------- |
-| `multiple_choice` | `{ choice: "texto de la opción" }`       |
-| `true_false`      | `{ choice: true }` o `{ choice: false }` |
-| `short_answer`    | `{ text: "respuesta" }`                  |
-| `ordering`        | `{ order: ["item1", "item2", ...] }`     |
-| `matching`        | `{ matches: [{ left, right }, ...] }`    |
-
-**Response 201:**
-
-```json
-{
-  "deduplicated": false,
-  "attempt": {
-    "_id": "...",
-    "activityId": "act_001",
-    "attemptNumber": 1,
-    "answers": { "choice": "El principito" },
-    "score": 10,
-    "maxScore": 10,
-    "submittedAt": "..."
-  },
-  "studentAssignment": {
-    /* actualizado */
-  }
-}
-```
-
-### 4.4. Autenticación
-
-**⚠️ PENDIENTE (Diego):** todo el módulo de auth.
+**Endpoints pendientes:**
 
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/logout`
 - `POST /api/v1/auth/forgot-password`
-- `GET /api/v1/me`
 
-**Flujo esperado:** Supabase Auth en el frontend → JWT → backend valida.
+**Configuración pendiente:**
 
-### 4.5. Grupos (docente)
+- Configurar Supabase Auth.
+- Pasar credenciales al frontend (URL + anon key).
+- Definir cómo viaja el JWT (cookie HttpOnly o header `Authorization`).
 
-- `GET /api/v1/groups?status=active` → `{ items, total, page, limit }`
-- `POST /api/v1/groups` → `{ name, schoolYear: string }`
-- `GET /api/v1/groups/:id` → detalle con `studentIds`
-- `DELETE /api/v1/groups/:id` → borrado lógico
-- `POST /api/v1/groups/:id/students` → agregar estudiante (recibe ObjectId)
-
-### 4.6. Analítica (docente)
-
-- `GET /api/v1/analytics/groups/:groupId` → stats por grupo
-- `GET /api/v1/analytics/readings/:readingId` → stats por lectura
-
-### 4.7. Asignaciones (docente)
-
-- `GET /api/v1/assignments` → lista de asignaciones del docente
-- `POST /api/v1/assignments` → crear asignación `{ readingId, groupId, availableFrom, dueAt }`
+**Responsable:** Diego.
 
 ---
 
-## 5. Pantallas del estudiante
+### 4. Prefijo de `usersRoutes`
 
-### 5.1. `catalog/catalog.js`
+**Estado:** el `usersRoutes` está registrado con `prefix: '/api/v1/users'`.
 
-**Endpoints:**
+**Problema:** el frontend espera `GET /api/v1/me`, pero el endpoint real es `GET /api/v1/users/me`.
 
-- `GET /readings` — con `search`, `difficulty`, `maxMinutes`, `page`, `limit`.
+**Solución:** decidir cuál prefijo usar.
 
-**Comportamiento:**
+**Recomendación:** mantener `/api/v1/me` para consistencia con el resto del API.
 
-- Carga lecturas al inicio.
-- Buscador con debounce (300ms).
-- Filtros por dificultad y duración.
-- Carrusel horizontal.
-- Estado: `loading`, `empty`, `error`, `grid`.
-
-**Campos usados:** `id`, `title`, `summary`, `difficulty`, `estimatedMinutes`, `authorName`.
-
-### 5.2. `reading-detail/reading-detail.js`
-
-**Endpoints:**
-
-- `GET /readings/:id`
-
-**Comportamiento:**
-
-- Carga la lectura por `?id=`.
-- Renderiza actividades (preview).
-- CTA "Empezar a leer" → `reading-activity.html?id=SA_ID` (pendiente: saber SA).
-
-**⚠️ Problema:** desde el catálogo solo se tiene `readingId`. Para ir a `reading-activity` hace falta el `studentAssignmentId`. **Pendiente de definir con el equipo.**
-
-### 5.3. `my-tasks/my-tasks.js`
-
-**Endpoints:**
-
-- `GET /student-assignments/me/assignments?limit=50`
-- `GET /readings/:id` (enriquecimiento, uno por cada tarea)
-
-**Comportamiento:**
-
-- Carga todas las tareas del estudiante.
-- Enriquece con datos de la lectura.
-- Agrupa por estado (pending / in_progress / completed).
-- Filtros por estado.
-- Estado vacío si no hay tareas.
-
-### 5.4. `reading-activity/reading-activity.js`
-
-**Endpoints:**
-
-- `GET /student-assignments/me/assignments/:id`
-- `POST /assignments/:id/start`
-- `GET /readings/:id` (para el PDF)
-
-**Comportamiento:**
-
-- Carga la tarea y la lectura.
-- Si `status === 'completed'` → redirige a `feedback`.
-- Muestra PDF (si está).
-- Temporizador (20 min por defecto).
-- Lista de actividades con estado (pendiente / completada).
-- Cada actividad → pantalla específica: `../activities/tipo.html?id=SA_ID&activityId=ACT_ID`.
-
-**Mapeo tipo → pantalla:**
-
-| Tipo backend                  | Pantalla               |
-| ----------------------------- | ---------------------- |
-| `multiple_choice`             | `multiple-choice.html` |
-| `true_false`                  | `true-false.html`      |
-| `ordering`                    | `ordering.html`        |
-| `matching`                    | `matching.html`        |
-| `short_answer` / `short_text` | `short-answer.html`    |
-| `detective`                   | `detective-words.html` |
-
-### 5.5. `my-progress/my-progress.js`
-
-**Endpoints:**
-
-- `GET /student-assignments/me/assignments?limit=100`
-- `GET /readings/:id` (enriquecimiento)
-
-**Comportamiento:**
-
-- Calcula estadísticas: total, completadas, promedio, tiempo total.
-- Historial de lecturas completadas.
-- Estado vacío si no hay completadas.
-
-### 5.6. `feedback/feedback.js`
-
-**Endpoints:**
-
-- `GET /student-assignments/me/assignments/:id`
-- `GET /readings/:id` (para el título)
-
-**Comportamiento:**
-
-- Carga el `studentAssignment` completado.
-- Muestra: puntaje, tiempo, fecha, contador de actividades.
-- Barra de progreso según puntaje.
-- Mensaje motivacional.
-
-**⚠️ PENDIENTE (Aaron):** no viene el `prompt` de cada actividad, ni las respuestas, ni las respuestas correctas. Sin eso no se puede mostrar el detalle por actividad.
-
-### 5.7. `user-profile/user-profile.js`
-
-**Endpoints:**
-
-- `GET /me` (si existe)
-- `POST /auth/logout`
-
-**Comportamiento:**
-
-- Intenta `GET /me`, si falla usa `session.js`.
-- Muestra: nombre, correo, rol, iniciales.
-- Botón "Cerrar sesión" → `POST /auth/logout` → redirige a `login.html`.
-- Botón "Cambiar contraseña" → redirige a `forgot-password.html`.
+**Responsable:** Diego / líder.
 
 ---
 
-## 6. Pantallas del docente
+## 🟡 MEDIOS (afectan pantallas específicas)
 
-### 6.1. `teacher/dashboard-teacher.js`
+### 5. PDF en lecturas
 
-**Endpoints:**
+**Estado:** no implementado. El docente no puede subir PDFs y el estudiante no los ve.
 
-- `GET /groups`
-- `GET /readings`
-- `GET /assignments`
-- `GET /analytics/groups/:id`
-- `GET /groups/:id` (para contar estudiantes)
+**Qué necesita el frontend:**
 
-**Comportamiento:**
+El `reading-activity.js` lee la URL del PDF desde cualquiera de estos campos:
 
-- Stats: grupos, lecturas, estudiantes.
-- Tabla de lecturas publicadas.
-- Progreso por grupo.
+- `reading.media.pdfUrl` ← **preferido**
+- `reading.pdfUrl`
+- `reading.contentUrl`
+- `reading.content.pdfUrl`
 
-### 6.2. `teacher/groups.js`
+Si ninguno existe, muestra "El PDF no está disponible".
 
-**Endpoints:**
+**Qué debe hacer el backend:**
 
-- `GET /groups?status=active`
-- `POST /groups`
-- `GET /groups/:id`
-- `DELETE /groups/:id`
+**Paso 1: Crear bucket privado en Supabase Storage**
 
-**Comportamiento:**
+- Nombre sugerido: `readings`
+- Configuración: **privado** (no público)
 
-- Listar grupos.
-- Crear grupo (modal).
-- Ver estudiantes del grupo.
-- Eliminar grupo.
+**Paso 2: Endpoint para subir PDF (para el docente)**
 
-**⚠️ Pendiente:** código de grupo, alta por correo, nombres de estudiantes.
+- Ruta: `POST /api/v1/readings/:id/media`
+- Middleware: autenticación + rol `teacher` o `admin`
+- Recibe: `multipart/form-data` con el archivo PDF
+- Valida:
+  - MIME type `application/pdf`
+  - Tamaño máximo: 20 MB
+  - El docente es autor de la lectura (o admin)
+- Hace:
+  - Sube el archivo a Supabase Storage en `readings/{readingId}/{filename}.pdf`
+  - Agrega al array `media` del documento de la lectura:
+    ```json
+    {
+      "type": "pdf",
+      "path": "readings/{readingId}/{filename}.pdf",
+      "alt": "..."
+    }
+    ```
 
-### 6.3. `teacher/reading-new.js`
+**Paso 3: Modificar `GET /readings/:id`**
 
-**Endpoints:**
+- Buscar en `reading.media` un elemento con `type: 'pdf'`.
+- Si existe, generar URL firmada temporal (1 hora):
+  ```js
+  const { data, error } = await supabaseAdmin.storage
+    .from("readings")
+    .createSignedUrl(pdfMedia.path, 60 * 60);
+  ```
+- Transformar el response:
+  ```js
+  return {
+    ...reading,
+    media: { pdfUrl: data?.signedUrl ?? null },
+  };
+  ```
 
-- `GET /groups`
-- `POST /readings`
+**Estructura en MongoDB del documento de lectura:**
 
-**Comportamiento:**
+```json
+{
+  "_id": "reading_001",
+  "title": "El principito",
+  "media": [
+    {
+      "type": "pdf",
+      "path": "readings/reading_001/el-principito.pdf",
+      "alt": "PDF de El principito"
+    }
+  ]
+}
+```
 
-- Formulario de nueva lectura.
-- Crear borrador.
-- Redirige a `activities-edit.html?id=...`.
+**⚠️ Importante:**
 
-**⚠️ Pendiente:** carga de PDF (no implementado).
+- Se guarda el **path**, NO la URL pública (el bucket es privado).
+- La URL firmada debe caducar (recomendado: 1 hora).
+- El bucket debe llamarse `readings`.
+- `supabaseAdmin` ya está configurado en `apps/api/src/config/supabase.js`.
 
-### 6.4. `teacher/reading-edit.js`
+**Archivos a modificar:**
 
-**Endpoints:**
+- `apps/api/src/modules/readings/reading.routes.js` → agregar ruta `POST /:id/media`.
+- `apps/api/src/modules/readings/reading.service.js` → agregar `uploadPdf()` y `generateSignedPdfUrl()`, modificar `getById()`.
+- `apps/api/src/modules/readings/reading.repository.js` → agregar `addMedia()`.
+- `apps/api/src/server.js` → registrar `@fastify/multipart`.
+- `apps/api/package.json` → agregar `@fastify/multipart`.
 
-- `GET /readings/:id`
-- `PATCH /readings/:id`
-- `GET /assignments`
-- `GET /groups`
-
-**Comportamiento:**
-
-- Editar metadata de la lectura.
-- Ver actividades (solo lectura).
-- Ver asignaciones de la lectura.
-
-### 6.5. `teacher/activities-edit.js`
-
-**Endpoints:**
-
-- `GET /readings`
-- `GET /readings/:id`
-- `PATCH /readings/:id`
-- `POST /readings/:id/publish`
-- `POST /assignments`
-
-**Comportamiento:**
-
-- Editar actividades embebidas de la lectura.
-- Guardar cambios.
-- Publicar lectura.
-- Asignar a grupos.
-
-**Mapeo de tipos:**
-
-| Frontend         | Backend           |
-| ---------------- | ----------------- |
-| `trivia`         | `multiple_choice` |
-| `verdaderoFalso` | `true_false`      |
-| `order`          | `ordering`        |
-| `mindMap`        | `matching`        |
-| `detective`      | ⚠️ No soportado   |
-
-### 6.6. `teacher/stats.js`
-
-**Endpoints:**
-
-- `GET /analytics/groups/:groupId`
-- `GET /analytics/readings/:readingId`
-
-**Comportamiento:**
-
-- Stats por grupo y por lectura.
-- Progreso por grupo.
-- Detalle por estudiante.
-- Preguntas más difíciles.
-
-**⚠️ Pendiente:** este JS **usa localStorage todavía**. No está conectado al backend.
+**Responsable:** Adrián.
 
 ---
 
-## 7. Pendientes del backend
+### 6. Confirmar filtrado de `correctAnswer`
 
-### 🔷 Adrián (readings)
+**Estado:** el comentario en `assignments.domain.js` dice:
 
-- [ ] `GET /readings/:id` debe incluir `media.pdfUrl` (URL firmada).
-- [ ] Confirmar formato de `content` (markdown / HTML / plain).
+> "correctAnswer se incluye aquí para el backend; se filtra en attemptsService.start() para el frontend."
 
-### 🔷 Aaron (assignments + analytics)
+**Falta confirmar** que `attempts.service.js` realmente lo excluye antes de enviarlo al frontend.
 
-- [ ] `GET /student-assignments/me/assignments` incluir `readingTitle`, `groupName`, `completedAt`.
-- [ ] `GET /student-assignments/me/assignments/:id` incluir `activityProgress` con `status`.
-- [ ] `POST /assignments/:id/start` excluir `correctAnswer` del `activitySnapshot`.
-- [ ] `activitySnapshot` para `ordering` debe incluir `items`.
-- [ ] `activitySnapshot` para `matching` debe incluir `pairs`.
-- [ ] Confirmar tipo de actividad: `short_answer` o `short_text`.
-- [ ] Confirmar el `timeLimit` del assignment.
-- [ ] Implementar `/analytics/groups/:groupId` para el docente.
-- [ ] Implementar `/analytics/readings/:readingId` para el docente.
+**Sin esto, el estudiante puede ver las respuestas correctas** inspeccionando DevTools (Network).
 
-### 🔷 Diego (auth)
+**Responsable:** Aaron.
 
-- [ ] Configurar Supabase Auth.
-- [ ] Implementar `POST /auth/login`, `/register`, `/logout`, `/forgot-password`.
-- [ ] Implementar `GET /api/v1/me`.
-- [ ] Pasar credenciales al frontend (URL + anon key).
-- [ ] Definir cómo se maneja el JWT (cookie o header).
+---
+
+### 7. `summary` en `GET /analytics/readings/:readingId`
+
+**Estado:** el endpoint `/analytics/groups/:groupId` devuelve `summary`, pero `/analytics/readings/:readingId` **no**.
+
+**Solución:** agregar `summary` también al endpoint de readings, con la misma estructura:
+
+```json
+{
+  "summary": {
+    "assignedCount": 30,
+    "completedCount": 25,
+    "completionRate": 0.83,
+    "averageScore": 82.5,
+    "averageTimeSeconds": 720
+  }
+}
+```
+
+**Responsable:** Aaron.
+
+---
+
+## 🟢 BAJOS (mejoras opcionales)
+
+### 8. Carga de PDF desde el docente
+
+**Estado:** el formulario del docente tiene opción "PDF" pero muestra "no disponible".
+
+**Solución:** implementar el endpoint de subida a Supabase Storage (ver punto 5).
+
+**Responsable:** Adrián + Persona 7.
+
+---
+
+### 9. Detalle por actividad en `feedback.js`
+
+**Estado:** `feedback.js` solo puede mostrar puntaje, tiempo y fecha. No puede mostrar el detalle por actividad (qué acertó, qué falló, respuestas correctas).
+
+**Qué falta:** que `GET /student-assignments/me/assignments/:id` incluya:
+
+- El `prompt` de cada actividad.
+- Las respuestas del estudiante.
+- Las respuestas correctas (post-envío).
+- El feedback pedagógico (si existe).
+
+**Responsable:** Aaron.
+
+---
+
+### 10. Código de grupo y alta de estudiantes por correo
+
+**Estado:** el docente no puede:
+
+- Compartir un código para que el estudiante se una al grupo.
+- Agregar estudiantes por correo.
+- Ver nombres/correos de los estudiantes del grupo.
+
+**Solución:**
+
+- Endpoint `POST /groups/:id/join` (por código).
+- Endpoint `POST /groups/:id/students/by-email` (por correo).
+- Enriquecer `GET /groups/:id` con datos de los estudiantes.
+
+**Responsable:** Aaron.
+
+---
+
+## 🔷 Líder / DevOps
+
+### 11. Backend corriendo
+
+- [ ] Backend corriendo (local, LAN o Cloud Run).
+- [ ] URL accesible para el frontend.
+- [ ] Confirmar puerto (3000 o 8080).
+
+### 12. Datos de prueba
+
+- [ ] Usuario estudiante con tareas asignadas.
+- [ ] Usuario docente con grupos y lecturas.
+- [ ] Lecturas con PDF subido.
+- [ ] Asignaciones activas.
+
+### 13. CORS en producción
+
+- [ ] Configurar `CORS_ORIGINS` en `env.js` con el dominio del frontend en producción.
+
+---
+
+## 📋 Resumen por responsable
+
+### 🔷 Adrián
+
+- [ ] **5.** Implementar PDF en lecturas (bucket + subida + URL firmada).
+
+### 🔷 Aaron
+
+- [ ] **1.** Arreglar prefijo duplicado en `groups`, `assignments`, `analytics`.
+- [ ] **2.** Arreglar bug en `studentAssignments.service.js` (`byId` → `assignmentsById`).
+- [ ] **6.** Confirmar filtrado de `correctAnswer`.
+- [ ] **7.** Agregar `summary` a `/analytics/readings/:readingId`.
+- [ ] **9.** Detalle por actividad en `feedback`.
+- [ ] **10.** Código de grupo + alta por correo.
+
+### 🔷 Diego
+
+- [ ] **3.** Auth completo con Supabase.
+- [ ] **4.** Prefijo de `usersRoutes` (o mantener `/api/v1/me`).
 
 ### 🔷 Líder / DevOps
 
-- [ ] Backend corriendo (URL pública o local).
-- [ ] Datos de prueba (usuarios, lecturas, grupos, tareas).
-- [ ] Confirmar puerto (3000 o 8080).
+- [ ] **11.** Backend corriendo y accesible.
+- [ ] **12.** Datos de prueba.
+- [ ] **13.** CORS en producción.
 
 ---
 
-## 8. Cómo probar
+## 📌 Estado actual del frontend
 
-### 8.1. Levantar backend
+**El frontend está listo y adaptado a los contratos actuales.** No requiere cambios pendientes una vez que el backend resuelva los puntos anteriores.
 
-```bash
-cd apps/api
-npm install
-npm run dev
-```
+**Verificaciones rápidas:**
 
-Debe mostrar: `✅ API escuchando en http://localhost:3000` (o `8080`).
-
-### 8.2. Levantar frontend
-
-```bash
-cd apps/web
-npm install
-npm run dev
-```
-
-Debe mostrar: `http://localhost:5173/`.
-
-### 8.3. Probar cada pantalla
-
-**Sin backend:** cada pantalla muestra estado de carga y luego error.
-
-**Con backend:**
-
-| Pantalla   | URL                                                                   | Esperado              |
-| ---------- | --------------------------------------------------------------------- | --------------------- |
-| Catálogo   | `/src/pages/student/catalog/catalog.html`                             | Lista de lecturas     |
-| Detalle    | `/src/pages/student/reading-detail/reading-detail.html?id=READING_ID` | Datos de la lectura   |
-| Mis tareas | `/src/pages/student/my-tasks/my-tasks.html`                           | Tareas del estudiante |
-| Lectura    | `/src/pages/student/reading-activity/reading-activity.html?id=SA_ID`  | PDF + actividades     |
-| Progreso   | `/src/pages/student/my-progress/my-progress.html`                     | Stats e historial     |
-| Feedback   | `/src/pages/student/feedback/feedback.html?id=SA_ID`                  | Resultado             |
-| Perfil     | `/src/pages/student/user-profile/user-profile.html`                   | Datos del usuario     |
-
-### 8.4. Mensajes en consola
-
-Cada pantalla emite un `console.info` al cargar:
-
-| Pantalla              | Mensaje                                         |
-| --------------------- | ----------------------------------------------- |
-| `catalog.js`          | `[catalog] Pantalla cargada.`                   |
-| `reading-detail.js`   | `[reading-detail] Pantalla cargada. ID: XXXX`   |
-| `my-tasks.js`         | `[my-tasks] Pantalla cargada.`                  |
-| `reading-activity.js` | `[reading-activity] Pantalla cargada. ID: XXXX` |
-| `feedback.js`         | `[feedback] Pantalla cargada. ID: XXXX`         |
-| `my-progress.js`      | `[my-progress] Pantalla cargada.`               |
-| `user-profile.js`     | `[user-profile] Pantalla cargada.`              |
+- ✅ Contratos de `studentAssignments` enriquecidos ya integrados (`readingTitle`, `groupName`, `timeLimitMinutes`).
+- ✅ `activitySnapshot` con `items` y `pairs` integrado.
+- ✅ Formato `{ user: {...} }` de `/users/me` ya manejado con fallback.
+- ⏳ Puntos del 1 al 4 bloquean la prueba integral.
+- ⏳ Puntos del 5 al 10 mejoran funcionalidad específica.
 
 ---
-
-## 9. Notas finales
-
-- **Errores 401** redirigen a `/src/pages/auth/login.html`.
-- **Los `requestId`** son UUIDs generados con `generateRequestId()` en `dom.js`.
-- **El `_id` de MongoDB** se normaliza a `id` en el frontend cuando es necesario.
-- **El frontend no calcula scores**: todo lo hace el backend.
-- **Todos los `console.info`** empiezan con `[nombre-pantalla]` para facilitar el debug.
-
----
-
-**Fin del documento**

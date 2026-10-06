@@ -191,4 +191,30 @@ describe('attempts authorization', () => {
     expect([403, 404]).toContain(res.statusCode);
     await app.close();
   });
+  it('el snapshot público NO expone correctAnswer', async () => {
+  const app = await buildApp(studentA);
+  const res = await app.inject({
+    method: 'POST',
+    url: `/api/v1/assignments/${openAssignmentId.toString()}/start`,
+    payload: { requestId: randomUUID() }
+  });
+  expect(res.statusCode).toBe(200);
+  const snapshot = res.json().activitySnapshot;
+  for (const activity of snapshot) {
+    expect(activity).not.toHaveProperty('correctAnswer');
+  }
+  await app.close();
+});
+
+it('start devuelve timeLimitMinutes', async () => {
+  const app = await buildApp(studentA);
+  const res = await app.inject({
+    method: 'POST',
+    url: `/api/v1/assignments/${openAssignmentId.toString()}/start`,
+    payload: { requestId: randomUUID() }
+  });
+  expect(res.statusCode).toBe(200);
+  expect(res.json().timeLimitMinutes).toBeDefined();
+  await app.close();
+});
 });
