@@ -41,14 +41,14 @@ export async function buildServer({ withDb = true } = {}) {
 
   await fastify.register(cors, {
     origin: (origin, callback) => {
-      const allowed = new Set((env.CORS_ORIGINS ?? []).map((item) => item.trim()));
-
-      if (!origin || allowed.has(origin)) {
-        callback(null, true);
-        return;
+      const allowedOrigins = env.CORS_ORIGINS || [];
+      if (allowedOrigins.includes('*')) {
+        return callback(null, true);  // Sin credentials
       }
-
-      callback(new Error('CORS no permitido para este origen'));
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
