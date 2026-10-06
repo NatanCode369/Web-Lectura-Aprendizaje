@@ -1,13 +1,17 @@
-import { ValidationError } from '../../shared/errors/index.js';
+import { AppError } from '../../shared/errors/AppError.js';
 
 /**
  * Cálculo de puntuación por tipo de actividad. Función pura: sin I/O.
  * Cada actividad tiene un `type` y su `correctAnswer` en el snapshot.
+ * Alias: short_answer === short_text (compatibilidad frontend)
  */
 export function scoreAnswer(activity, answers) {
   const { type, correctAnswer, points } = activity;
 
-  switch (type) {
+  // Normalizar tipo: short_answer es alias de short_text
+  const normalizedType = type === 'short_answer' ? 'short_text' : type;
+
+  switch (normalizedType) {
     case 'multiple_choice':
     case 'true_false':
       return answers?.choice === correctAnswer ? points : 0;
@@ -37,7 +41,7 @@ export function scoreAnswer(activity, answers) {
     }
 
     default:
-      throw new ValidationError(`Tipo de actividad desconocido: ${type}`);
+      throw AppError.badRequest('VALIDATION_ERROR', `Tipo de actividad desconocido: ${type}`);
   }
 }
 
@@ -46,7 +50,7 @@ export function findActivityInSnapshot(snapshot, activityId) {
     (a) => String(a.activityId) === String(activityId)
   );
   if (!found) {
-    throw new ValidationError(`Actividad ${activityId} no pertenece a esta asignación`);
+    throw AppError.badRequest('VALIDATION_ERROR', `Actividad ${activityId} no pertenece a esta asignación`);
   }
   return found;
 }

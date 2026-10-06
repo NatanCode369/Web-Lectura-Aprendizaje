@@ -1,6 +1,7 @@
 import { analyticsRepository } from './analytics.repository.js';
 import { groupsRepository } from '../groups/groups.repository.js';
-import { NotFoundError, ForbiddenError } from '../../shared/errors/index.js';
+import { assignmentsRepository } from '../assignments/assignments.repository.js';
+import { AppError } from '../../shared/errors/AppError.js';
 
 export const analyticsService = {
   async getGroupAnalytics(user, groupId, { from, to }) {
@@ -8,9 +9,9 @@ export const analyticsService = {
     if (!group) {
       if (user.role === 'admin') {
         const anyGroup = await groupsRepository.findById(groupId);
-        if (!anyGroup) throw new NotFoundError('Grupo');
+        if (!anyGroup) throw AppError.notFound('NOT_FOUND', 'Grupo no encontrado');
       } else {
-        throw new ForbiddenError('Este grupo no te pertenece');
+        throw AppError.forbidden('FORBIDDEN', 'Este grupo no te pertenece');
       }
     }
     const rows = await analyticsRepository.findByGroup(groupId, { from, to });
@@ -18,10 +19,28 @@ export const analyticsService = {
   },
 
   async getReadingAnalytics(user, readingId, { from, to }) {
-    // Sólo el docente dueño de las asignaciones de esa lectura ve la analítica.
-    // La verificación se delega al repositorio de assignments en la capa de servicio
-    // que llama; aquí asumimos que ya fue validado por requireRole + control de dueño.
-    const rows = await analyticsRepository.findByAssignment(readingId, { from, to });
+    // Verificar que el docente tenga asignaciones de esta lectura
+    const teacherAssignments = await assignmentsRepository.listForTeacher(user.userId, { 
+      status: 'published',
+      limit: 1000 
+    });
+    
+    const relevantAssignmentIds = teacherAssignments.items
+      .filter(a => a.readingId?.toString() === readingId)
+      .map(a => a._id.toString());
+
+    if (relevantAssignmentIds.length === 0 && user.role !== 'admin') {
+      throw AppError.forbidden('FORBIDDEN', 'No tienes asignaciones de esta lectura');
+    }
+
+    // Obtener analíticas para todas las asignaciones de esta lectura
+    const allRows = await Promise.all(
+      relevantAssignmentIds.map(assignmentId => 
+        analyticsRepository.findByAssignment(assignmentId, { from, to })
+      )
+    );
+
+    const rows = allRows.flat();
     return { readingId, from: from ?? null, to: to ?? null, rows };
   }
 };

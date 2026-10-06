@@ -3,7 +3,7 @@ import { requireRole } from '../../shared/authorization/policies.js';
 import { analyticsService } from './analytics.service.js';
 import { runDailyAnalytics } from './analytics.jobs.js';
 import { env } from '../../config/env.js';
-import { AppError } from '../../shared/errors/index.js'; 
+import { AppError } from '../../shared/errors/AppError.js';
 import { validateParams } from '../../shared/validation/index.js';
 
 export async function analyticsRoutes(fastify) {
