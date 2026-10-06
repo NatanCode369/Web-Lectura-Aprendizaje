@@ -2,16 +2,16 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
-import multipart from '@fastify/multipart';         // ← NUEVO
+import multipart from '@fastify/multipart';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
 import { env } from './config/env.js';
 import { logger } from './shared/logger.js';
 import { connectDb, closeDb, pingDb } from './shared/db.js';
 import { errorHandler } from './shared/errors/errorHandler.js';
 import { requestId } from './shared/middleware/requestId.js';
+import { registerEdgeGuard, clientKey } from './shared/edge.js';
 
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { usersRoutes } from './modules/users/users.routes.js';
@@ -40,16 +40,33 @@ export async function buildServer({ withDb = true } = {}) {
   await fastify.register(helmet, { contentSecurityPolicy: false });
 
   await fastify.register(cors, {
-    origin: env.CORS_ORIGINS || '*',
+    origin: (origin, callback) => {
+      const allowed = new Set((env.CORS_ORIGINS ?? []).map((item) => item.trim()));
+
+      if (!origin || allowed.has(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error('CORS no permitido para este origen'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
     exposedHeaders: ['x-request-id'],
   });
 
+  // ⭐ Cloudflare: bloquea accesos directos si REQUIRE_EDGE=true
+  registerEdgeGuard(fastify, {
+    secret: env.ORIGIN_SHARED_SECRET,
+    requireEdge: env.REQUIRE_EDGE,
+  });
+
   await fastify.register(rateLimit, {
     max: 120,
     timeWindow: '1 minute',
+    // ⭐ Cloudflare: usa la IP real que envía el Worker
+    keyGenerator: (req) => clientKey(req, env.ORIGIN_SHARED_SECRET),
     errorResponseBuilder: (req) => ({
       error: {
         code: 'RATE_LIMITED',
@@ -59,13 +76,13 @@ export async function buildServer({ withDb = true } = {}) {
     }),
   });
 
-  // ⭐ NUEVO: multipart para subida de PDFs
+  // ⭐ multipart para subir PDFs
   await fastify.register(multipart, {
     limits: {
       fileSize: 20 * 1024 * 1024, // 20 MB
       files: 1,
-      fields: 5
-    }
+      fields: 5,
+    },
   });
 
   fastify.setErrorHandler(errorHandler);

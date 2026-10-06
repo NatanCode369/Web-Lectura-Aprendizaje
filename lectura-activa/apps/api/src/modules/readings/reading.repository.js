@@ -36,70 +36,40 @@ export function buildReadingRepository() {
       const filter = {
         institutionId,
         status: 'published',
-        deletedAt: { $exists: false }
+        deletedAt: { $exists: false },
       };
 
       if (difficulty) filter.difficulty = difficulty;
-
-      if (maxMinutes !== undefined) {
-        filter.estimatedMinutes = { $lte: maxMinutes };
-      }
+      if (maxMinutes !== undefined) filter.estimatedMinutes = { $lte: maxMinutes };
 
       if (search) {
-        const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const expression = new RegExp(escaped, 'i');
         filter.$or = [
-          { title: expression },
-          { summary: expression }
+          { title: new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
+          { summary: new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
         ];
       }
 
-      const projection = {
-        content: 0,
-        activities: 0,
-        media: 0,
-        institutionId: 0,
-        deletedAt: 0
-      };
-
       const [data, total] = await Promise.all([
-        collection()
-          .aggregate([
-            { $match: filter },
-            {
-              $lookup: {
-                from: 'users',
-                localField: 'authorId',
-                foreignField: '_id',
-                as: 'author'
-              }
+        collection().aggregate([
+          { $match: filter },
+          { $sort: { updatedAt: -1, _id: -1 } },
+          { $skip: (page - 1) * limit },
+          { $limit: limit },
+          {
+            $project: {
+              _id: 0,
+              id: { $toString: '$_id' },
+              title: 1,
+              summary: 1,
+              difficulty: 1,
+              estimatedMinutes: 1,
+              createdAt: 1,
+              updatedAt: 1,
+              authorName: 1,
             },
-            {
-              $unwind: {
-                path: '$author',
-                preserveNullAndEmptyArrays: true
-              }
-            },
-            { $sort: { updatedAt: -1, _id: -1 } },
-            { $skip: (page - 1) * limit },
-            { $limit: limit },
-            {
-              $project: {
-                _id: 0,
-                id: { $toString: '$_id' },
-                title: 1,
-                summary: 1,
-                difficulty: 1,
-                estimatedMinutes: 1,
-                authorName: { $ifNull: ['$author.fullName', null] },
-                version: 1,
-                createdAt: 1,
-                updatedAt: 1
-              }
-            }
-          ])
-          .toArray(),
-        collection().countDocuments(filter)
+          },
+        ]).toArray(),
+        collection().countDocuments(filter),
       ]);
 
       return {
@@ -108,8 +78,8 @@ export function buildReadingRepository() {
           page,
           limit,
           total,
-          totalPages: Math.ceil(total / limit)
-        }
+          totalPages: Math.ceil(total / limit),
+        },
       };
     },
 
@@ -134,10 +104,10 @@ export function buildReadingRepository() {
         { _id, deletedAt: { $exists: false } },
         {
           $push: { media: mediaItem },
-          $set: { updatedAt: now }
+          $set: { updatedAt: now },
         },
         { returnDocument: 'after' }
       );
-    }
+    },
   };
 }

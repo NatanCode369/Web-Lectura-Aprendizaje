@@ -1,7 +1,6 @@
 /* Pantalla: Mi progreso — Dueño: Omar */
 
 import { assignmentService } from "../../../services/assignmentsService.js";
-import { readingService } from "../../../services/readingsService.js";
 import {
   formatDate,
   formatTime,
@@ -12,7 +11,6 @@ import { qs, escapeHtml } from "../../../utils/dom.js";
 /* Estado */
 const state = {
   tasks: [],
-  enriched: [],
 };
 
 /* Referencias del DOM */
@@ -45,9 +43,10 @@ function showError(message) {
 
 /* Render de un item del historial */
 function renderHistoryItem(task) {
-  const reading = task.reading || {};
   const score = typeof task.score === "number" ? Math.round(task.score) : 0;
   const scoreLevel = getScoreLevel(score);
+  const readingTitle =
+    task.readingTitle || task.assignment?.readingTitle || "Lectura";
 
   const completedAt = task.completedAt ? formatDate(task.completedAt) : "—";
   const timeSpent = task.timeSpentSeconds
@@ -59,10 +58,10 @@ function renderHistoryItem(task) {
       <a
         href="../feedback/feedback.html?id=${escapeHtml(task._id)}"
         class="progress__item"
-        aria-label="Ver resultados de ${escapeHtml(reading.title || "lectura")}"
+        aria-label="Ver resultados de ${escapeHtml(readingTitle)}"
       >
         <div class="progress__item-header">
-          <h3 class="progress__item-title">${escapeHtml(reading.title || "Lectura")}</h3>
+          <h3 class="progress__item-title">${escapeHtml(readingTitle)}</h3>
           <span class="progress__item-score progress__item-score--${scoreLevel}">
             ${score} / 100
           </span>
@@ -96,7 +95,6 @@ function renderStats(items) {
   const completed = items.filter((t) => t.status === "completed");
   const completedCount = completed.length;
 
-  /* Promedio: solo de las completadas con score numérico */
   const scores = completed
     .map((t) => t.score)
     .filter((s) => typeof s === "number" && s >= 0);
@@ -104,7 +102,6 @@ function renderStats(items) {
     ? Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length)
     : null;
 
-  /* Tiempo total */
   const totalTime = completed.reduce(
     (sum, t) => sum + (t.timeSpentSeconds || 0),
     0,
@@ -139,52 +136,17 @@ function renderHistory(completedTasks) {
   }
 }
 
-/* Enriquecer tarea con datos de la lectura */
-async function enrichTask(task) {
-  const readingId = task.assignment?.readingId;
-  if (!readingId) {
-    return { ...task, reading: {} };
-  }
-
-  try {
-    const response = await readingService.getById(readingId);
-    const reading = response?.data ?? response;
-    return {
-      ...task,
-      reading: {
-        ...reading,
-        id: reading.id ?? reading._id?.toString(),
-      },
-    };
-  } catch (error) {
-    console.warn(
-      "[my-progress] No se pudo cargar la lectura:",
-      readingId,
-      error,
-    );
-    return { ...task, reading: {} };
-  }
-}
-
 /* Cargar */
 async function loadProgress() {
   showState("loading");
 
   try {
-    /* 1. Cargar todas las tareas del estudiante */
     const response = await assignmentService.listMine({ limit: 100 });
-    const items = response?.items ?? [];
+    state.tasks = response?.items ?? [];
 
-    state.tasks = items;
+    const completed = state.tasks.filter((t) => t.status === "completed");
 
-    /* 2. Enriquecer con datos de las lecturas */
-    state.enriched = await Promise.all(items.map(enrichTask));
-
-    /* 3. Filtrar solo las completadas para el historial */
-    const completed = state.enriched.filter((t) => t.status === "completed");
-
-    /* 4. Renderizar */
-    renderStats(state.enriched);
+    renderStats(state.tasks);
     renderHistory(completed);
 
     showState("content");
