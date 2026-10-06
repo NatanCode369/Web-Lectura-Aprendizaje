@@ -64,16 +64,34 @@ const schema = z.object({
             .min(1)
             .optional(),
 
-    // ---------- CORS ----------
-    CORS_ORIGINS: z
-        .string()
-        .default('http://localhost:5173')
-        .transform((v) =>
-            v
-                .split(',')
-                .map((s) => s.trim())
-                .filter(Boolean)
-        ),
+  // ---------- CORS ----------
+  CORS_ORIGINS: z
+      .string()
+      .default('http://localhost:5173')
+      .transform((v) =>
+          v
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+      ),
+
+  // ---------- Cloudflare (opcional) ----------
+  // Secreto compartido con el Worker proxy (apps/edge). Con él la API sabe
+  // que la petición pasó por Cloudflare y puede confiar en x-client-ip.
+  ORIGIN_SHARED_SECRET: z.string().min(32).optional(),
+  // true = rechaza (403) lo que no venga del Worker. Solo en producción.
+  REQUIRE_EDGE: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((v) => v === 'true'),
+}).superRefine((value, ctx) => {
+  if (value.REQUIRE_EDGE && !value.ORIGIN_SHARED_SECRET) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['ORIGIN_SHARED_SECRET'],
+      message: 'Es obligatorio cuando REQUIRE_EDGE=true',
+    });
+  }
 });
 
 function loadEnv() {

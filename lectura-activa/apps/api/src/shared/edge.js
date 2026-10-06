@@ -5,11 +5,16 @@
  *   x-origin-secret  → secreto compartido (ORIGIN_SHARED_SECRET)
  *   x-client-ip      → IP real del usuario (CF-Connecting-IP)
  *
- * Este módulo no autentica usuarios: el JWT lo sigue validando auth.js.
+ * REGLA DE ORO: x-client-ip solo se cree si x-origin-secret coincide.
+ * Cualquier cliente puede inventar headers; sin el secreto se ignoran.
+ * Este módulo NO autentica usuarios: el JWT lo sigue validando auth.js.
  */
 
 import { timingSafeEqual } from 'node:crypto';
 
+// Rutas que no pasan por el Worker y no deben bloquearse:
+//  - health/ready: los consulta Cloud Run
+//  - hook de Supabase: lo llama Supabase directo (con su propio secreto)
 const EXENTAS = ['/health', '/ready', '/api/v1/auth/internal/'];
 
 function mismoSecreto(recibido, esperado) {
@@ -23,6 +28,7 @@ export function vieneDelEdge(req, secret) {
   return mismoSecreto(req.headers['x-origin-secret'], secret);
 }
 
+/** Clave para el rate limit: IP real si viene del Worker, si no la de la conexión. */
 export function clientKey(req, secret) {
   if (vieneDelEdge(req, secret)) {
     const ip = req.headers['x-client-ip'];
@@ -31,6 +37,7 @@ export function clientKey(req, secret) {
   return req.ip;
 }
 
+/** Con requireEdge=true responde 403 a todo lo que no pasó por el Worker. */
 export function registerEdgeGuard(fastify, { secret, requireEdge }) {
   if (!requireEdge) return;
 

@@ -56,7 +56,7 @@ export async function buildServer({ withDb = true } = {}) {
     exposedHeaders: ['x-request-id'],
   });
 
-  // ⭐ Cloudflare: bloquea accesos directos si REQUIRE_EDGE=true
+  // Si REQUIRE_EDGE=true, solo se acepta tráfico que venga del Worker.
   registerEdgeGuard(fastify, {
     secret: env.ORIGIN_SHARED_SECRET,
     requireEdge: env.REQUIRE_EDGE,
@@ -65,7 +65,8 @@ export async function buildServer({ withDb = true } = {}) {
   await fastify.register(rateLimit, {
     max: 120,
     timeWindow: '1 minute',
-    // ⭐ Cloudflare: usa la IP real que envía el Worker
+    // Detrás de Cloudflare todas las peticiones llegan con IPs de Cloudflare:
+    // se usa la IP real que reenvía el Worker (solo si trae el secreto).
     keyGenerator: (req) => clientKey(req, env.ORIGIN_SHARED_SECRET),
     errorResponseBuilder: (req) => ({
       error: {
