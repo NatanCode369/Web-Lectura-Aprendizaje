@@ -64,6 +64,14 @@ const schema = z.object({
             .min(1)
             .optional(),
 
+  // ---------- Cookies ----------
+  COOKIE_SECRET: isProd
+      ? z.string().min(32, 'COOKIE_SECRET debe tener al menos 32 caracteres')
+      : z.string().min(32).default('dev-cookie-secret-change-me-32chars'),
+
+  // ---------- Frontend ----------
+  FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+
   // ---------- CORS ----------
   CORS_ORIGINS: z
       .string()
