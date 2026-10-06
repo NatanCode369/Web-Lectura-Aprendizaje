@@ -1,16 +1,16 @@
-import { ConflictError } from '../../shared/errors/index.js';
+import { AppError } from '../../shared/errors/AppError.js';
 
 export const VALID_STATUSES = ['pending', 'in_progress', 'completed'];
 
 export function assertValidStatus(status) {
   if (!VALID_STATUSES.includes(status)) {
-    throw new ConflictError(`Estado inválido: ${status}`);
+    throw AppError.conflict('CONFLICT', `Estado inválido: ${status}`);
   }
 }
 
 export function assertCanStart(sa) {
   if (sa.status === 'completed') {
-    throw new ConflictError('Esta tarea ya fue completada');
+    throw AppError.conflict('CONFLICT', 'Esta tarea ya fue completada');
   }
 }
 
