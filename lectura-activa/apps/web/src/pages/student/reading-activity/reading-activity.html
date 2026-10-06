@@ -12,15 +12,45 @@
   <body>
     <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
 
-    <header class="site-header site-header--minimal">
+    <header class="site-header">
       <div class="site-header__container">
-        <span class="site-header__logo">
+        <a
+          href="../catalog/catalog.html"
+          class="site-header__logo"
+          aria-label="Lectura Activa - Inicio"
+        >
           <span class="site-header__logo-text">Lectura Activa</span>
-        </span>
+        </a>
+
+        <nav class="site-header__nav" aria-label="Navegación principal">
+          <ul class="site-header__nav-list">
+            <li>
+              <a href="../catalog/catalog.html" class="site-header__nav-link"
+                >Catálogo</a
+              >
+            </li>
+            <li>
+              <a href="../my-tasks/my-tasks.html" class="site-header__nav-link"
+                >Mis tareas</a
+              >
+            </li>
+            <li>
+              <a
+                href="../my-progress/my-progress.html"
+                class="site-header__nav-link"
+                >Mi progreso</a
+              >
+            </li>
+          </ul>
+        </nav>
 
         <div class="site-header__user">
           <span class="site-header__user-name">Estudiante</span>
-          <a href="../user-profile/user-profile.html" class="site-header__user-button" aria-label="Ver mi perfil">
+          <a
+            href="../user-profile/user-profile.html"
+            class="site-header__user-button"
+            aria-label="Ver mi perfil"
+          >
             <span aria-hidden="true">👤</span>
           </a>
         </div>
@@ -28,83 +58,127 @@
     </header>
 
     <main id="main-content" class="activity">
+      <!-- Barra del lector -->
+      <header class="activity__bar">
+        <a href="../my-tasks/my-tasks.html" class="activity__back">
+          <span aria-hidden="true">←</span>
+          Volver
+        </a>
 
-      <!-- VISTA 1: PDF con temporizador de lectura -->
-      <section id="view-reading" class="activity__view">
-        <header class="activity__bar">
-          <h1 class="activity__title" data-field="title">Lectura</h1>
-          <div class="activity__timer" data-field="timerContainer" role="timer" aria-live="polite" aria-label="Tiempo restante de lectura">
-            <span class="activity__timer-icon" aria-hidden="true">⏱</span>
-            <span class="activity__timer-value" data-field="timer">15:00</span>
-          </div>
-        </header>
+        <h1 class="activity__title" data-field="title">Lectura</h1>
 
-        <div id="time-extra-notice" class="activity__notice activity__notice--warning" hidden role="status">
-          <span class="activity__notice-icon" aria-hidden="true">⚠️</span>
-          <span class="activity__notice-text">Queda poco tiempo. Apresúrate o haz clic en "Empezar actividades".</span>
+        <div
+          class="activity__timer"
+          data-field="timerContainer"
+          role="timer"
+          aria-live="polite"
+          aria-label="Tiempo restante"
+        >
+          <span class="activity__timer-icon" aria-hidden="true">⏱</span>
+          <span class="activity__timer-value" data-field="timer">--:--</span>
         </div>
+      </header>
 
+      <!-- Aviso de tiempo extra -->
+      <div
+        id="time-extra-notice"
+        class="activity__notice activity__notice--warning"
+        hidden
+        role="status"
+      >
+        <span class="activity__notice-icon" aria-hidden="true">⚠️</span>
+        <span class="activity__notice-text">
+          Estás en tiempo extra. Envía pronto tus actividades.
+        </span>
+      </div>
+
+      <!-- Estado de carga -->
+      <div id="loading-state" class="activity__state" hidden>
+        <p class="activity__state-text">Cargando lectura...</p>
+      </div>
+
+      <!-- Estado de error -->
+      <div id="error-state" class="activity__state" hidden>
+        <div class="activity__state-icon" aria-hidden="true">⚠️</div>
+        <h2 class="activity__state-title">No pudimos cargar la lectura</h2>
+        <p class="activity__state-text" data-field="errorMessage">
+          Intenta volver a Mis tareas e ingresar de nuevo.
+        </p>
+        <a href="../my-tasks/my-tasks.html" class="activity__state-button">
+          Volver a Mis tareas
+        </a>
+      </div>
+
+      <!-- Contenido principal -->
+      <div id="activity-content">
+        <!-- PDF embebido -->
         <div class="activity__pdf-wrapper">
-          <iframe src="https://www.orimi.com/pdf-test.pdf" title="Lectura" class="activity__pdf" data-field="pdf"></iframe>
+          <iframe
+            id="reading-pdf"
+            src=""
+            title="Lectura"
+            class="activity__pdf"
+            data-field="pdf"
+          ></iframe>
         </div>
 
+        <!-- Barra de acciones -->
         <div class="activity__actions">
-          <button type="button" class="activity__action activity__action--activities" id="activities-toggle">
+          <button
+            type="button"
+            class="activity__action activity__action--activities"
+            id="activities-toggle"
+            aria-expanded="false"
+            aria-controls="activities-panel"
+          >
             <span aria-hidden="true">📝</span>
-            <span>Empezar actividades</span>
-            <span class="activity__action-count" data-field="activitiesCount" aria-hidden="true">0</span>
+            <span data-field="toggleText">Ver actividades</span>
+            <span
+              class="activity__action-count"
+              data-field="activitiesCount"
+              aria-hidden="true"
+              >0</span
+            >
           </button>
         </div>
-      </section>
+      </div>
 
-      <!-- VISTA 2: ACTIVIDADES -->
-      <section id="view-activities" class="activity__view" hidden>
-        <header class="activity__bar activity__bar--activities">
-          <h2 class="activity__title">Actividades</h2>
-          <p class="activity__panel-progress activity__panel-progress--inline">
-            Actividad <span data-field="panelCurrent">1</span> de
-            <span data-field="panelTotal">0</span>
+      <!-- Panel de actividades -->
+      <section
+        id="activities-panel"
+        class="activity__panel"
+        aria-labelledby="activities-panel-title"
+        hidden
+      >
+        <header class="activity__panel-header">
+          <h2 class="activity__panel-title" id="activities-panel-title">
+            Actividades
+          </h2>
+          <p class="activity__panel-progress">
+            <span data-field="completedCount">0</span> de
+            <span data-field="totalCount">0</span> completadas
           </p>
         </header>
 
-        <div class="activity__panel-content" data-field="activityContent" aria-live="polite"></div>
+        <ul
+          class="activity__list"
+          data-field="activitiesList"
+          aria-label="Lista de actividades"
+        >
+          <!-- El JS rellena esto -->
+        </ul>
 
-        <footer class="activity__panel-nav">
-          <button type="button" class="activity__nav-button activity__nav-button--prev" id="activity-prev" disabled>
-            <span aria-hidden="true">←</span> Anterior
-          </button>
-          <button type="button" class="activity__nav-button activity__nav-button--next" id="activity-next">
-            Siguiente <span aria-hidden="true">→</span>
-          </button>
-        </footer>
-
-        <div class="activity__submit-wrapper" hidden data-field="submitWrapper">
-          <button type="button" class="activity__submit" id="activity-submit">Enviar respuestas</button>
-          <p class="activity__submit-note">Una vez enviadas, no podrás modificarlas.</p>
+        <!-- Botón para ir a feedback (oculto hasta que todas estén completas) -->
+        <div
+          class="activity__submit-wrapper"
+          hidden
+          data-field="feedbackWrapper"
+        >
+          <a href="#" class="activity__submit" id="go-to-feedback">
+            Ver resultados
+          </a>
         </div>
       </section>
-
-      <!-- VISTA 3: PANTALLA DE RESUMEN -->
-      <section id="view-summary" class="activity__view" hidden>
-        <div class="activity__summary">
-          <div class="activity__summary-icon" aria-hidden="true">📖</div>
-          <h2 class="activity__summary-title">¡Terminaste de leer!</h2>
-          <p class="activity__summary-time">
-            Tiempo usado: <strong data-field="summaryTime">00:00</strong>
-          </p>
-          <p class="activity__summary-answers">
-            Respondiste <strong data-field="summaryAnswers">0 de 0</strong> actividades
-          </p>
-
-          <div class="activity__summary-actions">
-            <a href="#" id="go-to-feedback" class="activity__summary-button">
-              Ver retroalimentación
-              <span aria-hidden="true">→</span>
-            </a>
-          </div>
-        </div>
-      </section>
-
     </main>
 
     <script type="module" src="./reading-activity.js"></script>

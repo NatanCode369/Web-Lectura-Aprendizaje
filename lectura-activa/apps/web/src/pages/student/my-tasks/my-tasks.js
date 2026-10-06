@@ -1,162 +1,134 @@
-/**
- * my-tasks.js
- * Muestra las tareas asignadas al estudiante.
- * Lee de localStorage las asignaciones que crea el docente en reading-new.js.
- * 
- * TODO backend: reemplazar por GET /api/v1/assignments
- */
+/* Pantalla: Mis tareas — Dueño: Omar */
 
-// ============================================================
-// CONFIGURACIÓN
-// ============================================================
-const ESTUDIANTE_EMAIL = 'estudiante@kinal.edu.gt'; // TODO: reemplazar con user.email real
-const KEY_ASIGNACIONES = `asignaciones_${ESTUDIANTE_EMAIL}`;
-const KEY_RESULTADOS = 'resultado'; // los resultados se guardan como resultado_${lecturaId}
+import { assignmentService } from "../../../services/assignmentsService.js";
+import { formatDateTime } from "../../../utils/formatters.js";
+import { qs, qsa, escapeHtml } from "../../../utils/dom.js";
 
-// ============================================================
-// REFERENCIAS
-// ============================================================
-const $grupos = document.querySelectorAll('.tasks__group');
-const $stats = document.querySelectorAll('.tasks__stat');
-const $vacio = document.querySelector('.tasks__empty');
+/* Estado */
+const state = {
+  tasks: [],
+};
 
-let filtroActivo = null;
-let tareas = [];
+/* Referencias del DOM */
+const els = {
+  filters: qsa(".tasks__stat"),
+  groups: {
+    pending: qs('[data-status="pending"]'),
+    in_progress: qs('[data-status="in_progress"]'),
+    completed: qs('[data-status="completed"]'),
+  },
+  lists: {
+    pending: qs('[data-status="pending"] .tasks__group-list'),
+    in_progress: qs('[data-status="in_progress"] .tasks__group-list'),
+    completed: qs('[data-status="completed"] .tasks__group-list'),
+  },
+  counts: {
+    pending: qs("#group-pending-title .tasks__group-count"),
+    in_progress: qs("#group-progress-title .tasks__group-count"),
+    completed: qs("#group-completed-title .tasks__group-count"),
+  },
+  statNumbers: {
+    pending: qs('[data-filter="pending"] .tasks__stat-number'),
+    in_progress: qs('[data-filter="in_progress"] .tasks__stat-number'),
+    completed: qs('[data-filter="completed"] .tasks__stat-number'),
+  },
+  empty: qs(".tasks__empty"),
+  listContainer: qs(".tasks__list"),
+  statsContainer: qs(".tasks__stats"),
+};
 
-// ============================================================
-// UTILIDADES
-// ============================================================
-function escapeHtml(text) {
-  return String(text)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
+/* Configuración de estados */
+const STATUS_CONFIG = {
+  pending: {
+    action: "Empezar a leer",
+    href: (id) =>
+      `../reading-activity/reading-activity.html?id=${encodeURIComponent(id)}`,
+    icon: "●",
+  },
+  in_progress: {
+    action: "Continuar leyendo",
+    href: (id) =>
+      `../reading-activity/reading-activity.html?id=${encodeURIComponent(id)}`,
+    icon: "◐",
+  },
+  completed: {
+    action: "Ver resultados",
+    href: (id) => `../feedback/feedback.html?id=${encodeURIComponent(id)}`,
+    icon: "✓",
+  },
+};
+
+/* ¿La fecha de vencimiento está a menos de 3 días? */
+function isDueSoon(isoDate) {
+  if (!isoDate) return false;
+  const due = new Date(isoDate).getTime();
+  const now = Date.now();
+  const diffDays = (due - now) / (1000 * 60 * 60 * 24);
+  return diffDays >= 0 && diffDays <= 3;
 }
 
-function formatearFecha(iso) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  const dia = String(d.getDate()).padStart(2, '0');
-  const mes = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  return `${dia}/${mes}/${year} ${hh}:${mm}`;
-}
+/* Render de una tarjeta — usa los campos enriquecidos del backend */
+function renderTaskCard(task) {
+  const config = STATUS_CONFIG[task.status] || STATUS_CONFIG.pending;
+  const assignment = task.assignment || {};
 
-function estaProximaAVencer(iso) {
-  if (!iso) return false;
-  const diff = new Date(iso).getTime() - Date.now();
-  const tresDias = 3 * 24 * 60 * 60 * 1000;
-  return diff > 0 && diff < tresDias;
-}
+  const readingTitle =
+    task.readingTitle || assignment.readingTitle || "Lectura";
+  const groupName = task.groupName || assignment.groupName || null;
 
-// ============================================================
-// CARGAR ASIGNACIONES
-// ============================================================
-function cargarAsignaciones() {
-  try {
-    const lista = JSON.parse(localStorage.getItem(KEY_ASIGNACIONES) || '[]');
+  const dueText = assignment.dueAt
+    ? `Vence: ${formatDateTime(assignment.dueAt)}`
+    : "";
+  const dueSoon = isDueSoon(assignment.dueAt);
 
-    // Para cada asignación, verificar si el estudiante ya la completó
-    return lista.map((a) => {
-      const resultadoKey = `resultado_${a.lecturaId}`;
-      const resultadoGuardado = localStorage.getItem(resultadoKey);
+  const scoreText =
+    task.status === "completed" && typeof task.score === "number"
+      ? `${Math.round(task.score)} / 100`
+      : "";
 
-      if (resultadoGuardado) {
-        const r = JSON.parse(resultadoGuardado);
-        return {
-          ...a,
-          status: 'completed',
-          completedAt: r.fecha,
-          score: calcularScore(r)
-        };
-      }
-
-      // Si tiene tiempoUsado pero no está marcada como completada, está en progreso
-      // Por ahora, todas empiezan como pending
-      return a;
-    });
-  } catch {
-    return [];
-  }
-}
-
-function calcularScore(resultado) {
-  // Resultado tiene: { respuestas: {...}, tiempoUsadoSegundos: N }
-  // Necesitamos las actividades originales para saber cuántas correctas hay
-  // Por ahora, retornamos un mock (o podemos implementarlo bien si tenemos acceso a las actividades)
-  return resultado?.score || 85; // temporal
-}
-
-// ============================================================
-// AGRUPAR POR ESTADO
-// ============================================================
-function agruparTareas() {
-  return {
-    pending: tareas.filter((t) => t.status === 'pending'),
-    in_progress: tareas.filter((t) => t.status === 'in_progress'),
-    completed: tareas.filter((t) => t.status === 'completed')
-  };
-}
-
-// ============================================================
-// CONTAR
-// ============================================================
-function contarPorEstado(estado) {
-  return tareas.filter((t) => t.status === estado).length;
-}
-
-// ============================================================
-// CREAR TARJETA
-// ============================================================
-function crearTarjeta(t) {
-  const esPending = t.status === 'pending';
-  const esInProgress = t.status === 'in_progress';
-  const esCompleted = t.status === 'completed';
-
-  const statusIcon = esPending ? '●' : esInProgress ? '◐' : '✓';
-  const statusClass = `task-card__status--${t.status}`;
-
-  const href = esCompleted
-    ? `../feedback/feedback.html?id=${t.lecturaId}`
-    : `../reading-activity/reading-activity.html?id=${t.lecturaId}`;
-
-  const dueHTML = esCompleted
-    ? `<span class="task-card__score">${t.score} / 100</span>`
-    : t.dueAt
-      ? `<span class="task-card__due ${estaProximaAVencer(t.dueAt) ? 'task-card__due--soon' : ''}">Vence: ${formatearFecha(t.dueAt)}</span>`
-      : '';
-
-  const metaHTML = esCompleted
-    ? `<span class="task-card__completed-date">Completada el ${formatearFecha(t.completedAt)}</span>`
-    : t.estimatedMinutes
-      ? `<span class="task-card__minutes"><span aria-hidden="true">⏱</span> ${t.estimatedMinutes} min</span>`
-      : '';
-
-  const actionText = esCompleted
-    ? 'Ver resultados'
-    : esInProgress
-      ? 'Continuar leyendo'
-      : 'Empezar a leer';
+  const completedText =
+    task.status === "completed" && task.completedAt
+      ? `Completada el ${formatDateTime(task.completedAt)}`
+      : "";
 
   return `
     <li>
-      <a href="${href}" class="task-card task-card--${t.status}" data-id="${escapeHtml(t.lecturaId)}">
+      <a
+        href="${config.href(task._id)}"
+        class="task-card task-card--${task.status.replace("_", "-")}"
+        data-id="${escapeHtml(task._id)}"
+        aria-label="${escapeHtml(config.action)} ${escapeHtml(readingTitle)}"
+      >
         <div class="task-card__header">
-          <span class="task-card__status ${statusClass}" aria-hidden="true">${statusIcon}</span>
-          <h3 class="task-card__title">${escapeHtml(t.readingTitle || 'Lectura')}</h3>
-          ${dueHTML}
+          <span
+            class="task-card__status task-card__status--${task.status.replace("_", "-")}"
+            aria-hidden="true"
+          >
+            ${config.icon}
+          </span>
+          <h3 class="task-card__title">${escapeHtml(readingTitle)}</h3>
+          ${
+            scoreText
+              ? `<span class="task-card__score">${scoreText}</span>`
+              : dueText
+                ? `<span class="task-card__due ${
+                    dueSoon ? "task-card__due--soon" : ""
+                  }">${dueText}</span>`
+                : ""
+          }
         </div>
-        ${t.readingSummary ? `<p class="task-card__summary">${escapeHtml(t.readingSummary)}</p>` : ''}
+
         <div class="task-card__meta">
-          ${t.groupName ? `<span class="task-card__group">Grupo: ${escapeHtml(t.groupName)}</span>` : ''}
-          ${metaHTML}
+          ${groupName ? `<span class="task-card__group">Grupo: ${escapeHtml(groupName)}</span>` : ""}
+          ${
+            completedText
+              ? `<span class="task-card__completed-date">${completedText}</span>`
+              : ""
+          }
         </div>
+
         <span class="task-card__action">
-          ${actionText}
+          ${config.action}
           <span aria-hidden="true">→</span>
         </span>
       </a>
@@ -164,82 +136,90 @@ function crearTarjeta(t) {
   `;
 }
 
-// ============================================================
-// RENDER
-// ============================================================
-function renderGrupo(estado) {
-  const tareasFiltradas = tareas.filter((t) => t.status === estado);
-  const $grupo = document.querySelector(`.tasks__group[data-status="${estado}"]`);
-  if (!$grupo) return;
+/* Render de un grupo */
+function renderGroup(status, tasks) {
+  const listEl = els.lists[status];
+  const groupEl = els.groups[status];
+  const countEl = els.counts[status];
+  const statEl = els.statNumbers[status];
 
-  const $lista = $grupo.querySelector('.tasks__group-list');
-  const $count = $grupo.querySelector('.tasks__group-count');
+  if (countEl) countEl.textContent = String(tasks.length);
+  if (statEl) statEl.textContent = String(tasks.length);
 
-  $count.textContent = tareasFiltradas.length;
+  if (groupEl) groupEl.hidden = tasks.length === 0;
 
-  if (tareasFiltradas.length === 0) {
-    $grupo.hidden = true;
-    return;
-  }
-
-  $grupo.hidden = false;
-  $lista.innerHTML = tareasFiltradas.map(crearTarjeta).join('');
-}
-
-function renderTodo() {
-  renderGrupo('pending');
-  renderGrupo('in_progress');
-  renderGrupo('completed');
-
-  // Contadores de las stats
-  $stats.forEach((btn) => {
-    const estado = btn.dataset.filter;
-    const num = btn.querySelector('.tasks__stat-number');
-    if (num) num.textContent = contarPorEstado(estado);
-  });
-
-  // Estado vacío
-  if (tareas.length === 0) {
-    $vacio.hidden = false;
-    document.querySelector('.tasks__list').hidden = true;
-    document.querySelector('.tasks__stats').hidden = true;
-  } else {
-    $vacio.hidden = true;
-    document.querySelector('.tasks__list').hidden = false;
-    document.querySelector('.tasks__stats').hidden = false;
+  if (listEl) {
+    listEl.innerHTML = tasks.map(renderTaskCard).join("");
   }
 }
 
-// ============================================================
-// FILTROS
-// ============================================================
-$stats.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const estado = btn.dataset.filter;
+/* Render completo */
+function renderAll() {
+  const grouped = {
+    pending: state.tasks.filter((t) => t.status === "pending"),
+    in_progress: state.tasks.filter((t) => t.status === "in_progress"),
+    completed: state.tasks.filter((t) => t.status === "completed"),
+  };
 
-    if (filtroActivo === estado) {
-      filtroActivo = null;
-      $stats.forEach((b) => b.setAttribute('aria-pressed', 'false'));
-      $grupos.forEach((g) => { g.hidden = false; });
-      // Re-render para que respete los grupos vacíos
-      renderTodo();
+  renderGroup("pending", grouped.pending);
+  renderGroup("in_progress", grouped.in_progress);
+  renderGroup("completed", grouped.completed);
+
+  const total = state.tasks.length;
+
+  if (els.empty) els.empty.hidden = total > 0;
+  if (els.listContainer) els.listContainer.hidden = total === 0;
+  if (els.statsContainer) els.statsContainer.hidden = total === 0;
+}
+
+/* Cargar todas las tareas */
+async function loadTasks() {
+  try {
+    const response = await assignmentService.listMine({ limit: 50 });
+    state.tasks = response?.items ?? [];
+    renderAll();
+  } catch (error) {
+    console.error("[my-tasks] Error al cargar tareas:", error);
+
+    if (error.status === 401) {
+      window.location.href = "/src/pages/auth/login.html";
       return;
     }
 
-    filtroActivo = estado;
-    $stats.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
-    $grupos.forEach((g) => {
-      g.hidden = g.dataset.status !== estado;
+    if (els.empty) els.empty.hidden = false;
+    if (els.listContainer) els.listContainer.hidden = true;
+    if (els.statsContainer) els.statsContainer.hidden = true;
+  }
+}
+
+/* Filtros por estado */
+function setupFilters() {
+  els.filters.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const filter = btn.dataset.filter;
+      const isActive = btn.getAttribute("aria-pressed") === "true";
+
+      if (isActive) {
+        btn.setAttribute("aria-pressed", "false");
+        renderAll();
+        return;
+      }
+
+      els.filters.forEach((b) => b.setAttribute("aria-pressed", "false"));
+      btn.setAttribute("aria-pressed", "true");
+
+      Object.entries(els.groups).forEach(([status, group]) => {
+        if (group) group.hidden = status !== filter;
+      });
     });
   });
-});
+}
 
-// ============================================================
-// INICIALIZAR
-// ============================================================
-// TODO backend: cuando el API esté listo:
-//   import { api } from '../../../services/apiClient.js';
-//   const tareas = await api.get('/assignments');
-//   ...
-tareas = cargarAsignaciones();
-renderTodo();
+/* Inicialización */
+function init() {
+  console.info("[my-tasks] Pantalla cargada.");
+  setupFilters();
+  loadTasks();
+}
+
+init();

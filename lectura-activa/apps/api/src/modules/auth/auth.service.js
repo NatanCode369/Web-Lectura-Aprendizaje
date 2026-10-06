@@ -92,7 +92,7 @@ export function authService(db) {
           const raced = await users.findByAuthUserId(authUserId);
           if (raced) return raced;
         }
-        throw err;
+        throw AppError.forbidden();
       }
     },
   };

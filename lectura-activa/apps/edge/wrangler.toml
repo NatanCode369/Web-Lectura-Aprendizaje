@@ -1,0 +1,19 @@
+# Worker proxy → API de Lectura Activa
+name = "lectura-activa-api"
+main = "src/worker.js"
+# Fecha fija: fija el comportamiento del runtime. No la cambies sin probar.
+compatibility_date = "2025-01-01"
+
+# Dominio propio en Cloudflare: el Worker atiende SOLO /api/* de ese host.
+# (Descomenta y cambia TU-DOMINIO.com cuando la zona esté activa.)
+# routes = [
+#   { pattern = "lectura.TU-DOMINIO.com/api/*", zone_name = "TU-DOMINIO.com" }
+# ]
+
+[vars]
+# URL de la API en Cloud Run (sin "/" final). NO es secreta.
+ORIGIN_URL = "https://CAMBIAR-por-la-url-de-cloud-run.run.app"
+
+# ORIGIN_SHARED_SECRET NO va aquí. Se guarda cifrado con:
+#   npx wrangler secret put ORIGIN_SHARED_SECRET
+# y para pruebas locales en el archivo .dev.vars (ignorado por Git).

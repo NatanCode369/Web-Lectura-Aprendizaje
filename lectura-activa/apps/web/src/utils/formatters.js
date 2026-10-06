@@ -3,12 +3,12 @@
 const DIFFICULTY_LABELS = {
   easy: "Fácil",
   medium: "Medio",
-  hard: "Difícil",
+  hard: "Avanzado",
 };
 
 const LEVEL_LABELS = {
-  easy: "Principiante",
-  medium: "Intermedio",
+  easy: "Fácil",
+  medium: "Medio",
   hard: "Avanzado",
 };
 

@@ -1,266 +1,432 @@
-/**
- * reading-activity.js
- * Lector con temporizador de lectura y actividades del estudiante.
- * Por ahora usa datos mock desde localStorage.
- * TODO backend: reemplazar localStorage por api.get('/readings/:id').
- */
+/* Pantalla: Lectura y actividades — Dueño: Omar */
 
-// ============================================================
-// CARGAR LECTURA DESDE LOCALSTORAGE
-// ============================================================
-const params = new URLSearchParams(window.location.search);
-const lecturaId = params.get('id') || 'liebre-tortuga';
+import { assignmentService } from "../../../services/assignmentsService.js";
+import { readingService } from "../../../services/readingsService.js";
+import { formatTimer } from "../../../utils/formatters.js";
+import {
+  qs,
+  getParam,
+  generateRequestId,
+  escapeHtml,
+} from "../../../utils/dom.js";
 
-const lecturaGuardada = localStorage.getItem(`lectura_${lecturaId}`);
-const datosLectura = lecturaGuardada ? JSON.parse(lecturaGuardada) : null;
-
-const reading = {
-  title: datosLectura?.title || 'Lectura',
-  estimatedMinutes: datosLectura?.estimatedMinutes || 15,
-  activities: []
+/* ============================================================
+   Configuración: tipo backend → pantalla HTML
+   ============================================================ */
+const ACTIVITY_SCREENS = {
+  multiple_choice: "multiple-choice.html",
+  true_false: "true-false.html",
+  ordering: "ordering.html",
+  matching: "matching.html",
+  short_answer: "short-answer.html",
+  short_text: "short-answer.html",
+  detective: "detective-words.html",
 };
 
-// Mostrar título
-document.querySelector('[data-field="title"]').textContent = reading.title;
-document.title = `${reading.title} — Lectura Activa`;
+/* Iconos y títulos por tipo */
+const ACTIVITY_INFO = {
+  multiple_choice: { icon: "❓", title: "Preguntas de comprensión" },
+  true_false: { icon: "✓", title: "Verdadero o falso" },
+  ordering: { icon: "🔀", title: "Ordena la historia" },
+  matching: { icon: "🔗", title: "Relacionar conceptos" },
+  short_answer: { icon: "✎", title: "Respuesta corta" },
+  short_text: { icon: "✎", title: "Respuesta corta" },
+  detective: { icon: "🔍", title: "Detective de palabras" },
+};
 
-// ============================================================
-// CARGAR ACTIVIDADES DESDE LOCALSTORAGE
-// ============================================================
-const actividadesGuardadas = localStorage.getItem(`actividades_${lecturaId}`);
-const actividadesDocente = actividadesGuardadas ? JSON.parse(actividadesGuardadas) : null;
+/* ============================================================
+   Estado
+   ============================================================ */
+const state = {
+  studentAssignmentId: null,
+  studentAssignment: null,
+  reading: null,
+  activities: [],
+  completedActivityIds: new Set(),
+  remainingSeconds: 0,
+  totalSeconds: 0,
+  timerInterval: null,
+  extraNoticeShown: false,
+};
 
-let actividadesList = [];
+/* ============================================================
+   Referencias del DOM
+   ============================================================ */
+const els = {
+  loading: qs("#loading-state"),
+  error: qs("#error-state"),
+  errorMessage: qs('[data-field="errorMessage"]'),
+  content: qs("#activity-content"),
+  title: qs('[data-field="title"]'),
+  pdf: qs('[data-field="pdf"]'),
+  pdfWrapper: qs(".activity__pdf-wrapper"),
+  timerContainer: qs('[data-field="timerContainer"]'),
+  timer: qs('[data-field="timer"]'),
+  timeExtraNotice: qs("#time-extra-notice"),
+  toggle: qs("#activities-toggle"),
+  toggleText: qs('[data-field="toggleText"]'),
+  activitiesCount: qs('[data-field="activitiesCount"]'),
+  panel: qs("#activities-panel"),
+  activitiesList: qs('[data-field="activitiesList"]'),
+  completedCount: qs('[data-field="completedCount"]'),
+  totalCount: qs('[data-field="totalCount"]'),
+  feedbackWrapper: qs('[data-field="feedbackWrapper"]'),
+  goToFeedback: qs("#go-to-feedback"),
+};
 
-if (actividadesDocente) {
-  if (actividadesDocente.trivia?.length) {
-    actividadesDocente.trivia.forEach(t => {
-      if (t.pregunta && t.opciones?.some(o => o)) {
-        actividadesList.push({
-          type: 'multiple_choice',
-          question: t.pregunta,
-          options: t.opciones,
-          correct: t.correcta
-        });
-      }
-    });
-  }
-  if (actividadesDocente.verdaderoFalso?.length) {
-    actividadesDocente.verdaderoFalso.forEach(v => {
-      if (v.afirmacion) {
-        actividadesList.push({
-          type: 'true_false',
-          question: v.afirmacion,
-          correct: v.respuesta
-        });
-      }
-    });
-  }
+/* ============================================================
+   Estados de UI
+   ============================================================ */
+function showState(name) {
+  if (els.loading) els.loading.hidden = name !== "loading";
+  if (els.error) els.error.hidden = name !== "error";
+  if (els.content) els.content.hidden = name !== "content";
 }
 
-if (actividadesList.length === 0) {
-  actividadesList = [
-    { type: 'multiple_choice', question: '¿Quién es el protagonista?', options: ['El piloto', 'El principito', 'La rosa'], correct: 1 }
-  ];
+function showError(message) {
+  if (els.errorMessage) els.errorMessage.textContent = message;
+  showState("error");
 }
 
-reading.activities = actividadesList;
-reading.timeLimitSeconds = reading.estimatedMinutes * 60;
+/* ============================================================
+   PDF
+   ============================================================ */
+function renderPdf(reading) {
+  if (!els.pdf) return;
 
-// ============================================================
-// REFERENCIAS
-// ============================================================
-const $viewReading = document.getElementById('view-reading');
-const $viewActivities = document.getElementById('view-activities');
-const $viewSummary = document.getElementById('view-summary');
+  const pdfUrl =
+    reading?.media?.pdfUrl ||
+    reading?.pdfUrl ||
+    reading?.contentUrl ||
+    reading?.content?.pdfUrl ||
+    null;
 
-const $timerContainer = document.querySelector('[data-field="timerContainer"]');
-const $timer = document.querySelector('[data-field="timer"]');
-const $timeExtraNotice = document.getElementById('time-extra-notice');
-
-const $activityContent = document.querySelector('[data-field="activityContent"]');
-const $panelCurrent = document.querySelector('[data-field="panelCurrent"]');
-const $panelTotal = document.querySelector('[data-field="panelTotal"]');
-const $activitiesCount = document.querySelector('[data-field="activitiesCount"]');
-const $prevBtn = document.getElementById('activity-prev');
-const $nextBtn = document.getElementById('activity-next');
-const $submitWrapper = document.querySelector('[data-field="submitWrapper"]');
-
-const $summaryTime = document.querySelector('[data-field="summaryTime"]');
-const $summaryAnswers = document.querySelector('[data-field="summaryAnswers"]');
-const $goToFeedback = document.getElementById('go-to-feedback');
-
-// ============================================================
-// ESTADO
-// ============================================================
-let remainingTime = reading.timeLimitSeconds;
-let intervaloLectura = null;
-let avisoMostrado = false;
-let tiempoUsado = 0;
-
-let currentActivity = 0;
-const answers = {};
-
-$panelTotal.textContent = reading.activities.length;
-$activitiesCount.textContent = reading.activities.length;
-
-// ============================================================
-// UTILIDADES
-// ============================================================
-function formatMMSS(segundos) {
-  const abs = Math.abs(segundos);
-  const mm = String(Math.floor(abs / 60)).padStart(2, '0');
-  const ss = String(abs % 60).padStart(2, '0');
-  return (segundos < 0 ? '-' : '') + `${mm}:${ss}`;
-}
-
-function formatDuracion(segundos) {
-  const min = Math.floor(segundos / 60);
-  const seg = segundos % 60;
-  if (min === 0) return `${seg} seg`;
-  return `${min} min ${String(seg).padStart(2, '0')} seg`;
-}
-
-// ============================================================
-// TEMPORIZADOR
-// ============================================================
-function actualizarTimer() {
-  remainingTime--;
-  tiempoUsado = reading.timeLimitSeconds - remainingTime;
-  $timer.textContent = formatMMSS(remainingTime);
-
-  const pct = remainingTime / reading.timeLimitSeconds;
-  $timerContainer.classList.remove('activity__timer--warning', 'activity__timer--danger', 'activity__timer--over');
-
-  if (remainingTime < 0) {
-    $timerContainer.classList.add('activity__timer--over');
-  } else if (pct <= 0.10) {
-    $timerContainer.classList.add('activity__timer--danger');
-    if (!avisoMostrado) {
-      $timeExtraNotice.hidden = false;
-      avisoMostrado = true;
+  if (!pdfUrl) {
+    if (els.pdfWrapper) {
+      els.pdfWrapper.innerHTML = `
+        <div class="activity__pdf-empty">
+          <span class="activity__pdf-empty-icon" aria-hidden="true">📄</span>
+          <p class="activity__pdf-empty-text">
+            El PDF de esta lectura aún no está disponible.
+          </p>
+        </div>
+      `;
     }
-  } else if (pct <= 0.25) {
-    $timerContainer.classList.add('activity__timer--warning');
+    console.warn(
+      "[reading-activity] El backend no devolvió URL del PDF. Revisar con Adrián.",
+    );
+    return;
   }
 
-  if (remainingTime <= 0) {
-    detenerTimer();
-    irAResumen();
+  els.pdf.src = pdfUrl;
+  els.pdf.title = reading.title || "Lectura";
+}
+
+/* ============================================================
+   Temporizador
+   ============================================================ */
+function updateTimer() {
+  state.remainingSeconds -= 1;
+
+  if (els.timer) {
+    els.timer.textContent = formatTimer(state.remainingSeconds);
+  }
+
+  const pct =
+    state.totalSeconds > 0 ? state.remainingSeconds / state.totalSeconds : 0;
+
+  if (els.timerContainer) {
+    els.timerContainer.classList.remove(
+      "activity__timer--warning",
+      "activity__timer--danger",
+      "activity__timer--over",
+    );
+
+    if (state.remainingSeconds < 0) {
+      els.timerContainer.classList.add("activity__timer--over");
+    } else if (pct <= 0.1) {
+      els.timerContainer.classList.add("activity__timer--danger");
+
+      if (!state.extraNoticeShown && els.timeExtraNotice) {
+        els.timeExtraNotice.hidden = false;
+        state.extraNoticeShown = true;
+      }
+    } else if (pct <= 0.25) {
+      els.timerContainer.classList.add("activity__timer--warning");
+    }
   }
 }
 
-function empezarTimer() {
-  if (intervaloLectura) return;
-  intervaloLectura = setInterval(actualizarTimer, 1000);
+function startTimer() {
+  if (state.timerInterval) return;
+  state.timerInterval = setInterval(updateTimer, 1000);
 }
 
-function detenerTimer() {
-  if (intervaloLectura) {
-    clearInterval(intervaloLectura);
-    intervaloLectura = null;
+function stopTimer() {
+  if (state.timerInterval) {
+    clearInterval(state.timerInterval);
+    state.timerInterval = null;
   }
 }
 
-// ============================================================
-// CAMBIO DE VISTA
-// ============================================================
-document.getElementById('activities-toggle').addEventListener('click', () => {
-  detenerTimer();
-  $viewReading.hidden = true;
-  $viewActivities.hidden = false;
-  currentActivity = 0;
-  renderActivity();
-});
+/* ============================================================
+   Render de la lista de actividades
+   ============================================================ */
+function renderActivitiesList() {
+  if (!els.activitiesList) return;
 
-// ============================================================
-// ACTIVIDADES
-// ============================================================
-function renderActivity() {
-  const act = reading.activities[currentActivity];
-  $panelCurrent.textContent = currentActivity + 1;
-
-  if (act.type === 'multiple_choice') {
-    $activityContent.innerHTML = `
-      <div class="activity__question">
-        <h3 class="activity__question-text">${act.question}</h3>
-        <fieldset class="activity__options">
-          ${act.options.map((opt, i) => `
-            <label class="activity__option">
-              <input type="radio" name="activity-${currentActivity}" value="${i}" ${answers[currentActivity] == i ? 'checked' : ''}>
-              <span class="activity__option-text">${opt}</span>
-            </label>
-          `).join('')}
-        </fieldset>
-      </div>
+  if (state.activities.length === 0) {
+    els.activitiesList.innerHTML = `
+      <li class="activity__list-empty">
+        Esta lectura no tiene actividades por ahora.
+      </li>
     `;
-  } else if (act.type === 'true_false') {
-    $activityContent.innerHTML = `
-      <div class="activity__question">
-        <h3 class="activity__question-text">${act.question}</h3>
-        <fieldset class="activity__options">
-          <label class="activity__option">
-            <input type="radio" name="activity-${currentActivity}" value="true" ${answers[currentActivity] === true ? 'checked' : ''}>
-            <span class="activity__option-text">Verdadero</span>
-          </label>
-          <label class="activity__option">
-            <input type="radio" name="activity-${currentActivity}" value="false" ${answers[currentActivity] === false ? 'checked' : ''}>
-            <span class="activity__option-text">Falso</span>
-          </label>
-        </fieldset>
-      </div>
-    `;
+    if (els.feedbackWrapper) els.feedbackWrapper.hidden = true;
+    return;
   }
 
-  $prevBtn.disabled = currentActivity === 0;
-  const isLast = currentActivity === reading.activities.length - 1;
-  $nextBtn.hidden = isLast;
-  $submitWrapper.hidden = !isLast;
+  els.activitiesList.innerHTML = state.activities
+    .map((activity) => {
+      const info = ACTIVITY_INFO[activity.type] || {
+        icon: "📝",
+        title: "Actividad",
+      };
+      const screen = ACTIVITY_SCREENS[activity.type];
+      const isCompleted = state.completedActivityIds.has(
+        String(activity.activityId),
+      );
 
-  $activityContent.querySelectorAll('input[type="radio"]').forEach(input => {
-    input.addEventListener('change', () => {
-      const val = input.value;
-      answers[currentActivity] = act.type === 'true_false' ? val === 'true' : Number(val);
+      if (!screen) {
+        return `
+          <li class="activity__list-item activity__list-item--disabled">
+            <span class="activity__list-icon" aria-hidden="true">${info.icon}</span>
+            <div class="activity__list-content">
+              <h3 class="activity__list-title">${escapeHtml(info.title)}</h3>
+              <p class="activity__list-text">
+                Este tipo de actividad (${escapeHtml(activity.type)}) aún no está disponible.
+              </p>
+            </div>
+          </li>
+        `;
+      }
+
+      const statusIcon = isCompleted ? "✅" : "⏳";
+      const statusText = isCompleted ? "Completada" : "Pendiente";
+
+      const content = `
+        <span class="activity__list-icon" aria-hidden="true">${info.icon}</span>
+        <div class="activity__list-content">
+          <h3 class="activity__list-title">${escapeHtml(info.title)}</h3>
+          <p class="activity__list-text">${escapeHtml(activity.prompt || "Completa esta actividad.")}</p>
+        </div>
+        <span class="activity__list-status activity__list-status--${isCompleted ? "completed" : "pending"}">
+          ${statusIcon} ${statusText}
+        </span>
+      `;
+
+      if (isCompleted) {
+        return `
+          <li class="activity__list-item activity__list-item--completed">
+            ${content}
+          </li>
+        `;
+      }
+
+      const href = `../activities/${screen}?id=${encodeURIComponent(
+        state.studentAssignmentId,
+      )}&activityId=${encodeURIComponent(activity.activityId)}`;
+
+      return `
+        <li class="activity__list-item">
+          <a class="activity__list-link" href="${href}" aria-label="Abrir ${escapeHtml(info.title)}">
+            ${content}
+          </a>
+        </li>
+      `;
+    })
+    .join("");
+
+  updateCompletionState();
+}
+
+/* Actualizar contadores y botón de feedback */
+function updateCompletionState() {
+  const total = state.activities.length;
+  const completed = state.completedActivityIds.size;
+
+  if (els.completedCount) els.completedCount.textContent = String(completed);
+  if (els.totalCount) els.totalCount.textContent = String(total);
+
+  const allDone = total > 0 && completed === total;
+
+  if (els.feedbackWrapper) {
+    els.feedbackWrapper.hidden = !allDone;
+  }
+
+  if (els.goToFeedback) {
+    els.goToFeedback.href = `../feedback/feedback.html?id=${encodeURIComponent(
+      state.studentAssignmentId,
+    )}`;
+  }
+}
+
+/* ============================================================
+   Toggle del panel
+   ============================================================ */
+function togglePanel() {
+  const isExpanded = els.toggle?.getAttribute("aria-expanded") === "true";
+
+  if (isExpanded) {
+    els.toggle.setAttribute("aria-expanded", "false");
+    if (els.panel) els.panel.hidden = true;
+    if (els.toggleText) els.toggleText.textContent = "Ver actividades";
+  } else {
+    els.toggle.setAttribute("aria-expanded", "true");
+    if (els.panel) els.panel.hidden = false;
+    if (els.toggleText) els.toggleText.textContent = "Ocultar actividades";
+    renderActivitiesList();
+  }
+}
+
+/* ============================================================
+   Carga
+   ============================================================ */
+async function loadActivity() {
+  if (!state.studentAssignmentId) {
+    showError("No especificaste qué lectura abrir.");
+    return;
+  }
+
+  showState("loading");
+
+  try {
+    /* 1. Cargar la tarea (con readingTitle, groupName, timeLimitMinutes) */
+    const saResponse = await assignmentService.getMine(
+      state.studentAssignmentId,
+    );
+    const studentAssignment = saResponse?.data ?? saResponse;
+
+    if (!studentAssignment) {
+      showError("No encontramos esta tarea.");
+      return;
+    }
+
+    if (studentAssignment.status === "completed") {
+      window.location.href = `../feedback/feedback.html?id=${encodeURIComponent(
+        state.studentAssignmentId,
+      )}`;
+      return;
+    }
+
+    state.studentAssignment = studentAssignment;
+
+    /* 2. Cargar la lectura (para el PDF) */
+    const readingId = studentAssignment.assignment?.readingId;
+    if (readingId) {
+      try {
+        const readingResponse = await readingService.getById(readingId);
+        state.reading = readingResponse?.data ?? readingResponse;
+      } catch (readingError) {
+        console.warn(
+          "[reading-activity] No se pudo cargar la lectura:",
+          readingError,
+        );
+        state.reading = null;
+      }
+    }
+
+    /* 3. Llamar a start para obtener activitySnapshot (idempotente) */
+    const startResponse = await assignmentService.start(
+      studentAssignment.assignmentId,
+      generateRequestId(),
+    );
+
+    state.activities = startResponse?.activitySnapshot || [];
+
+    /* 4. Marcar actividades ya completadas */
+    const progress = studentAssignment.activityProgress || [];
+    progress.forEach((p) => {
+      if (p.status === "completed" && p.activityId) {
+        state.completedActivityIds.add(String(p.activityId));
+      }
     });
-  });
+
+    /* 5. Rellenar el título — usamos readingTitle del backend */
+    const title =
+      studentAssignment.readingTitle ||
+      state.reading?.title ||
+      studentAssignment.assignment?.readingTitle ||
+      "Lectura";
+    if (els.title) els.title.textContent = title;
+    document.title = `${title} — Lectura Activa`;
+
+    /* 6. Renderizar el PDF */
+    renderPdf(state.reading);
+
+    /* 7. Contadores */
+    if (els.activitiesCount) {
+      els.activitiesCount.textContent = String(state.activities.length);
+    }
+    if (els.totalCount) {
+      els.totalCount.textContent = String(state.activities.length);
+    }
+    if (els.completedCount) {
+      els.completedCount.textContent = String(state.completedActivityIds.size);
+    }
+
+    /* 8. Temporizador — usamos timeLimitMinutes del backend */
+    const timeLimitMinutes =
+      studentAssignment.assignment?.timeLimitMinutes ?? 20;
+    state.totalSeconds = timeLimitMinutes * 60;
+    state.remainingSeconds = state.totalSeconds;
+    if (els.timer) els.timer.textContent = formatTimer(state.remainingSeconds);
+    startTimer();
+
+    /* 9. Mostrar contenido */
+    showState("content");
+
+    /* 10. Si todas están completas, abrir el panel */
+    if (
+      state.activities.length > 0 &&
+      state.completedActivityIds.size === state.activities.length
+    ) {
+      togglePanel();
+    }
+  } catch (error) {
+    console.error("[reading-activity] Error al cargar:", error);
+
+    if (error.status === 401) {
+      window.location.href = "/src/pages/auth/login.html";
+      return;
+    }
+
+    if (error.status === 404) {
+      showError("No encontramos esta tarea.");
+      return;
+    }
+
+    if (error.status === 403) {
+      showError("Esta tarea no te pertenece.");
+      return;
+    }
+
+    showError(error.message || "No pudimos cargar la lectura.");
+  }
 }
 
-$prevBtn.addEventListener('click', () => {
-  if (currentActivity > 0) { currentActivity--; renderActivity(); }
-});
+/* ============================================================
+   Init
+   ============================================================ */
+function init() {
+  state.studentAssignmentId = getParam("id");
+  console.info(
+    "[reading-activity] Pantalla cargada. ID:",
+    state.studentAssignmentId,
+  );
 
-$nextBtn.addEventListener('click', () => {
-  if (currentActivity < reading.activities.length - 1) { currentActivity++; renderActivity(); }
-});
+  if (els.toggle) els.toggle.addEventListener("click", togglePanel);
 
-// ============================================================
-// ENVÍO Y PANTALLA DE RESUMEN
-// ============================================================
-document.getElementById('activity-submit').addEventListener('click', () => {
-  irAResumen();
-});
-
-function irAResumen() {
-  localStorage.setItem(`resultado_${lecturaId}`, JSON.stringify({
-    respuestas: answers,
-    tiempoUsadoSegundos: tiempoUsado,
-    fecha: new Date().toISOString()
-  }));
-
-  $summaryTime.textContent = formatDuracion(tiempoUsado);
-
-  const respondidas = Object.keys(answers).length;
-  $summaryAnswers.textContent = `${respondidas} de ${reading.activities.length}`;
-
-  $goToFeedback.href = `../feedback/feedback.html?id=${encodeURIComponent(lecturaId)}`;
-
-  $viewReading.hidden = true;
-  $viewActivities.hidden = true;
-  $viewSummary.hidden = false;
+  loadActivity();
 }
 
-// ============================================================
-// INIT
-// ============================================================
-$timer.textContent = formatMMSS(remainingTime);
-empezarTimer();
+init();

@@ -1,14 +1,10 @@
 /**
- * Middleware de autenticación.
+ * Middleware de autenticación — FLUJO ÚNICO (ADR 0001).
  *
- * Flujo:
- *  1. Extrae el Bearer token del header Authorization.
- *  2. Valida el JWT contra Supabase Auth.
- *  3. Hace lazy provisioning del usuario en MongoDB (ADR 0001, opción A2).
- *  4. Inyecta `req.auth = { userId, role, institutionId }`.
- *
- * Si Supabase no está configurado (Fase 0), responde 503 con un código
- * específico para que el frontend pueda distinguirlo de un 401 real.
+ * 1. Extrae el Bearer token.
+ * 2. Valida el JWT contra Supabase.
+ * 3. Lazy provisioning en MongoDB.
+ * 4. Inyecta `request.user` con el objeto completo del usuario.
  */
 
 import { supabaseAuth, supabaseReady } from '../../config/supabase.js';
@@ -18,7 +14,6 @@ export function authenticate(db) {
   const service = authService(db);
 
   return async function authenticateHandler(req, reply) {
-    // --- Guard: Supabase aún no configurado ---
     if (!supabaseReady) {
       return reply.code(503).send({
         error: {
@@ -29,7 +24,6 @@ export function authenticate(db) {
       });
     }
 
-    // --- Extraer Bearer ---
     const header = req.headers.authorization ?? '';
     const [scheme, token] = header.split(' ');
     if (scheme !== 'Bearer' || !token) {
@@ -42,7 +36,6 @@ export function authenticate(db) {
       });
     }
 
-    // --- Validar JWT contra Supabase ---
     const { data, error } = await supabaseAuth.auth.getUser(token);
     if (error || !data?.user) {
       return reply.code(401).send({
@@ -54,19 +47,17 @@ export function authenticate(db) {
       });
     }
 
-    const user = data.user;
+    const supaUser = data.user;
     const claims = {
-      sub: user.id,
-      email: user.email,
-      user_metadata: user.user_metadata ?? {},
+      sub: supaUser.id,
+      email: supaUser.email,
+      user_metadata: supaUser.user_metadata ?? {},
     };
 
-    // --- Lazy provisioning + defensa en profundidad de dominio ---
     let appUser;
     try {
       appUser = await service.ensureUserFromJwt(claims);
     } catch (err) {
-      // El servicio lanza AppError con statusCode cuando el dominio no aplica.
       const status = err.statusCode ?? 500;
       const code = err.code ?? 'AUTH_ERROR';
       req.log.warn(
@@ -85,11 +76,7 @@ export function authenticate(db) {
       });
     }
 
-    // --- Inyectar contexto en la request ---
-    req.auth = {
-      userId: appUser._id,
-      role: appUser.role,
-      institutionId: appUser.institutionId,
-    };
+    // Inyectar el usuario completo de Mongo (con _id, authUserId, role, etc.)
+    req.user = appUser;
   };
 }
