@@ -24,7 +24,6 @@ if (isValidUrl && env.SUPABASE_ANON_KEY) {
 
 export function buildAuth({ userRepository }) {
   return async function authenticate(request) {
-    // Si no hay cliente de Supabase configurado, fallamos de forma controlada
     if (!supabase) {
       throw AppError.unauthorized('Supabase no configurado. Revisa tus variables de entorno (.env)');
     }

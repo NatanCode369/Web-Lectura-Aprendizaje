@@ -68,35 +68,39 @@
   const DOCENTE_ID = 'docente-demo';
   const KEY_GRUPOS = `grupos_${DOCENTE_ID}`;
   const KEY_LECTURAS = 'lecturas_docente';
+  const NOMBRE_ESTADO = { alDia: 'Al día', atrasado: 'Atrasado', 'sin-empezar': 'Sin empezar'
+};
+const CLASE_ESTADO = { alDia: 'badge--ok', atrasado: 'badge--late', 'sin-empezar': 'badge--soon' };
 
-  const NOMBRE_ESTADO = {
-    'al-dia': 'Al día',
-    'atrasado': 'Atrasado',
-    'sin-empezar': 'Sin empezar'
-  };
-  const CLASE_ESTADO = {
-    'al-dia': 'badge--ok',
-    'atrasado': 'badge--late',
-    'sin-empezar': 'badge--soon'
-  };
+// ============================================================
+// REFERENCIAS
+// ============================================================
+const $ = (id) => document.getElementById(id);
+const selLectura = $('filtro-lectura');
+const selGrupo = $('filtro-grupo');
 
-  // ============================================================
-  // REFERENCIAS
-  // ============================================================
-  const $ = (id) => document.getElementById(id);
-  const selLectura = $('filtro-lectura');
-  const selGrupo = $('filtro-grupo');
+// ============================================================
+// UTILIDADES
+// ============================================================
+function escapeHtml(texto) {
+  return String(texto)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
 
-  // ============================================================
-  // UTILIDADES
-  // ============================================================
-  function escapeHtml(texto) {
-    return String(texto)
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
+function promedio(valores) {
+  const v = valores.filter((x) => x !== null && x !== undefined);
+  return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null;
+}
+
+function cargarGrupos() {
+  try {
+    return JSON.parse(localStorage.getItem(KEY_GRUPOS) || '[]');
+  } catch {
+    return [];
   }
 
   function promedio(valores) {
