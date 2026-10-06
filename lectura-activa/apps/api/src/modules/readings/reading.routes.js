@@ -3,7 +3,10 @@ import { requireRole } from '../../shared/authorization/policies.js';
 import { AppError } from '../../shared/errors/AppError.js';
 import { readingListQuery, readingPatchBody, readingWriteBody } from './reading.schemas.js';
 
-export async function registerReadingRoutes(app, { authenticate, readingService }) {
+export async function registerReadingRoutes(
+  app,
+  { auth, readingService, prefix = '/api/v1/readings' }
+) {
   app.get('/api/v1/readings', { preHandler: [authenticate, requireRoles('student', 'teacher', 'admin')], schema: { querystring: readingListQuery } }, async (request, reply) => {
     try {
       const query = {
@@ -48,7 +51,8 @@ export async function registerReadingRoutes(app, { authenticate, readingService 
     }
   });
 
-  app.post('/api/v1/readings/:id/publish', {
+  app.post(
+    `${prefix}/:id/media`, {
     preHandler: [authenticate, requireRoles('teacher', 'admin')]
   }, async (request, reply) => {
     try {
