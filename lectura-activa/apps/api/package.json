@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "test": "node --test",
+    "test": "vitest run",
     "test:watch": "vitest",
     "migrate": "node ../../database/migrations/0001-initial-collections.js",
     "seed": "node ../../database/seeds/seed-dev.js"

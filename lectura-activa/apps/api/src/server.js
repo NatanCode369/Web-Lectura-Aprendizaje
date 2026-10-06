@@ -224,8 +224,8 @@ export async function start() {
   process.on('SIGINT', () => shutdown('SIGINT'));
 
   try {
-    const port = Number(env.PORT ?? process.env.PORT ?? 3000);
-    const host = env.HOST ?? process.env.HOST ?? '0.0.0.0';
+    const port = env.PORT;
+    const host = env.HOST;
 
     await fastify.listen({ port, host });
     logger.info(`✅ API escuchando en http://${host}:${port}`);
