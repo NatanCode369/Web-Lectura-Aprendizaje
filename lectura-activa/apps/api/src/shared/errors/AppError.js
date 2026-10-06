@@ -124,11 +124,11 @@ export class ForbiddenError extends AppError {
 }
 
 // ---------- Catálogo de códigos ----------
-
 export const ErrorCodes = Object.freeze({
   // Auth / sesión
   UNAUTHENTICATED: 'UNAUTHENTICATED',
   INVALID_TOKEN: 'INVALID_TOKEN',
+  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',   // ← AÑADIDO POR TI
   AUTH_NOT_CONFIGURED: 'AUTH_NOT_CONFIGURED',
   DOMAIN_NOT_ALLOWED: 'DOMAIN_NOT_ALLOWED',
   UNAUTHORIZED_HOOK: 'UNAUTHORIZED_HOOK',

@@ -8,7 +8,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { env } from '../config/env.js';
-import { unauthorized, forbidden } from './errors/index.js';
+import { AppError, ErrorCodes } from './errors/index.js';
 
 export { requireRole as requireRoles } from './authorization/policies.js';
 
@@ -27,27 +27,30 @@ if (isValidUrl && env.SUPABASE_ANON_KEY) {
 export function buildAuth({ userRepository }) {
   return async function authenticate(request) {
     if (!supabase) {
-      throw unauthorized('Supabase no configurado. Revisa tus variables de entorno (.env)');
+      throw AppError.unauthorized(
+        'AUTH_NOT_CONFIGURED',
+        'Supabase no configurado. Revisa tus variables de entorno (.env)'
+      );
     }
 
     const header = request.headers.authorization;
     if (!header || !header.startsWith('Bearer ')) {
-      throw unauthorized();
+      throw AppError.unauthorized(ErrorCodes.UNAUTHENTICATED, 'No autenticado');
     }
 
     const token = header.slice('Bearer '.length).trim();
     if (!token) {
-      throw unauthorized();
+      throw AppError.unauthorized(ErrorCodes.UNAUTHENTICATED, 'No autenticado');
     }
 
     const { data, error } = await supabase.auth.getUser(token);
     if (error || !data?.user) {
-      throw unauthorized('Token inválido o expirado');
+      throw AppError.unauthorized('INVALID_TOKEN', 'Token inválido o expirado');
     }
 
     const user = await userRepository.findByAuthUserId(data.user.id);
     if (!user || user.status !== 'active') {
-      throw unauthorized('Usuario no disponible');
+      throw AppError.unauthorized('USER_NOT_FOUND', 'Usuario no disponible');
     }
 
     request.user = user;
