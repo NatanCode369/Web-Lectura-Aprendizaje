@@ -1,9 +1,9 @@
 import { studentAssignmentsRepository } from './studentAssignments.repository.js';
 import { assignmentsRepository } from '../assignments/assignments.repository.js';
-import { readingsRepository } from '../readings/readings.repository.js';
 import { groupsRepository } from '../groups/groups.repository.js';
+import { readingsRepository } from '../readings/readings.repository.js';
 import { logger } from '../../shared/logger/index.js';
-import { NotFoundError } from '../../shared/errors/index.js';
+import { AppError } from '../../shared/errors/AppError.js';
 
 export const studentAssignmentsService = {
   /**
@@ -34,10 +34,8 @@ export const studentAssignmentsService = {
     const { items, total, page, limit } =
       await studentAssignmentsRepository.listByStudent(studentId, query);
 
-    // Cargar asignaciones en batch
-    const assignmentIds = [
-      ...new Set(items.map((sa) => sa.assignmentId.toString()))
-    ];
+    // Enriquecer con datos de la asignación, lectura y grupo
+    const assignmentIds = items.map((sa) => sa.assignmentId);
     const assignments = await Promise.all(
       assignmentIds.map((id) => assignmentsRepository.findById(id))
     );
@@ -45,56 +43,42 @@ export const studentAssignmentsService = {
       assignments.filter(Boolean).map((a) => [a._id.toString(), a])
     );
 
-    // Cargar lecturas en batch (una por readingId único)
-    const readingIds = [
-      ...new Set(
-        assignments.filter(Boolean).map((a) => a.readingId.toString())
-      )
-    ];
-    const readings = await Promise.all(
-      readingIds.map((id) => readingsRepository.findById(id))
-    );
-    const readingsById = new Map(
-      readings.filter(Boolean).map((r) => [r._id.toString(), r])
-    );
+    // Obtener readingIds y groupIds únicos para fetch en batch
+    const readingIds = [...new Set(assignments.filter(Boolean).map((a) => a.readingId?.toString()).filter(Boolean))];
+    const groupIds = [...new Set(assignments.filter(Boolean).map((a) => a.groupId?.toString()).filter(Boolean))];
 
-    // Cargar grupos en batch (uno por groupId único)
-    const groupIds = [
-      ...new Set(
-        assignments.filter(Boolean).map((a) => a.groupId.toString())
-      )
-    ];
-    const groups = await Promise.all(
-      groupIds.map((id) => groupsRepository.findById(id))
+    const [readings, groups] = await Promise.all([
+      Promise.all(readingIds.map((id) => readingsRepository.findById(id))),
+      Promise.all(groupIds.map((id) => groupsRepository.findById(id)))
+    ]);
+
+    const readingById = new Map(
+      readings.filter(Boolean).map((r) => [r._id.toString(), r.title])
     );
-    const groupsById = new Map(
-      groups.filter(Boolean).map((g) => [g._id.toString(), g])
+    const groupById = new Map(
+      groups.filter(Boolean).map((g) => [g._id.toString(), g.name])
     );
 
     const enriched = items.map((sa) => {
       const a = assignmentsById.get(sa.assignmentId.toString());
-      const reading = a ? readingsById.get(a.readingId.toString()) : null;
-      const group = a ? groupsById.get(a.groupId.toString()) : null;
-
+      const readingTitle = a?.readingId
+        ? readingById.get(a.readingId.toString()) ?? null
+        : null;
+      const groupName = a?.groupId
+        ? groupById.get(a.groupId.toString()) ?? null
+        : null;
       return {
-        _id: sa._id,
-        assignmentId: sa.assignmentId,
-        studentId: sa.studentId,
-        status: sa.status,
-        score: sa.score ?? 0,
-        timeSpentSeconds: sa.timeSpentSeconds ?? 0,
-        activityProgress: sa.activityProgress ?? [],
-        startedAt: sa.startedAt ?? null,
+        ...sa,
+        readingTitle,
+        groupName,
         completedAt: sa.completedAt ?? null,
-        createdAt: sa.createdAt,
-        updatedAt: sa.updatedAt,
         assignment: a
           ? {
               _id: a._id,
               readingId: a.readingId,
-              readingTitle: reading?.title ?? null,
+              readingTitle,
               groupId: a.groupId,
-              groupName: group?.name ?? null,
+              groupName,
               availableFrom: a.availableFrom,
               dueAt: a.dueAt,
               timeLimitMinutes: a.timeLimitMinutes ?? 20,
@@ -110,36 +94,39 @@ export const studentAssignmentsService = {
   async getMine(studentId, studentAssignmentId) {
     const sa = await studentAssignmentsRepository.findById(studentAssignmentId);
     if (!sa || sa.studentId.toString() !== studentId) {
-      throw new NotFoundError('Tarea');
+      throw AppError.notFound('NOT_FOUND', 'Tarea no encontrada');
     }
 
-    const assignment = await assignmentsRepository.findById(sa.assignmentId);
-    const reading = assignment
-      ? await readingsRepository.findById(assignment.readingId)
-      : null;
-    const group = assignment
-      ? await groupsRepository.findById(assignment.groupId)
-      : null;
+    // Enriquecer con assignment, readingTitle, groupName
+    let assignment = null;
+    let readingTitle = null;
+    let groupName = null;
+
+    if (sa.assignmentId) {
+      assignment = await assignmentsRepository.findById(sa.assignmentId);
+      if (assignment) {
+        if (assignment.readingId) {
+          const reading = await readingsRepository.findById(assignment.readingId);
+          readingTitle = reading?.title ?? null;
+        }
+        if (assignment.groupId) {
+          const group = await groupsRepository.findById(assignment.groupId);
+          groupName = group?.name ?? null;
+        }
+      }
+    }
 
     return {
-      _id: sa._id,
-      assignmentId: sa.assignmentId,
-      studentId: sa.studentId,
-      status: sa.status,
-      score: sa.score ?? 0,
-      timeSpentSeconds: sa.timeSpentSeconds ?? 0,
-      activityProgress: sa.activityProgress ?? [],
-      startedAt: sa.startedAt ?? null,
-      completedAt: sa.completedAt ?? null,
-      createdAt: sa.createdAt,
-      updatedAt: sa.updatedAt,
+      ...sa,
+      readingTitle,
+      groupName,
       assignment: assignment
         ? {
             _id: assignment._id,
             readingId: assignment.readingId,
-            readingTitle: reading?.title ?? null,
+            readingTitle,
             groupId: assignment.groupId,
-            groupName: group?.name ?? null,
+            groupName,
             availableFrom: assignment.availableFrom,
             dueAt: assignment.dueAt,
             timeLimitMinutes: assignment.timeLimitMinutes ?? 20,

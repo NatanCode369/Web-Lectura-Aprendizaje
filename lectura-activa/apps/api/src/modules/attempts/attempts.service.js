@@ -1,10 +1,7 @@
 import { attemptsRepository } from './attempts.repository.js';
 import { studentAssignmentsRepository } from '../studentAssignments/studentAssignments.repository.js';
 import { assignmentsRepository } from '../assignments/assignments.repository.js';
-import {
-  mergeActivityProgress,
-  isAssignmentCompleted
-} from '../studentAssignments/studentAssignments.domain.js';
+import { mergeActivityProgress, isAssignmentCompleted } from '../studentAssignments/studentAssignments.domain.js';
 import {
   scoreAnswer,
   findActivityInSnapshot,
@@ -12,17 +9,14 @@ import {
   toPublicSnapshot
 } from './attempts.domain.js';
 import { assertAssignmentIsOpen } from '../assignments/assignments.domain.js';
-import { getDb } from '../../config/db.js';
-import {
-  NotFoundError,
-  ForbiddenError,
-  ConflictError
-} from '../../shared/errors/index.js';
+import { groupsRepository } from '../groups/groups.repository.js';
+import { getDb } from '../../shared/db.js';
+import { AppError } from '../../shared/errors/AppError.js';
 import { logger } from '../../shared/logger/index.js';
 
 async function loadContext(user, assignmentId) {
   const assignment = await assignmentsRepository.findById(assignmentId);
-  if (!assignment) throw new NotFoundError('Asignación');
+  if (!assignment) throw AppError.notFound('NOT_FOUND', 'Asignación no encontrada');
 
   const sa = await studentAssignmentsRepository.findByAssignmentAndStudent(
     assignmentId,
@@ -42,6 +36,13 @@ export const attemptsService = {
 
     let studentAssignment = sa;
     if (!studentAssignment) {
+      const group = await groupsRepository.findById(assignment.groupId);
+      const isMember = group?.studentIds?.some(
+        (studentId) => String(studentId) === String(user.userId)
+      );
+      if (!isMember) {
+        throw AppError.forbidden('FORBIDDEN', 'No tienes esta tarea asignada');
+      }
       studentAssignment = await studentAssignmentsRepository.ensure({
         assignmentId: assignment._id,
         studentId: user.userId
@@ -72,9 +73,9 @@ export const attemptsService = {
     const { assignment, sa } = await loadContext(user, assignmentId);
     assertAssignmentIsOpen(assignment);
 
-    if (!sa) throw new ForbiddenError('No tienes esta tarea asignada');
+    if (!sa) throw AppError.forbidden('FORBIDDEN', 'No tienes esta tarea asignada');
     if (sa.status === 'completed') {
-      throw new ConflictError('Esta tarea ya fue completada');
+      throw AppError.conflict('CONFLICT', 'Esta tarea ya fue completada');
     }
 
     const existing = await attemptsRepository.findByRequestId(payload.requestId);
@@ -140,7 +141,8 @@ export const attemptsService = {
             addScore: score,
             addTime: payload.timeSpentSeconds,
             completed
-          }
+          },
+          session
         );
       });
     } finally {

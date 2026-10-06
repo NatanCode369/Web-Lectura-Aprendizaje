@@ -7,7 +7,7 @@ import {
   assertDatesValid,
   buildActivitySnapshot
 } from './assignments.domain.js';
-import { NotFoundError, ForbiddenError } from '../../shared/errors/index.js';
+import { AppError } from '../../shared/errors/AppError.js';
 import { logger } from '../../shared/logger/index.js';
 
 export const assignmentsService = {
@@ -19,7 +19,7 @@ export const assignmentsService = {
       groupsRepository.findByIdForTeacher(payload.groupId, user.userId)
     ]);
 
-    if (!group) throw new ForbiddenError('El grupo no te pertenece');
+    if (!group) throw AppError.forbidden('FORBIDDEN', 'El grupo no te pertenece');
     assertReadingPublished(reading);
 
     const assignment = await assignmentsRepository.create({
@@ -29,7 +29,7 @@ export const assignmentsService = {
       teacherId: user.userId,
       availableFrom: new Date(payload.availableFrom),
       dueAt: new Date(payload.dueAt),
-      timeLimitMinutes: payload.timeLimitMinutes ?? 20,
+      timeLimit: payload.timeLimit ?? null,
       activitySnapshot: buildActivitySnapshot(reading),
       status: 'published'
     });
@@ -52,20 +52,14 @@ export const assignmentsService = {
   },
 
   async getByIdForTeacher(user, id) {
-    const assignment = await assignmentsRepository.findByIdForTeacher(
-      id,
-      user.userId
-    );
-    if (!assignment) throw new NotFoundError('Asignación');
+    const assignment = await assignmentsRepository.findByIdForTeacher(id, user.userId);
+    if (!assignment) throw AppError.notFound('NOT_FOUND', 'Asignación no encontrada');
     return assignment;
   },
 
   async close(user, id) {
-    const assignment = await assignmentsRepository.findByIdForTeacher(
-      id,
-      user.userId
-    );
-    if (!assignment) throw new NotFoundError('Asignación');
+    const assignment = await assignmentsRepository.findByIdForTeacher(id, user.userId);
+    if (!assignment) throw AppError.notFound('NOT_FOUND', 'Asignación no encontrada');
     return assignmentsRepository.updateStatus(id, 'closed');
   }
 };

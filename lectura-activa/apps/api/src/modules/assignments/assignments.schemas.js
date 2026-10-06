@@ -1,29 +1,34 @@
-import Joi from 'joi';
+import { z } from 'zod';
 
-export const createAssignmentSchema = Joi.object({
-  readingId: Joi.string().hex().length(24).required(),
-  groupId: Joi.string().hex().length(24).required(),
-  availableFrom: Joi.date().iso().required(),
-  dueAt: Joi.date().iso().greater(Joi.ref('availableFrom')).required(),
-  timeLimitMinutes: Joi.number().integer().min(1).max(180).default(20)
+const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/);
+
+export const createAssignmentSchema = z.object({
+  readingId: objectIdSchema,
+  groupId: objectIdSchema,
+  availableFrom: z.coerce.date(),
+  dueAt: z.coerce.date(),
+  timeLimitMinutes: z.number().int().min(1).max(180).default(20)
+}).refine((data) => data.dueAt > data.availableFrom, {
+  message: 'La fecha de entrega debe ser posterior a la de inicio',
+  path: ['dueAt']
 });
 
-export const listAssignmentsSchema = Joi.object({
-  groupId: Joi.string().hex().length(24),
-  status: Joi.string().valid('draft', 'published', 'closed'),
-  page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(20)
+export const listAssignmentsSchema = z.object({
+  groupId: objectIdSchema.optional(),
+  status: z.enum(['draft', 'published', 'closed']).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20)
 });
 
-export const startAssignmentSchema = Joi.object({
-  requestId: Joi.string().uuid().required()
+export const startAssignmentSchema = z.object({
+  requestId: z.string().uuid()
 });
 
-export const submitAttemptSchema = Joi.object({
-  requestId: Joi.string().uuid().required(),
-  activityId: Joi.string().required(),
-  answers: Joi.object().required(),
-  timeSpentSeconds: Joi.number()
+export const submitAttemptSchema = z.object({
+  requestId: z.string().uuid(),
+  activityId: z.string().min(1),
+  answers: z.record(z.string(), z.unknown()),
+  timeSpentSeconds: z.number()
     .integer()
     .min(0)
     .max(60 * 60 * 6)
