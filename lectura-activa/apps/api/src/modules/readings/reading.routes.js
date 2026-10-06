@@ -1,11 +1,15 @@
 import { sendError } from '../../shared/http.js';
-import { requireRole } from '../../shared/authorization/policies.js';
-import { AppError } from '../../shared/errors/AppError.js';
-import { readingListQuery, readingPatchBody, readingWriteBody } from './reading.schemas.js';
+import { requireRoles } from '../../shared/auth.js';
+import { ValidationError } from '../../shared/errors/index.js';
+import {
+  readingListQuery,
+  readingPatchBody,
+  readingWriteBody,
+} from './reading.schemas.js';
 
 export async function registerReadingRoutes(
   app,
-  { auth, readingService, prefix = '/api/v1/readings' }
+  { authenticate, readingService, prefix = '/api/v1/readings' }
 ) {
   app.get('/api/v1/readings', { preHandler: [authenticate, requireRoles('student', 'teacher', 'admin')], schema: { querystring: readingListQuery } }, async (request, reply) => {
     try {
@@ -18,38 +22,54 @@ export async function registerReadingRoutes(
     } catch (error) {
       return sendError(reply, error, request.id);
     }
-  });
+  );
 
-  app.get('/api/v1/readings/:id', { preHandler: authenticate }, async (request, reply) => {
-    try {
-      return reply.send(await readingService.getById(request.params.id, request.user));
-    } catch (error) {
-      return sendError(reply, error, request.id);
+  app.get(
+    '/api/v1/readings/:id',
+    { preHandler: auth },
+    async (request, reply) => {
+      try {
+        return reply.send(
+          await readingService.getById(request.params.id, request.user)
+        );
+      } catch (error) {
+        return sendError(reply, error, request.id);
+      }
     }
-  });
+  );
 
-  app.post('/api/v1/readings', {
-    preHandler: [authenticate, requireRoles('teacher', 'admin')],
-    schema: { body: readingWriteBody }
-  }, async (request, reply) => {
-    try {
-      const created = await readingService.create(request.body, request.user);
-      return reply.code(201).send(created);
-    } catch (error) {
-      return sendError(reply, error, request.id);
+  app.post(
+    '/api/v1/readings',
+    {
+      preHandler: [auth, requireRoles('teacher', 'admin')],
+      schema: { body: readingWriteBody },
+    },
+    async (request, reply) => {
+      try {
+        const created = await readingService.create(request.body, request.user);
+        return reply.code(201).send(created);
+      } catch (error) {
+        return sendError(reply, error, request.id);
+      }
     }
-  });
+  );
 
-  app.patch('/api/v1/readings/:id', {
-    preHandler: [authenticate, requireRoles('teacher', 'admin')],
-    schema: { body: readingPatchBody }
-  }, async (request, reply) => {
-    try {
-      return reply.send(await readingService.update(request.params.id, request.body, request.user));
-    } catch (error) {
-      return sendError(reply, error, request.id);
+  app.patch(
+    '/api/v1/readings/:id',
+    {
+      preHandler: [auth, requireRoles('teacher', 'admin')],
+      schema: { body: readingPatchBody },
+    },
+    async (request, reply) => {
+      try {
+        return reply.send(
+          await readingService.update(request.params.id, request.body, request.user)
+        );
+      } catch (error) {
+        return sendError(reply, error, request.id);
+      }
     }
-  });
+  );
 
   app.post(
     `${prefix}/:id/media`, {
@@ -60,20 +80,19 @@ export async function registerReadingRoutes(
     } catch (error) {
       return sendError(reply, error, request.id);
     }
-  });
+  );
 
-  /**
-   * Sube un PDF y lo adjunta a la lectura.
-   * multipart/form-data con un campo `file`.
-   */
   app.post(
     '/api/v1/readings/:id/media',
-    { preHandler: [authenticate, requireRoles('teacher', 'admin')] },
+    { preHandler: [auth, requireRoles('teacher', 'admin')] },
     async (request, reply) => {
       try {
         const data = await request.file();
         if (!data) {
-          throw AppError.badRequest('No se recibió ningún archivo');
+          throw new ValidationError(
+            'MISSING_FILE',
+            'No se recibió ningún archivo'
+          );
         }
 
         const buffer = await data.toBuffer();
@@ -84,7 +103,7 @@ export async function registerReadingRoutes(
             buffer,
             mimetype: data.mimetype,
             filename: data.filename,
-            size: buffer.length
+            size: buffer.length,
           },
           request.user
         );
