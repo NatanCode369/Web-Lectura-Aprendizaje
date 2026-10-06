@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { getDb } from '../../shared/db.js';
+import { getDb } from '../../config/db.js';
 
 const COLLECTION = 'analyticsDaily';
 

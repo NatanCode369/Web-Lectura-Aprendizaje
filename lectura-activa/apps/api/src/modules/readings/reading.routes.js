@@ -1,5 +1,6 @@
 import { sendError } from '../../shared/http.js';
 import { requireRoles } from '../../shared/auth.js';
+import { AppError } from '../../shared/errors/AppError.js';
 import { readingListQuery, readingPatchBody, readingWriteBody } from './reading.schemas.js';
 
 export async function registerReadingRoutes(app, { auth, readingService }) {
@@ -56,4 +57,38 @@ export async function registerReadingRoutes(app, { auth, readingService }) {
       return sendError(reply, error, request.id);
     }
   });
+
+  /**
+   * Sube un PDF y lo adjunta a la lectura.
+   * multipart/form-data con un campo `file`.
+   */
+  app.post(
+    '/api/v1/readings/:id/media',
+    { preHandler: [auth, requireRoles('teacher', 'admin')] },
+    async (request, reply) => {
+      try {
+        const data = await request.file();
+        if (!data) {
+          throw AppError.badRequest('No se recibió ningún archivo');
+        }
+
+        const buffer = await data.toBuffer();
+
+        const updated = await readingService.uploadPdf(
+          request.params.id,
+          {
+            buffer,
+            mimetype: data.mimetype,
+            filename: data.filename,
+            size: buffer.length
+          },
+          request.user
+        );
+
+        return reply.code(201).send(updated);
+      } catch (error) {
+        return sendError(reply, error, request.id);
+      }
+    }
+  );
 }

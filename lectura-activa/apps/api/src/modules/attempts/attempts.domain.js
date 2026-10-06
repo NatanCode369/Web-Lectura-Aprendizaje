@@ -2,7 +2,6 @@ import { ValidationError } from '../../shared/errors/index.js';
 
 /**
  * Cálculo de puntuación por tipo de actividad. Función pura: sin I/O.
- * Cada actividad tiene un `type` y su `correctAnswer` en el snapshot.
  */
 export function scoreAnswer(activity, answers) {
   const { type, correctAnswer, points } = activity;

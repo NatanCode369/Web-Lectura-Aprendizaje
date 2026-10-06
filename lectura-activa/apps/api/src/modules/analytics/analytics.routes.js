@@ -3,7 +3,7 @@ import { requireRole } from '../../shared/authorization/policies.js';
 import { analyticsService } from './analytics.service.js';
 import { runDailyAnalytics } from './analytics.jobs.js';
 import { env } from '../../config/env.js';
-import { AppError } from '../../shared/errors/index.js';
+import { ForbiddenError } from '../../shared/errors/index.js';
 
 export async function analyticsRoutes(fastify) {
   fastify.addHook('preHandler', requireSession);
@@ -42,6 +42,7 @@ export async function analyticsRoutes(fastify) {
     const secret = request.headers['x-job-secret'];
     if (!env.ANALYTICS_JOB_SECRET || secret !== env.ANALYTICS_JOB_SECRET) {
       throw AppError.forbidden('INVALID_JOB_SECRET', 'Secreto de job inválido');
+      throw new ForbiddenError('Secreto de job inválido');
     }
     const result = await runDailyAnalytics({});
     return reply.send(result);

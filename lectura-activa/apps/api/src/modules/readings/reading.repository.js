@@ -111,6 +111,33 @@ export function buildReadingRepository() {
           totalPages: Math.ceil(total / limit)
         }
       };
+    },
+
+    /**
+     * Reemplaza el PDF del array `media` y devuelve el documento actualizado.
+     * No acumula binarios huérfanos: elimina PDFs previos antes de insertar el nuevo.
+     */
+    async addMedia(id, mediaItem) {
+      const _id = toObjectId(id);
+      if (!_id) return null;
+
+      const now = new Date();
+
+      // Quitar PDFs previos del array
+      await collection().updateOne(
+        { _id, deletedAt: { $exists: false } },
+        { $pull: { media: { type: 'pdf' } } }
+      );
+
+      // Insertar el nuevo
+      return collection().findOneAndUpdate(
+        { _id, deletedAt: { $exists: false } },
+        {
+          $push: { media: mediaItem },
+          $set: { updatedAt: now }
+        },
+        { returnDocument: 'after' }
+      );
     }
   };
 }

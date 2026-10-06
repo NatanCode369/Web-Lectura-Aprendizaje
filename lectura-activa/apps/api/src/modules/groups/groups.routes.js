@@ -1,6 +1,7 @@
 import { requireSession } from '../../shared/auth/session.js';
 import { requireRole } from '../../shared/authorization/policies.js';
 import { groupsService } from './groups.service.js';
+import { authenticate } from '../../shared/middleware/authenticate.js';
 import { validate } from '../../shared/validation/index.js';
 import {
   createGroupSchema,
