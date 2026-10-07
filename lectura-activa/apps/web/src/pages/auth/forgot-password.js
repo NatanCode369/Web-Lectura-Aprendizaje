@@ -1,38 +1,45 @@
-import { isInstitutionalEmail, validatePassword, validatePasswordMatch } from '../../utils/validators.js';
+/* Pantalla: Recuperar contraseña — Dueño: Omar */
 
-const form = document.getElementById('forgot-form');
-const emailInput = document.getElementById('email');
-const passwordInput = document.getElementById('new-password');
-const passwordConfirmInput = document.getElementById('new-password-confirm');
-const formError = document.getElementById('form-error');
-const formSuccess = document.getElementById('form-success');
+import { isInstitutionalEmail } from "../../utils/validators.js";
+import { forgotPassword } from "../../services/authService.js";
 
-form.addEventListener('submit', (e) => {
+const form = document.getElementById("forgot-form");
+const emailInput = document.getElementById("email");
+const formError = document.getElementById("form-error");
+const formSuccess = document.getElementById("form-success");
+
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
   formError.hidden = true;
   formSuccess.hidden = true;
 
   const email = emailInput.value.trim().toLowerCase();
-  const password = passwordInput.value;
-  const passwordConfirm = passwordConfirmInput.value;
 
   if (!isInstitutionalEmail(email)) {
-    return mostrarError('Debes usar tu correo institucional (@kinal.edu.gt).');
+    return mostrarError("Debes usar tu correo institucional (@kinal.edu.gt).");
   }
 
-  const passCheck = validatePassword(password);
-  if (!passCheck.valid) return mostrarError(passCheck.message);
+  const submitBtn = form.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Enviando...";
+  }
 
-  const matchCheck = validatePasswordMatch(password, passwordConfirm);
-  if (!matchCheck.valid) return mostrarError(matchCheck.message);
-
-  // TODO: cuando el backend esté listo, llamar a authService.forgotPassword()
-  formSuccess.textContent = 'Contraseña actualizada. Redirigiendo al login...';
-  formSuccess.hidden = false;
-
-  setTimeout(() => {
-    window.location.href = './login.html';
-  }, 2000);
+  try {
+    await forgotPassword(email);
+    formSuccess.textContent =
+      "Si el correo existe, recibirás un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada.";
+    formSuccess.hidden = false;
+    form.reset();
+  } catch (error) {
+    console.error("[forgot-password] Error:", error);
+    mostrarError(error.message || "No pudimos procesar tu solicitud.");
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Enviar enlace";
+    }
+  }
 });
 
 function mostrarError(mensaje) {
