@@ -1,11 +1,13 @@
 import { isValidEmail } from '../../utils/validators.js';
+import { login } from '../../services/authService.js';
+import { redirectToDashboard } from '../../state/session.js';
 
 const form = document.getElementById('login-form');
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const formError = document.getElementById('form-error');
 
-form.addEventListener('submit', (e) => {
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
   formError.hidden = true;
 
@@ -24,14 +26,12 @@ form.addEventListener('submit', (e) => {
     return mostrarError('La contraseña debe tener al menos 8 caracteres.');
   }
 
-  // TODO: cuando el backend esté listo, llamar a authService.login()
-  // Por ahora redirige según el correo (mock temporal)
-  const esDocente = email.includes('docente') || email.startsWith('t');
-  const destino = esDocente
-    ? '../teacher/dashboard-teacher.html'
-    : '../student/catalog/catalog.html';
-
-  window.location.href = destino;
+  try {
+    await login({ email, password });
+    redirectToDashboard();
+  } catch (error) {
+    mostrarError(error.message || 'No se pudo iniciar sesión.');
+  }
 });
 
 function mostrarError(mensaje) {

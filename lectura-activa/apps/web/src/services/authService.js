@@ -15,7 +15,8 @@ import { setCurrentUser, clearSession } from '../state/session.js';
  * @returns {Promise<object>} usuario
  */
 export async function login({ email, password }) {
-  const user = await api.post('/auth/login', { email, password });
+  const response = await api.post('/auth/login', { email, password });
+  const user = response.user ?? response;
   setCurrentUser(user);
   return user;
 }

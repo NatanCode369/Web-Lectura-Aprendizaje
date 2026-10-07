@@ -1,0 +1,15 @@
+{
+  "buildCommand": "npm --prefix lectura-activa/apps/web install && npm --prefix lectura-activa/apps/web run build",
+  "outputDirectory": "lectura-activa/apps/web/dist",
+  "functions": {
+    "api/index.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

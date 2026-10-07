@@ -33,10 +33,18 @@ const schema = z.object({
         .default('info'),
 
     // ---------- MongoDB ----------
-    MONGODB_URI: z
-        .string()
-        .url()
-        .default('mongodb://localhost:27017'),
+    MONGODB_URI: isProd
+        ? z
+            .string()
+            .url()
+            .refine(
+                (value) => value.startsWith('mongodb+srv://'),
+                'En producción MONGODB_URI debe apuntar a MongoDB Atlas'
+            )
+        : z
+            .string()
+            .url()
+            .default('mongodb://localhost:27017'),
     MONGODB_DB: z.string().min(1).default('lectura_activa'),
 
     // ---------- Supabase (opcionales en dev) ----------
