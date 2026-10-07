@@ -29,7 +29,7 @@ export default defineConfig({
         myProgress: resolve(__dirname, "src/pages/student/my-progress/my-progress.html"),
         feedback: resolve(__dirname, "src/pages/student/feedback/feedback.html"),
         userProfile: resolve(__dirname, "src/pages/student/user-profile/user-profile.html"),
-        // Activities (short-answer eliminado)
+        // Activities
         activitiesDetectiveWords: resolve(__dirname, "src/pages/student/activities/detective-words.html"),
         activitiesMatching: resolve(__dirname, "src/pages/student/activities/matching.html"),
         activitiesMultipleChoice: resolve(__dirname, "src/pages/student/activities/multiple-choice.html"),
