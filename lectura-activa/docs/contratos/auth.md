@@ -230,3 +230,14 @@ Los siguientes bugs fueron detectados durante la revisión, pero **no son respon
 - **Dueño del módulo:** Diego (P2)
 - **Revisores:** P1, P7
 - **Cambios a este contrato:** requieren ADR nuevo + aviso al equipo
+
+
+---
+
+## Endpoints de recuperación de contraseña
+
+### `POST /api/v1/auth/forgot-password`
+
+**Body:**
+```json
+{ "email": "usuario@colegiodemo.edu.gt" }
