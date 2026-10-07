@@ -1,3 +1,4 @@
+import '../../utils/analytics.js';
 import { isValidEmail } from '../../utils/validators.js';
 
 const form = document.getElementById('login-form');

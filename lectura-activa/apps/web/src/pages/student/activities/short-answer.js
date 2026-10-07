@@ -1,3 +1,4 @@
+import '../../../../utils/analytics.js';
 /* Actividad: short_answer — Dueño: Omar */
 
 import {

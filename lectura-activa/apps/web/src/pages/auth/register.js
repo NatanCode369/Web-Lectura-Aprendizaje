@@ -1,3 +1,4 @@
+import '../../utils/analytics.js';
 import { isInstitutionalEmail, validatePassword, validateFullName, validatePasswordMatch } from '../../utils/validators.js';
 
 const form = document.getElementById('register-form');
