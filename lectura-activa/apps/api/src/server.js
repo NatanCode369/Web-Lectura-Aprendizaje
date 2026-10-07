@@ -82,7 +82,6 @@ export async function buildServer({ withDb = true } = {}) {
     exposedHeaders: ['x-request-id'],
   });
 
-  // Si REQUIRE_EDGE=true, solo se acepta tráfico que venga del Worker.
   registerEdgeGuard(fastify, {
     secret: env.ORIGIN_SHARED_SECRET,
     requireEdge: env.REQUIRE_EDGE,
@@ -106,7 +105,11 @@ export async function buildServer({ withDb = true } = {}) {
     }),
   });
 
+<<<<<<< HEAD
   // ---- multipart para subir PDFs ----
+=======
+  // multipart para subir PDFs
+>>>>>>> 0287659 (fix: paso 3)
   await fastify.register(multipart, {
     limits: {
       fileSize: 20 * 1024 * 1024,

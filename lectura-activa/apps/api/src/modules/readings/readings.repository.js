@@ -1,42 +1,135 @@
-/**
- * Stub temporal del repositorio de lecturas.
- * 
- * PROPÓSITO: Desbloquear el arranque del servidor y las pruebas de 
- * assignments.service.js mientras se implementa la lógica real de MongoDB.
- * 
- * Este stub imita la interfaz (contrato) que esperan los servicios,
- * devolviendo datos mockeados que pasan las validaciones de dominio.
- */
+import { ObjectId } from 'mongodb';
+import { getDb } from '../../shared/db.js';
 
-export const readingsRepository = {
-    /**
-     * Busca una lectura por su ID (Versión Stub)
-     */
+const collection = () => getDb().collection('readings');
+
+function toObjectId(id) {
+  return ObjectId.isValid(id) ? new ObjectId(id) : null;
+}
+
+export function buildReadingRepository() {
+  return {
+    async create(document) {
+      const result = await collection().insertOne(document);
+      return collection().findOne({ _id: result.insertedId });
+    },
+
     async findById(id) {
-      console.warn(`[STUB] readingsRepository.findById llamado con ID: ${id}. Devolviendo mock.`);
-      
-      // Devuelve un objeto que cumple con el contrato mínimo esperado por assignments.domain
+      const _id = toObjectId(id);
+      if (!_id) return null;
+
+      return collection().findOne({ _id, deletedAt: { $exists: false } });
+    },
+
+    async updateById(id, filter, update) {
+      const _id = toObjectId(id);
+      if (!_id) return null;
+
+      return collection().findOneAndUpdate(
+        { _id, ...filter, deletedAt: { $exists: false } },
+        { $set: update },
+        { returnDocument: 'after' }
+      );
+    },
+
+    async list({ institutionId, search, difficulty, maxMinutes, page, limit }) {
+      const filter = {
+        institutionId,
+        status: 'published',
+        deletedAt: { $exists: false }
+      };
+
+      if (difficulty) filter.difficulty = difficulty;
+
+      if (maxMinutes !== undefined) {
+        filter.estimatedMinutes = { $lte: maxMinutes };
+      }
+
+      if (search) {
+        const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const expression = new RegExp(escaped, 'i');
+        filter.$or = [
+          { title: expression },
+          { summary: expression }
+        ];
+      }
+
+      const [data, total] = await Promise.all([
+        collection()
+          .aggregate([
+            { $match: filter },
+            {
+              $lookup: {
+                from: 'users',
+                localField: 'authorId',
+                foreignField: '_id',
+                as: 'author'
+              }
+            },
+            {
+              $unwind: {
+                path: '$author',
+                preserveNullAndEmptyArrays: true
+              }
+            },
+            { $sort: { updatedAt: -1, _id: -1 } },
+            { $skip: (page - 1) * limit },
+            { $limit: limit },
+            {
+              $project: {
+                _id: 0,
+                id: { $toString: '$_id' },
+                title: 1,
+                summary: 1,
+                difficulty: 1,
+                estimatedMinutes: 1,
+                authorName: { $ifNull: ['$author.fullName', null] },
+                version: 1,
+                createdAt: 1,
+                updatedAt: 1
+              }
+            }
+          ])
+          .toArray(),
+        collection().countDocuments(filter)
+      ]);
+
       return {
-        _id: id,
-        title: 'Lectura de Prueba (Stub)',
-        status: 'published', // Importante: debe ser 'published' para pasar assertReadingPublished
-        version: 1,
-        activities: [
-          { id: 'act_1', type: 'question', text: '¿Cuál es el tema principal?' }
-        ]
+        data,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
       };
     },
-  
+
     /**
-     * Busca una versión específica de una lectura (Versión Stub)
+     * Reemplaza el PDF del array `media` y devuelve el documento actualizado.
+     * No acumula binarios huérfanos: elimina el PDF previo antes de insertar.
      */
-    async findByIdAndVersion(id, version) {
-      console.warn(`[STUB] readingsRepository.findByIdAndVersion llamado.`);
-      return {
-        _id: id,
-        version: version,
-        status: 'published',
-        activities: []
-      };
+    async addMedia(id, mediaItem) {
+      const _id = toObjectId(id);
+      if (!_id) return null;
+
+      const now = new Date();
+
+      // Quitar PDFs previos
+      await collection().updateOne(
+        { _id, deletedAt: { $exists: false } },
+        { $pull: { media: { type: 'pdf' } } }
+      );
+
+      // Insertar el nuevo
+      return collection().findOneAndUpdate(
+        { _id, deletedAt: { $exists: false } },
+        {
+          $push: { media: mediaItem },
+          $set: { updatedAt: now }
+        },
+        { returnDocument: 'after' }
+      );
     }
   };
+}
