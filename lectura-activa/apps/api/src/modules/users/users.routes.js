@@ -4,14 +4,14 @@
  * - GET  /me → devuelve el perfil del usuario autenticado.
  * - PATCH /me → actualiza fullName y profile (nada más).
  *
- * Ambas requieren Bearer JWT válido de Supabase.
+ * Ambas requieren sesión válida (Bearer JWT o cookie HttpOnly).
  */
 
 import { usersRepo } from './users.repository.js';
 import { usersService } from './users.service.js';
 import { patchMeSchema } from './users.schemas.js';
 import { authenticate } from '../../shared/middleware/authenticate.js';
-import { AppError, ErrorCodes } from '../../shared/errors.js';
+import { AppError, ErrorCodes } from '../../shared/errors/index.js';
 
 export async function usersRoutes(fastify, opts) {
   const { db } = opts;
@@ -24,7 +24,7 @@ export async function usersRoutes(fastify, opts) {
     '/me',
     { preHandler: [auth] },
     async (req) => {
-      const user = await repo.findById(req.auth.userId);
+      const user = await repo.findById(req.user._id);
       if (!user) {
         throw AppError.notFound(
           ErrorCodes.USER_NOT_FOUND,
@@ -40,7 +40,7 @@ export async function usersRoutes(fastify, opts) {
     '/me',
     { preHandler: [auth], schema: patchMeSchema },
     async (req) => {
-      const updated = await service.updateMe(req.auth.userId, req.body);
+      const updated = await service.updateMe(req.user._id, req.body);
       if (!updated) {
         throw AppError.notFound(
           ErrorCodes.USER_NOT_FOUND,
