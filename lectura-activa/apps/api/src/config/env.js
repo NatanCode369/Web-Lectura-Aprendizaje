@@ -1,19 +1,13 @@
+import 'dotenv/config';
+import { z } from 'zod';
+
 /**
  * Configuración del entorno — validada al arranque.
- *
- * Reglas:
- * - En producción TODAS las variables críticas son obligatorias.
- * - En desarrollo las de Supabase son opcionales: la API arranca y los
- *   endpoints protegidos devuelven 503 AUTH_NOT_CONFIGURED.
- * - MongoDB siempre tiene un default local para no bloquear el arranque.
  */
-
-import { z } from 'zod';
 
 const NODE_ENV = process.env.NODE_ENV ?? 'development';
 const isProd = NODE_ENV === 'production';
 
-// Helper: en producción exige string no vacío; en dev permite ausencia.
 const optionalInDev = (name) =>
     isProd
         ? z.string().min(1, `Falta ${name}`)
@@ -76,30 +70,25 @@ const schema = z.object({
   COOKIE_SECRET: isProd
       ? z.string().min(32, 'COOKIE_SECRET debe tener al menos 32 caracteres')
       : z.string().min(32).default('dev-cookie-secret-change-me-32chars'),
-
-  // ---------- Frontend ----------
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
-
-  // ---------- CORS ----------
   CORS_ORIGINS: z
       .string()
       .default('http://localhost:5173')
-      .transform((v) =>
-          v
-              .split(',')
-              .map((s) => s.trim())
-              .filter(Boolean)
-      ),
-
-  // ---------- Cloudflare (opcional) ----------
-  // Secreto compartido con el Worker proxy (apps/edge). Con él la API sabe
-  // que la petición pasó por Cloudflare y puede confiar en x-client-ip.
+      .transform((v) => v.split(',').map((s) => s.trim()).filter(Boolean)),
+  ANALYTICS_JOB_SECRET: isProd
+      ? z.string().min(32, 'ANALYTICS_JOB_SECRET debe tener al menos 32 caracteres')
+      : z.string().min(1).optional(),
   ORIGIN_SHARED_SECRET: z.string().min(32).optional(),
-  // true = rechaza (403) lo que no venga del Worker. Solo en producción.
   REQUIRE_EDGE: z
       .enum(['true', 'false'])
       .default('false')
       .transform((v) => v === 'true'),
+  MAILER_MODE: z.enum(['console', 'resend']).default('console'),
+  RESEND_API_KEY: isProd
+      ? z.string().min(1, 'RESEND_API_KEY es obligatorio en producción')
+      : z.string().min(1).optional(),
+  MAILER_FROM: z.string().email().default('no-reply@lectura-activa.local'),
+  RESET_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().default(15),
 }).superRefine((value, ctx) => {
   if (value.REQUIRE_EDGE && !value.ORIGIN_SHARED_SECRET) {
     ctx.addIssue({
@@ -108,18 +97,25 @@ const schema = z.object({
       message: 'Es obligatorio cuando REQUIRE_EDGE=true',
     });
   }
+  if (value.MAILER_MODE === 'resend' && !value.RESEND_API_KEY) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['RESEND_API_KEY'],
+      message: 'Es obligatorio cuando MAILER_MODE=resend',
+    });
+  }
 });
 
 function loadEnv() {
-    const parsed = schema.safeParse(process.env);
-    if (!parsed.success) {
-        const issues = parsed.error.issues
-            .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
-            .join('\n');
-        console.error(`Configuración de entorno inválida:\n${issues}`);
-        process.exit(1);
-    }
-    return parsed.data;
+  const parsed = schema.safeParse(process.env);
+  if (!parsed.success) {
+    const issues = parsed.error.issues
+        .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
+        .join('\n');
+    console.error(`Configuración de entorno inválida:\n${issues}`);
+    process.exit(1);
+  }
+  return parsed.data;
 }
 
 export const env = loadEnv();

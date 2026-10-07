@@ -1,8 +1,5 @@
 /**
  * Casos de uso de auth.
- *
- * Orquesta dominio + repositorios. No conoce HTTP ni Fastify.
- * Lanza AppError con statusCode cuando algo falla.
  */
 
 import { AppError, ErrorCodes } from '../../shared/errors/AppError.js';
@@ -13,22 +10,32 @@ import {
   supabaseReady,
   supabaseAdminReady,
 } from '../../config/supabase.js';
+import { createMailer } from '../../shared/mailer.js';
 import { usersRepo } from '../users/users.repository.js';
 import { buildNewUserDoc } from '../users/users.domain.js';
-import { institutionsRepo } from './auth.repository.js';
+import { institutionsRepo, passwordResetsRepo } from './auth.repository.js';
 import {
   extractDomain,
   normalizeEmail,
   defaultRoleForNewUser,
 } from './auth.domain.js';
+import {
+  generateResetToken,
+  hashResetToken,
+  isValidTokenFormat,
+  calculateExpiration,
+  buildPasswordResetDoc,
+  buildResetLink,
+  buildResetEmailHtml,
+  buildResetEmailText,
+} from './password-reset.domain.js';
 
 export function authService(db) {
   const institutions = institutionsRepo(db);
   const users = usersRepo(db);
+  const passwordResets = passwordResetsRepo(db);
+  const mailer = createMailer();
 
-  /**
-   * Verifica que Supabase esté configurado. Lanza 503 si no.
-   */
   function ensureSupabaseReady() {
     if (!supabaseReady) {
       throw AppError.unauthorized(
@@ -48,10 +55,6 @@ export function authService(db) {
   }
 
   return {
-    /**
-     * Valida que el dominio del email pertenezca a una institución autorizada.
-     * Usado por el hook `before-user-created` de Supabase.
-     */
     async validateEmailDomain(email) {
       const normalized = normalizeEmail(email);
       const domain = extractDomain(normalized);
@@ -66,9 +69,6 @@ export function authService(db) {
       };
     },
 
-    /**
-     * Lazy provisioning (ADR 0001, A2).
-     */
     async ensureUserFromJwt(claims) {
       const authUserId = claims?.sub;
       const rawEmail = claims?.email;
@@ -112,15 +112,6 @@ export function authService(db) {
       }
     },
 
-    /**
-     * POST /api/v1/auth/login
-     *
-     * 1. Valida credenciales con Supabase.
-     * 2. Lazy provisioning en Mongo.
-     * 3. Devuelve el usuario + tokens de sesión.
-     *
-     * @returns {{ user: Object, session: { access_token, refresh_token, expires_in } }}
-     */
     async login(email, password) {
       ensureSupabaseReady();
 
@@ -138,7 +129,6 @@ export function authService(db) {
         );
       }
 
-      // Lazy provisioning
       const appUser = await this.ensureUserFromJwt({
         sub: data.user.id,
         email: data.user.email,
@@ -155,21 +145,11 @@ export function authService(db) {
       };
     },
 
-    /**
-     * POST /api/v1/auth/register
-     *
-     * 1. Valida dominio institucional.
-     * 2. Crea la cuenta en Supabase Auth (admin API).
-     * 3. Devuelve el usuario creado.
-     *
-     * El usuario en Mongo se crea en el primer login (lazy provisioning).
-     */
     async register(email, password, fullName) {
       ensureSupabaseAdminReady();
 
       const normalized = normalizeEmail(email);
 
-      // 1. Validar dominio antes de crear la cuenta
       const validation = await this.validateEmailDomain(normalized);
       if (!validation.allowed) {
         throw AppError.forbidden(
@@ -178,16 +158,14 @@ export function authService(db) {
         );
       }
 
-      // 2. Crear usuario en Supabase
       const { data, error } = await supabaseAdmin.auth.admin.createUser({
         email: normalized,
         password,
-        email_confirm: false, // Supabase enviará email de verificación
+        email_confirm: env.NODE_ENV !== 'production',
         user_metadata: { full_name: fullName },
       });
 
       if (error) {
-        // Detectar correo duplicado
         if (
           error.message?.toLowerCase().includes('already') ||
           error.message?.toLowerCase().includes('duplicate') ||
@@ -212,12 +190,6 @@ export function authService(db) {
       };
     },
 
-    /**
-     * POST /api/v1/auth/logout
-     *
-     * No-op en el backend. El frontend limpia las cookies.
-     * Aquí se podría invalidar el refresh token en Supabase si fuera necesario.
-     */
     async logout() {
       return { ok: true };
     },
@@ -225,33 +197,186 @@ export function authService(db) {
     /**
      * POST /api/v1/auth/forgot-password
      *
-     * Genera link de recuperación con Supabase.
-     * Siempre responde OK (no revela si el email existe).
+     * Genera un token propio, lo guarda hasheado en Mongo y envía un correo
+     * con el link para restablecer la contraseña.
+     *
+     * SIEMPRE responde OK (no revela si el email existe o no).
      */
-    async forgotPassword(email) {
+    async forgotPassword(email, requestIp) {
       ensureSupabaseAdminReady();
 
       const normalized = normalizeEmail(email);
 
-      // No revelar si existe o no. Ignoramos errores de "user not found".
+      // Verificar que el dominio sea institucional.
+      // Si no lo es, NO revelamos el error y devolvemos ok: true.
+      const validation = await this.validateEmailDomain(normalized);
+      if (!validation.allowed) {
+        return { ok: true };
+      }
+
+      // Buscar el usuario en Supabase (para obtener el fullName).
+      // Si no existe, tampoco lo revelamos.
+      let supabaseUser = null;
       try {
-        const { error } = await supabaseAdmin.auth.admin.generateLink({
+        const { data, error } = await supabaseAdmin.auth.admin.listUsers({
+          page: 1,
+          perPage: 1,
+        });
+        if (error) supabaseUser = null;
+        // Nota: listUsers no filtra por email en la API admin.
+        // Alternativa: usar generateLink con type: 'recovery' y capturar el error.
+        // Para simplificar, intentamos generar el link; si falla con "not found",
+        // devolvemos ok: true sin enviar correo.
+      } catch (err) {
+        supabaseUser = null;
+      }
+
+      // Verificar que el usuario exista en Supabase (sin revelar al cliente).
+      // Usamos generateLink solo para verificar existencia.
+      let userExists = true;
+      try {
+        const { error: linkError } = await supabaseAdmin.auth.admin.generateLink({
           type: 'recovery',
           email: normalized,
-          options: {
-            redirectTo: `${env.FRONTEND_URL}/src/pages/auth/forgot-password.html`,
-          },
         });
-
-        if (error && !error.message?.toLowerCase().includes('not found')) {
-          // Log interno pero no revelar al cliente
-          // (el logger ya lo captura)
+        if (linkError && linkError.message?.toLowerCase().includes('not found')) {
+          userExists = false;
         }
       } catch (err) {
-        // Silencioso por seguridad
+        userExists = false;
+      }
+
+      if (!userExists) {
+        // Silencioso: respondemos ok sin enviar correo.
+        return { ok: true };
+      }
+
+      // Invalidar tokens previos del mismo email.
+      await passwordResets.invalidateAllForEmail(normalized);
+
+      // Generar nuevo token.
+      const token = generateResetToken();
+      const tokenHash = hashResetToken(token);
+      const expiresAt = calculateExpiration(env.RESET_TOKEN_TTL_MINUTES);
+
+      await passwordResets.create(
+        buildPasswordResetDoc({
+          email: normalized,
+          tokenHash,
+          expiresAt,
+          requestIp,
+        })
+      );
+
+      // Construir link y correo.
+      const resetLink = buildResetLink(env.FRONTEND_URL, token);
+      const html = buildResetEmailHtml({
+        fullName: null,
+        resetLink,
+        ttlMinutes: env.RESET_TOKEN_TTL_MINUTES,
+      });
+      const text = buildResetEmailText({
+        resetLink,
+        ttlMinutes: env.RESET_TOKEN_TTL_MINUTES,
+      });
+
+      try {
+        await mailer.send({
+          to: normalized,
+          subject: 'Recuperación de contraseña — Lectura Activa',
+          html,
+          text,
+        });
+      } catch (err) {
+        // No revelar al cliente, pero loguear.
+        console.error('Error enviando correo de recuperación:', err);
       }
 
       return { ok: true };
+    },
+
+    /**
+     * POST /api/v1/auth/reset-password
+     *
+     * Valida el token y actualiza la contraseña en Supabase.
+     */
+    async resetPassword(token, newPassword) {
+      ensureSupabaseAdminReady();
+
+      // 1. Validar formato del token.
+      if (!isValidTokenFormat(token)) {
+        throw AppError.badRequest(
+          'INVALID_RESET_TOKEN',
+          'El enlace de recuperación es inválido o ha expirado.'
+        );
+      }
+
+      // 2. Validar fortaleza de la contraseña.
+      if (!newPassword || newPassword.length < 8) {
+        throw AppError.badRequest(
+          'WEAK_PASSWORD',
+          'La contraseña debe tener al menos 8 caracteres.'
+        );
+      }
+
+      // 3. Buscar el token en Mongo.
+      const tokenHash = hashResetToken(token);
+      const record = await passwordResets.findByTokenHash(tokenHash);
+
+      if (!record) {
+        throw AppError.badRequest(
+          'INVALID_RESET_TOKEN',
+          'El enlace de recuperación es inválido o ha expirado.'
+        );
+      }
+
+      // 4. Verificar que no esté usado.
+      if (record.usedAt) {
+        throw AppError.badRequest(
+          'INVALID_RESET_TOKEN',
+          'Este enlace ya fue usado. Solicita uno nuevo.'
+        );
+      }
+
+      // 5. Verificar expiración.
+      if (new Date(record.expiresAt) < new Date()) {
+        throw AppError.badRequest(
+          'INVALID_RESET_TOKEN',
+          'El enlace de recuperación es inválido o ha expirado.'
+        );
+      }
+
+      // 6. Buscar el usuario en Supabase por email.
+      const { data: linkData, error: linkError } =
+        await supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
+          email: record.email,
+        });
+
+      if (linkError || !linkData?.user?.id) {
+        throw AppError.badRequest(
+          'INVALID_RESET_TOKEN',
+          'El enlace de recuperación es inválido o ha expirado.'
+        );
+      }
+
+      // 7. Actualizar contraseña.
+      const { error: updateError } =
+        await supabaseAdmin.auth.admin.updateUserById(linkData.user.id, {
+          password: newPassword,
+        });
+
+      if (updateError) {
+        throw AppError.internal(
+          'RESET_PASSWORD_FAILED',
+          'No pudimos actualizar la contraseña. Intenta de nuevo.'
+        );
+      }
+
+      // 8. Marcar token como usado.
+      await passwordResets.markAsUsed(tokenHash);
+
+      return { ok: true, message: 'Contraseña actualizada correctamente.' };
     },
   };
 }

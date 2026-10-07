@@ -6,9 +6,10 @@
  * - POST /api/v1/auth/register
  * - POST /api/v1/auth/logout
  * - POST /api/v1/auth/forgot-password
+ * - POST /api/v1/auth/reset-password
  *
  * Endpoint interno:
- * - POST /api/v1/auth/internal/validate-domain → hook de Supabase.
+ * - POST /api/v1/auth/internal/validate-domain
  */
 
 import { env } from '../../config/env.js';
@@ -19,6 +20,7 @@ import {
   loginSchema,
   registerSchema,
   forgotPasswordSchema,
+  resetPasswordSchema,
 } from './auth.schemas.js';
 
 export async function authRoutes(fastify, opts) {
@@ -61,13 +63,12 @@ export async function authRoutes(fastify, opts) {
     const { email, password } = req.body;
     const { user, session } = await service.login(email, password);
 
-    // Crear cookies HttpOnly
     reply.setCookie('sb-access-token', session.access_token, {
       httpOnly: true,
       secure: env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60, // 1 hora
+      maxAge: 60 * 60,
     });
 
     reply.setCookie('sb-refresh-token', session.refresh_token, {
@@ -75,10 +76,9 @@ export async function authRoutes(fastify, opts) {
       secure: env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 días
+      maxAge: 60 * 60 * 24 * 7,
     });
 
-    // Sanitizar el objeto user (no exponer authUserId, deletedAt)
     const { authUserId, deletedAt, ...safeUser } = user;
     return reply.send({ user: safeUser });
   });
@@ -96,7 +96,6 @@ export async function authRoutes(fastify, opts) {
   // POST /logout
   // ============================================================
   fastify.post('/logout', async (req, reply) => {
-    // Limpiar cookies
     reply.clearCookie('sb-access-token', { path: '/' });
     reply.clearCookie('sb-refresh-token', { path: '/' });
 
@@ -112,7 +111,21 @@ export async function authRoutes(fastify, opts) {
     { schema: forgotPasswordSchema },
     async (req, reply) => {
       const { email } = req.body;
-      const result = await service.forgotPassword(email);
+      const requestIp = req.ip;
+      const result = await service.forgotPassword(email, requestIp);
+      return reply.send(result);
+    }
+  );
+
+  // ============================================================
+  // POST /reset-password
+  // ============================================================
+  fastify.post(
+    '/reset-password',
+    { schema: resetPasswordSchema },
+    async (req, reply) => {
+      const { token, newPassword } = req.body;
+      const result = await service.resetPassword(token, newPassword);
       return reply.send(result);
     }
   );
