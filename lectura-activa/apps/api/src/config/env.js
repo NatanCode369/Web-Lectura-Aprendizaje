@@ -1,3 +1,6 @@
+import 'dotenv/config';
+import { z } from 'zod';
+
 /**
  * Configuración del entorno — validada al arranque.
  *
@@ -8,10 +11,10 @@
  * - MongoDB siempre tiene un default local para no bloquear el arranque.
  */
 
-import { z } from 'zod';
-
 const NODE_ENV = process.env.NODE_ENV ?? 'development';
 const isProd = NODE_ENV === 'production';
+
+
 
 // Helper: en producción exige string no vacío; en dev permite ausencia.
 const optionalInDev = (name) =>
@@ -37,7 +40,7 @@ const schema = z.object({
         .string()
         .url()
         .default('mongodb://localhost:27017'),
-    MONGODB_DB: z.string().min(1).default('lectura_activa'),
+    MONGODB_DB: z.string().min(1).default('lectura-activa'),
 
     // ---------- Supabase (opcionales en dev) ----------
     SUPABASE_URL: optionalInDev('SUPABASE_URL'),
