@@ -6,8 +6,8 @@
  * El frontend NO guarda tokens en localStorage.
  */
 
-import { api } from './apiClient.js';
-import { setCurrentUser, clearSession } from '../state/session.js';
+import { api } from "./apiClient.js";
+import { setCurrentUser, clearSession } from "../state/session.js";
 
 /**
  * Login con correo y contraseña.
@@ -15,7 +15,7 @@ import { setCurrentUser, clearSession } from '../state/session.js';
  * @returns {Promise<object>} usuario
  */
 export async function login({ email, password }) {
-  const response = await api.post('/auth/login', { email, password });
+  const response = await api.post("/auth/login", { email, password });
   const user = response?.user ?? response?.data ?? response;
   setCurrentUser(user);
   return user;
@@ -27,7 +27,7 @@ export async function login({ email, password }) {
  * @returns {Promise<object>} respuesta del backend
  */
 export async function register({ email, password, fullName }) {
-  const response = await api.post('/auth/register', {
+  const response = await api.post("/auth/register", {
     email,
     password,
     fullName,
@@ -42,12 +42,12 @@ export async function register({ email, password, fullName }) {
  */
 export async function logout() {
   try {
-    await api.post('/auth/logout');
+    await api.post("/auth/logout");
   } catch (e) {
-    console.warn('[authService] Error al cerrar sesión:', e);
+    console.warn("[authService] Error al cerrar sesión:", e);
   }
   clearSession();
-  window.location.href = '/src/pages/auth/login.html';
+  window.location.href = "/src/pages/auth/login.html";
 }
 
 /**
@@ -55,7 +55,7 @@ export async function logout() {
  * @param {string} email
  */
 export async function forgotPassword(email) {
-  return api.post('/auth/forgot-password', { email });
+  return api.post("/auth/forgot-password", { email });
 }
 
 /**
@@ -63,8 +63,16 @@ export async function forgotPassword(email) {
  * Usa las cookies HttpOnly automáticamente.
  */
 export async function fetchMe() {
-  const response = await api.get('/me');
+  const response = await api.get("/me");
   const user = response?.user ?? response?.data ?? response;
   setCurrentUser(user);
   return user;
+}
+
+/**
+ * Restablecer contraseña con el token recibido por correo.
+ * @param {{ token: string, newPassword: string }} data
+ */
+export async function resetPassword({ token, newPassword }) {
+  return api.post("/auth/reset-password", { token, newPassword });
 }
