@@ -1,3 +1,4 @@
+import '../../utils/analytics.js';
 import { isValidEmail } from '../../utils/validators.js';
 import { login } from '../../services/authService.js';
 import { redirectToDashboard } from '../../state/session.js';

@@ -1,3 +1,4 @@
+import '../../../../utils/analytics.js';
 /* Actividad: ordering — Dueño: Omar */
 
 import {

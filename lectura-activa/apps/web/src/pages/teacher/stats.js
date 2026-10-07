@@ -1,3 +1,4 @@
+import '../../utils/analytics.js';
 /**
  * ============================================================
  * Estadísticas del docente

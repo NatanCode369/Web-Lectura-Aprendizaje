@@ -1,3 +1,4 @@
+import '../../utils/analytics.js';
 import { isInstitutionalEmail, validatePassword, validatePasswordMatch } from '../../utils/validators.js';
 
 const form = document.getElementById('forgot-form');

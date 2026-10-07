@@ -1,3 +1,4 @@
+import '../../utils/analytics.js';
 /**
  * ============================================================
  * CONTRATO DE API — Editor de actividades

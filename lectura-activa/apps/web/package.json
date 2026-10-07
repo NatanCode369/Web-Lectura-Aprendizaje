@@ -14,5 +14,8 @@
   "type": "module",
   "devDependencies": {
     "vite": "^8.3.2"
+  },
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
   }
 }
