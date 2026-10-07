@@ -1,4 +1,6 @@
 /* Pantalla: Registro — Dueño: Omar */
+import '../../utils/analytics.js';
+import { isInstitutionalEmail, validatePassword, validateFullName, validatePasswordMatch } from '../../utils/validators.js';
 
 import {
   isInstitutionalEmail,

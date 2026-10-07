@@ -1,3 +1,4 @@
+import '../../../utils/analytics.js';
 /* Pantalla: Detalle de lectura — Dueño: Omar */
 
 import { readingService } from "../../../services/readingsService.js";

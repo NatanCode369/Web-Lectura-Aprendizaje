@@ -1,3 +1,4 @@
+import '../../../../utils/analytics.js';
 /* Actividad: multiple_choice — Dueño: Omar */
 
 import {

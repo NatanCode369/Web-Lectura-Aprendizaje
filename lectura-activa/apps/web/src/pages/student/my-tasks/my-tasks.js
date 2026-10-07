@@ -1,3 +1,4 @@
+import '../../../utils/analytics.js';
 /* Pantalla: Mis tareas — Dueño: Omar */
 
 import { assignmentService } from "../../../services/assignmentsService.js";

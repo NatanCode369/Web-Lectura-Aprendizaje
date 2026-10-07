@@ -1,3 +1,4 @@
+import '../../utils/analytics.js';
 /**
  * ============================================================
  * CONTRATO DE API — Dashboard del docente (ya conectado)

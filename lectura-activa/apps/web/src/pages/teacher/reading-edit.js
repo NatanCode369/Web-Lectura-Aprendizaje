@@ -1,3 +1,4 @@
+import '../../utils/analytics.js';
 /**
  * ============================================================
  * CONTRATO DE API — Editar lectura (ya conectado)
