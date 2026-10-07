@@ -180,11 +180,13 @@ export function authService(db) {
 
       // 2. Crear usuario en Supabase
       const { data, error } = await supabaseAdmin.auth.admin.createUser({
-        email: normalized,
-        password,
-        email_confirm: false, // Supabase enviará email de verificación
-        user_metadata: { full_name: fullName },
-      });
+  email: normalized,
+  password,
+  // En desarrollo: auto-confirmar para no bloquear pruebas.
+  // En producción: exigir verificación por correo (contexto técnico §8.1).
+  email_confirm: env.NODE_ENV !== 'production',
+  user_metadata: { full_name: fullName },
+});
 
       if (error) {
         // Detectar correo duplicado
