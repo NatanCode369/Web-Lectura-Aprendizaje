@@ -1,9 +1,7 @@
 /* Pantalla: Recuperar contraseña — Dueño: Omar */
 import '../../utils/analytics.js';
-import { isInstitutionalEmail, validatePassword, validatePasswordMatch } from '../../utils/validators.js';
-
-import { isInstitutionalEmail } from "../../utils/validators.js";
-import { forgotPassword } from "../../services/authService.js";
+import { isInstitutionalEmail } from '../../utils/validators.js';
+import { forgotPassword } from '../../services/authService.js';
 
 const form = document.getElementById("forgot-form");
 const emailInput = document.getElementById("email");
@@ -18,7 +16,7 @@ form.addEventListener("submit", async (e) => {
   const email = emailInput.value.trim().toLowerCase();
 
   if (!isInstitutionalEmail(email)) {
-    return mostrarError("Debes usar tu correo institucional (@kinal.edu.gt).");
+    return mostrarError("Debes usar tu correo institucional.");
   }
 
   const submitBtn = form.querySelector('button[type="submit"]');

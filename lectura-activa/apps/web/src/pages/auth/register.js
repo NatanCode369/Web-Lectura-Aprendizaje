@@ -1,7 +1,5 @@
 /* Pantalla: Registro — Dueño: Omar */
 import '../../utils/analytics.js';
-import { isInstitutionalEmail, validatePassword, validateFullName, validatePasswordMatch } from '../../utils/validators.js';
-
 import {
   isInstitutionalEmail,
   validatePassword,
@@ -30,7 +28,7 @@ form.addEventListener("submit", async (e) => {
   if (!nombreCheck.valid) return mostrarError(nombreCheck.message);
 
   if (!isInstitutionalEmail(email)) {
-    return mostrarError("Debes usar tu correo institucional (@kinal.edu.gt).");
+    return mostrarError("Debes usar tu correo institucional.");
   }
 
   const passCheck = validatePassword(password);
