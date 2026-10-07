@@ -9,7 +9,7 @@ COPY package.json package-lock.json* ./
 # Si aún no hay lockfile, caemos a npm install (menos ideal en CI).
 RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
 
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
