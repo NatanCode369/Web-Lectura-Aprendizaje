@@ -1,17 +1,19 @@
-import { requireSession } from '../../shared/auth/session.js';
 import { requireRole } from '../../shared/authorization/policies.js';
-import { groupsService } from './groups.service.js';
 import { authenticate } from '../../shared/middleware/authenticate.js';
+import { groupsService } from './groups.service.js';
 import { validate } from '../../shared/validation/index.js';
 import {
   createGroupSchema,
   updateGroupSchema,
   addStudentsSchema,
-  listGroupsSchema
+  listGroupsSchema,
 } from './groups.schemas.js';
 
-export async function groupsRoutes(fastify) {
-  fastify.addHook('preHandler', requireSession);
+export async function groupsRoutes(fastify, opts) {
+  const { db } = opts;
+  const authMiddleware = authenticate(db);
+
+  fastify.addHook('preHandler', authMiddleware);
 
   fastify.get('/groups', async (request) => {
     const query = validate(listGroupsSchema, request.query);

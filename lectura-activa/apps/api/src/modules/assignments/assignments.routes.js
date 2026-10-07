@@ -1,5 +1,5 @@
-import { requireSession } from '../../shared/auth/session.js';
 import { requireRole } from '../../shared/authorization/policies.js';
+import { authenticate } from '../../shared/middleware/authenticate.js';
 import { validate } from '../../shared/validation/index.js';
 import { assignmentsService } from './assignments.service.js';
 import { attemptsService } from '../attempts/attempts.service.js';
@@ -7,11 +7,14 @@ import {
   createAssignmentSchema,
   listAssignmentsSchema,
   startAssignmentSchema,
-  submitAttemptSchema
+  submitAttemptSchema,
 } from './assignments.schemas.js';
 
-export async function assignmentsRoutes(fastify) {
-  fastify.addHook('preHandler', requireSession);
+export async function assignmentsRoutes(fastify, opts) {
+  const { db } = opts;
+  const authMiddleware = authenticate(db);
+
+  fastify.addHook('preHandler', authMiddleware);
 
   fastify.get(
     '/assignments',
