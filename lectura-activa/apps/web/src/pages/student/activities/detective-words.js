@@ -1,4 +1,4 @@
-import '../../../../utils/analytics.js';
+import '../../../utils/analytics.js';
 /* Actividad: detective — Dueño: Omar */
 
 import {

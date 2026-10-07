@@ -1,4 +1,3 @@
-import '../../../utils/analytics.js';
 /* Pantalla: Lectura y actividades — Dueño: Omar */
 
 import { assignmentService } from "../../../services/assignmentsService.js";
@@ -19,8 +18,6 @@ const ACTIVITY_SCREENS = {
   true_false: "true-false.html",
   ordering: "ordering.html",
   matching: "matching.html",
-  short_answer: "short-answer.html",
-  short_text: "short-answer.html",
   detective: "detective-words.html",
 };
 
@@ -30,8 +27,6 @@ const ACTIVITY_INFO = {
   true_false: { icon: "✓", title: "Verdadero o falso" },
   ordering: { icon: "🔀", title: "Ordena la historia" },
   matching: { icon: "🔗", title: "Relacionar conceptos" },
-  short_answer: { icon: "✎", title: "Respuesta corta" },
-  short_text: { icon: "✎", title: "Respuesta corta" },
   detective: { icon: "🔍", title: "Detective de palabras" },
 };
 
@@ -301,7 +296,6 @@ async function loadActivity() {
   showState("loading");
 
   try {
-    /* 1. Cargar la tarea (con readingTitle, groupName, timeLimitMinutes) */
     const saResponse = await assignmentService.getMine(
       state.studentAssignmentId,
     );
@@ -321,7 +315,6 @@ async function loadActivity() {
 
     state.studentAssignment = studentAssignment;
 
-    /* 2. Cargar la lectura (para el PDF) */
     const readingId = studentAssignment.assignment?.readingId;
     if (readingId) {
       try {
@@ -336,7 +329,6 @@ async function loadActivity() {
       }
     }
 
-    /* 3. Llamar a start para obtener activitySnapshot (idempotente) */
     const startResponse = await assignmentService.start(
       studentAssignment.assignmentId,
       generateRequestId(),
@@ -344,7 +336,6 @@ async function loadActivity() {
 
     state.activities = startResponse?.activitySnapshot || [];
 
-    /* 4. Marcar actividades ya completadas */
     const progress = studentAssignment.activityProgress || [];
     progress.forEach((p) => {
       if (p.status === "completed" && p.activityId) {
@@ -352,7 +343,6 @@ async function loadActivity() {
       }
     });
 
-    /* 5. Rellenar el título — usamos readingTitle del backend */
     const title =
       studentAssignment.readingTitle ||
       state.reading?.title ||
@@ -361,10 +351,8 @@ async function loadActivity() {
     if (els.title) els.title.textContent = title;
     document.title = `${title} — Lectura Activa`;
 
-    /* 6. Renderizar el PDF */
     renderPdf(state.reading);
 
-    /* 7. Contadores */
     if (els.activitiesCount) {
       els.activitiesCount.textContent = String(state.activities.length);
     }
@@ -375,7 +363,6 @@ async function loadActivity() {
       els.completedCount.textContent = String(state.completedActivityIds.size);
     }
 
-    /* 8. Temporizador — usamos timeLimitMinutes del backend */
     const timeLimitMinutes =
       studentAssignment.assignment?.timeLimitMinutes ?? 20;
     state.totalSeconds = timeLimitMinutes * 60;
@@ -383,10 +370,8 @@ async function loadActivity() {
     if (els.timer) els.timer.textContent = formatTimer(state.remainingSeconds);
     startTimer();
 
-    /* 9. Mostrar contenido */
     showState("content");
 
-    /* 10. Si todas están completas, abrir el panel */
     if (
       state.activities.length > 0 &&
       state.completedActivityIds.size === state.activities.length
