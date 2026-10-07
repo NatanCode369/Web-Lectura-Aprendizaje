@@ -85,66 +85,47 @@ async function main() {
   ]);
 
   // ---------- users ----------
-  await ensureCollection(db, 'users', {
+    // ---------- passwordResets ----------
+  await ensureCollection(db, 'passwordResets', {
     $jsonSchema: {
       bsonType: 'object',
-      required: [
-        'authUserId',
-        'email',
-        'role',
-        'institutionId',
-        'status',
-        'createdAt',
-        'updatedAt',
-      ],
+      required: ['email', 'tokenHash', 'expiresAt', 'usedAt', 'createdAt'],
       properties: {
         _id: { bsonType: 'objectId' },
-        authUserId: { bsonType: 'string', minLength: 1 },
-        email: {
-          bsonType: 'string',
-          pattern: '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$',
-        },
-        fullName: { bsonType: ['string', 'null'], maxLength: 120 },
-        role: { enum: ['student', 'teacher', 'admin'] },
-        institutionId: { bsonType: 'objectId' },
-        status: { enum: ['active', 'suspended', 'deleted'] },
-        profile: {
-          bsonType: 'object',
-          properties: {
-            avatarUrl: { bsonType: ['string', 'null'], maxLength: 500 },
-            preferences: { bsonType: 'object' },
-          },
-        },
+        email: { bsonType: 'string', pattern: '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$' },
+        tokenHash: { bsonType: 'string', minLength: 64, maxLength: 64 },
+        expiresAt: { bsonType: 'date' },
+        usedAt: { bsonType: ['date', 'null'] },
         createdAt: { bsonType: 'date' },
-        updatedAt: { bsonType: 'date' },
-        deletedAt: { bsonType: ['date', 'null'] },
+        requestIp: { bsonType: ['string', 'null'] },
       },
       additionalProperties: false,
     },
   });
 
-  await ensureIndexes(db, 'users', [
+  await ensureIndexes(db, 'passwordResets', [
     {
-      keys: { authUserId: 1 },
-      options: { unique: true, name: 'uniq_authUserId' },
+      keys: { tokenHash: 1 },
+      options: { unique: true, name: 'uniq_tokenHash' },
     },
     {
-      keys: { email: 1 },
-      options: { unique: true, name: 'uniq_email' },
-    },
-    {
-      keys: { institutionId: 1, role: 1 },
-      options: { name: 'by_institution_role' },
-    },
-    {
-      keys: { status: 1, updatedAt: -1 },
-      options: { name: 'by_status_recent' },
+      keys: { email: 1, createdAt: -1 },
+      options: { name: 'by_email_recent' },
     },
   ]);
 
-  await client.close();
-  console.log('\n✅ Migración completada.');
-}
+  // TTL: borra automáticamente tokens expirados.
+  await db
+    .collection('passwordResets')
+    .createIndex(
+      { expiresAt: 1 },
+      { expireAfterSeconds: 0, name: 'ttl_expiresAt' }
+    );
+  console.log('  ✔ TTL index ttl_expiresAt en passwordResets');
+
+    await client.close();
+    console.log('\n✅ Migración completada.');
+  }
 
 main().catch((err) => {
   console.error('❌ Error en migración:', err);
