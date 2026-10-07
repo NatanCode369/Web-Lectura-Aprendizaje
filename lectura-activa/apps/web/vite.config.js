@@ -1,5 +1,4 @@
 ﻿import { defineConfig } from "vite";
-import { resolve } from "path";
 import { globSync } from "node:fs";
 import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
