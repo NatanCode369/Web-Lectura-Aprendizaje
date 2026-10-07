@@ -1,4 +1,6 @@
 /* Pantalla: Recuperar contraseña — Dueño: Omar */
+import '../../utils/analytics.js';
+import { isInstitutionalEmail, validatePassword, validatePasswordMatch } from '../../utils/validators.js';
 
 import { isInstitutionalEmail } from "../../utils/validators.js";
 import { forgotPassword } from "../../services/authService.js";

@@ -1,3 +1,4 @@
+import '../../../../utils/analytics.js';
 /* Actividad: true_false — Dueño: Omar */
 
 import {

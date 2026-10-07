@@ -1,3 +1,4 @@
+import '../../../utils/analytics.js';
 /* Pantalla: Lectura y actividades — Dueño: Omar */
 
 import { assignmentService } from "../../../services/assignmentsService.js";
