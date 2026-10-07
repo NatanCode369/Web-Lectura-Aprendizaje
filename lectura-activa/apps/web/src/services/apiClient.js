@@ -16,14 +16,22 @@ const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
  * @returns {Promise<any>} - Respuesta parseada o null
  */
 export async function apiFetch(path, options = {}) {
+  const { method = 'GET', body, headers, ...rest } = options;
+
   const finalOptions = {
+    method,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(options.headers ?? {})
+      ...(headers ?? {}),
     },
-    ...options
+    ...rest,
   };
+
+  // POST/PATCH/PUT siempre llevan body (aunque sea {})
+  if (method !== 'GET' && method !== 'DELETE' && method !== 'HEAD') {
+    finalOptions.body = body !== undefined ? JSON.stringify(body) : '{}';
+  }
 
   let response;
   try {
@@ -57,8 +65,8 @@ export async function apiFetch(path, options = {}) {
  */
 export const api = {
   get: (path) => apiFetch(path, { method: 'GET' }),
-  post: (path, body) => apiFetch(path, { method: 'POST', body: JSON.stringify(body) }),
-  patch: (path, body) => apiFetch(path, { method: 'PATCH', body: JSON.stringify(body) }),
-  put: (path, body) => apiFetch(path, { method: 'PUT', body: JSON.stringify(body) }),
-  delete: (path) => apiFetch(path, { method: 'DELETE' })
+  post: (path, body) => apiFetch(path, { method: 'POST', body }),
+  patch: (path, body) => apiFetch(path, { method: 'PATCH', body }),
+  put: (path, body) => apiFetch(path, { method: 'PUT', body }),
+  delete: (path) => apiFetch(path, { method: 'DELETE' }),
 };

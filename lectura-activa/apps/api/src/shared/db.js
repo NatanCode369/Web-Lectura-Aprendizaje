@@ -1,3 +1,4 @@
+import 'dotenv/config';
 /**
  * Conexión a MongoDB — singleton.
  *
@@ -5,12 +6,14 @@
  * MongoClient por proceso y lo reutilizamos en todos los repositorios.
  */
 
+
 import { MongoClient } from 'mongodb';
 import { env } from '../config/env.js';
 import { logger } from './logger.js';
 
 let client = null;
 let db = null;
+
 
 /**
  * Conecta a MongoDB si aún no hay conexión activa.

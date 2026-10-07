@@ -1,9 +1,12 @@
-import { requireSession } from '../../shared/auth/session.js';
 import { requireRole } from '../../shared/authorization/policies.js';
+import { authenticate } from '../../shared/middleware/authenticate.js';
 import { studentAssignmentsService } from './studentAssignments.service.js';
 
-export async function studentAssignmentsRoutes(fastify) {
-  fastify.addHook('preHandler', requireSession);
+export async function studentAssignmentsRoutes(fastify, opts) {
+  const { db } = opts;
+  const authMiddleware = authenticate(db);
+
+  fastify.addHook('preHandler', authMiddleware);
 
   fastify.get(
     '/me/assignments',
@@ -12,9 +15,9 @@ export async function studentAssignmentsRoutes(fastify) {
       const query = {
         status: request.query.status,
         page: Number(request.query.page ?? 1),
-        limit: Number(request.query.limit ?? 20)
+        limit: Number(request.query.limit ?? 20),
       };
-      return studentAssignmentsService.listMine(request.user.userId, query);
+      return studentAssignmentsService.listMine(request.user._id, query);
     }
   );
 
@@ -23,7 +26,7 @@ export async function studentAssignmentsRoutes(fastify) {
     { preHandler: requireRole('student') },
     async (request) => {
       return studentAssignmentsService.getMine(
-        request.user.userId,
+        request.user._id,
         request.params.id
       );
     }

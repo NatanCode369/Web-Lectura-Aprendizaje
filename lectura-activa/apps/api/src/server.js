@@ -22,11 +22,10 @@ import { studentAssignmentsRoutes } from './modules/studentAssignments/studentAs
 import { attemptsRoutes } from './modules/attempts/attempts.routes.js';
 import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
 
-import { buildUserRepository } from './modules/users/user.repository.js';
 import { buildReadingRepository } from './modules/readings/reading.repository.js';
 import { buildAuditRepository } from './modules/readings/audit.repository.js';
 import { buildReadingService } from './modules/readings/reading.service.js';
-import { buildAuth } from './shared/auth.js';
+import { authenticate } from './shared/middleware/authenticate.js';
 import { registerReadingRoutes } from './modules/readings/reading.routes.js';
 
 export async function buildServer({ withDb = true } = {}) {
@@ -41,16 +40,41 @@ export async function buildServer({ withDb = true } = {}) {
   // ---- Plugins de seguridad ----
   await fastify.register(helmet, { contentSecurityPolicy: false });
 
+  // ---- CORS ----
+  // Dev: permite cualquier localhost/127.0.0.1 y los orígenes configurados.
+  // Prod: solo los orígenes de CORS_ORIGINS.
+  const isDev = env.NODE_ENV !== 'production';
+  const allowedOrigins = Array.isArray(env.CORS_ORIGINS)
+    ? env.CORS_ORIGINS
+    : String(env.CORS_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean);
+
   await fastify.register(cors, {
     origin: (origin, callback) => {
-      const allowedOrigins = env.CORS_ORIGINS || [];
+      // Sin Origin: PowerShell, curl, health checks, Postman
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Origen explícitamente permitido
       if (allowedOrigins.includes('*')) {
         return callback(null, true);
       }
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      callback(new Error('Not allowed by CORS'));
+
+      // En dev: permitir cualquier localhost/127.0.0.1 en cualquier puerto
+      if (isDev && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      // En dev: permitir cualquier IP de red local (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+      if (isDev && /^https?:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      logger.warn({ origin, allowedOrigins }, 'CORS: origen no permitido');
+      return callback(new Error(`Not allowed by CORS: ${origin}`));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
@@ -82,10 +106,10 @@ export async function buildServer({ withDb = true } = {}) {
     }),
   });
 
-  // ⭐ multipart para subir PDFs
+  // ---- multipart para subir PDFs ----
   await fastify.register(multipart, {
     limits: {
-      fileSize: 20 * 1024 * 1024, // 20 MB
+      fileSize: 20 * 1024 * 1024,
       files: 1,
       fields: 5,
     },
@@ -141,15 +165,15 @@ export async function buildServer({ withDb = true } = {}) {
   await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics', db });
 
   // ---- Readings (módulo de Adrián) ----
-  const userRepository = buildUserRepository();
   const readingRepository = buildReadingRepository();
   const auditRepository = buildAuditRepository();
   const readingService = buildReadingService({ readingRepository, auditRepository });
 
-  const authenticate = buildAuth({ userRepository });   // ← CAMBIADO: "auth" → "authenticate"
+  // Middleware de autenticación (nuevo, ADR 0001 + 0004)
+  const authMiddleware = authenticate(db);
 
   await registerReadingRoutes(fastify, {
-    authenticate,                                          // ← CAMBIADO: pasa "authenticate"
+    authenticate: authMiddleware,
     readingService,
     prefix: '/api/v1/readings',
   });
