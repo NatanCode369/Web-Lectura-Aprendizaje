@@ -4,6 +4,8 @@
 
 import { AppError, ErrorCodes } from '../../shared/errors/AppError.js';
 import { env } from '../../config/env.js';
+import { adminsRepo, teachersRepo } from './auth.repository.js';
+import { resolveRoleFromWhitelist, shouldUpdateRole } from './roles.domain.js';
 import {
   supabaseAuth,
   supabaseAdmin,
@@ -34,6 +36,8 @@ export function authService(db) {
   const institutions = institutionsRepo(db);
   const users = usersRepo(db);
   const passwordResets = passwordResetsRepo(db);
+  const admins = adminsRepo(db);
+  const teachers = teachersRepo(db);
   const mailer = createMailer();
 
   function ensureSupabaseReady() {
@@ -70,47 +74,67 @@ export function authService(db) {
     },
 
     async ensureUserFromJwt(claims) {
-      const authUserId = claims?.sub;
-      const rawEmail = claims?.email;
+  const authUserId = claims?.sub;
+  const rawEmail = claims?.email;
 
-      if (!authUserId || !rawEmail) {
-        throw AppError.unauthorized(
-          ErrorCodes.INVALID_TOKEN,
-          'El token no contiene la información mínima requerida.'
-        );
-      }
+  if (!authUserId || !rawEmail) {
+    throw AppError.unauthorized(
+      ErrorCodes.INVALID_TOKEN,
+      'El token no contiene la información mínima requerida.'
+    );
+  }
 
-      const email = normalizeEmail(rawEmail);
+  const email = normalizeEmail(rawEmail);
 
-      const existing = await users.findByAuthUserId(authUserId);
-      if (existing) return existing;
+  // Resolver el rol según la whitelist (P1, 07-Oct-2026).
+  const adminEmails = await admins.findAllEmails();
+  const teacherEmails = await teachers.findAllEmails();
+  const resolvedRole = resolveRoleFromWhitelist(email, {
+    admins: adminEmails,
+    teachers: teacherEmails,
+  });
 
-      const validation = await this.validateEmailDomain(email);
-      if (!validation.allowed) {
-        throw AppError.forbidden(
-          ErrorCodes.DOMAIN_NOT_ALLOWED,
-          'El dominio de tu correo no está autorizado.'
-        );
-      }
-
-      const doc = buildNewUserDoc({
-        authUserId,
-        email,
-        fullName: claims.user_metadata?.full_name ?? null,
-        institutionId: validation.institutionId,
-        role: defaultRoleForNewUser(),
+  // 1. ¿Ya existe?
+  const existing = await users.findByAuthUserId(authUserId);
+  if (existing) {
+    // Si el rol cambió (usuario promovido a admin/teacher), actualizar.
+    if (shouldUpdateRole(existing.role, resolvedRole)) {
+      const updated = await users.updateById(existing._id, {
+        role: resolvedRole,
       });
+      return updated ?? existing;
+    }
+    return existing;
+  }
 
-      try {
-        return await users.create(doc);
-      } catch (err) {
-        if (err?.code === 11000) {
-          const raced = await users.findByAuthUserId(authUserId);
-          if (raced) return raced;
-        }
-        throw err;
-      }
-    },
+  // 2. Defensa en profundidad: revalidar dominio antes de crear
+  const validation = await this.validateEmailDomain(email);
+  if (!validation.allowed) {
+    throw AppError.forbidden(
+      ErrorCodes.DOMAIN_NOT_ALLOWED,
+      'El dominio de tu correo no está autorizado.'
+    );
+  }
+
+  // 3. Crear documento con el rol resuelto por whitelist
+  const doc = buildNewUserDoc({
+    authUserId,
+    email,
+    fullName: claims.user_metadata?.full_name ?? null,
+    institutionId: validation.institutionId,
+    role: resolvedRole,
+  });
+
+  try {
+    return await users.create(doc);
+  } catch (err) {
+    if (err?.code === 11000) {
+      const raced = await users.findByAuthUserId(authUserId);
+      if (raced) return raced;
+    }
+    throw err;
+  }
+},
 
     async login(email, password) {
       ensureSupabaseReady();
