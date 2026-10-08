@@ -1,5 +1,5 @@
 import { assignmentsRepository } from './assignments.repository.js';
-import { readingsRepository } from '../readings/readings.repository.js';
+import { buildReadingRepository } from '../readings/reading.repository.js';
 import { groupsRepository } from '../groups/groups.repository.js';
 import { studentAssignmentsService } from '../studentAssignments/studentAssignments.service.js';
 import {
@@ -7,19 +7,23 @@ import {
   assertDatesValid,
   buildActivitySnapshot
 } from './assignments.domain.js';
-import { AppError } from '../../shared/errors/AppError.js';
+import { ForbiddenError, NotFoundError } from '../../shared/errors/index.js';
 import { logger } from '../../shared/logger/index.js';
+
+// El módulo de readings exporta una factory; el resto son singletons.
+// Instancia única local para no romper el patrón.
+const readingRepository = buildReadingRepository();
 
 export const assignmentsService = {
   async create(user, payload) {
     assertDatesValid(payload.availableFrom, payload.dueAt);
 
     const [reading, group] = await Promise.all([
-      readingsRepository.findById(payload.readingId),
+      readingRepository.findById(payload.readingId),
       groupsRepository.findByIdForTeacher(payload.groupId, user.userId)
     ]);
 
-    if (!group) throw AppError.forbidden('FORBIDDEN', 'El grupo no te pertenece');
+    if (!group) throw new ForbiddenError('FORBIDDEN', 'El grupo no te pertenece');
     assertReadingPublished(reading);
 
     const assignment = await assignmentsRepository.create({
@@ -53,13 +57,13 @@ export const assignmentsService = {
 
   async getByIdForTeacher(user, id) {
     const assignment = await assignmentsRepository.findByIdForTeacher(id, user.userId);
-    if (!assignment) throw AppError.notFound('NOT_FOUND', 'Asignación no encontrada');
+    if (!assignment) throw new NotFoundError('Asignación');
     return assignment;
   },
 
   async close(user, id) {
     const assignment = await assignmentsRepository.findByIdForTeacher(id, user.userId);
-    if (!assignment) throw AppError.notFound('NOT_FOUND', 'Asignación no encontrada');
+    if (!assignment) throw new NotFoundError('Asignación');
     return assignmentsRepository.updateStatus(id, 'closed');
   }
 };

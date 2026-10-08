@@ -82,7 +82,6 @@ export async function buildServer({ withDb = true } = {}) {
     exposedHeaders: ['x-request-id'],
   });
 
-  // Si REQUIRE_EDGE=true, solo se acepta tráfico que venga del Worker.
   registerEdgeGuard(fastify, {
     secret: env.ORIGIN_SHARED_SECRET,
     requireEdge: env.REQUIRE_EDGE,
@@ -106,7 +105,7 @@ export async function buildServer({ withDb = true } = {}) {
     }),
   });
 
-  // ---- multipart para subir PDFs ----
+  // multipart para subir PDFs
   await fastify.register(multipart, {
     limits: {
       fileSize: 20 * 1024 * 1024,
@@ -158,18 +157,18 @@ export async function buildServer({ withDb = true } = {}) {
   // ---- Rutas de negocio ----
   await fastify.register(authRoutes, { prefix: '/api/v1/auth', db });
   await fastify.register(usersRoutes, { prefix: '/api/v1', db });
+
   await fastify.register(groupsRoutes, { prefix: '/api/v1/groups', db });
   await fastify.register(assignmentsRoutes, { prefix: '/api/v1/assignments', db });
+  await fastify.register(attemptsRoutes, { prefix: '/api/v1/assignments', db });
   await fastify.register(studentAssignmentsRoutes, { prefix: '/api/v1/student-assignments', db });
-  await fastify.register(attemptsRoutes, { prefix: '/api/v1/attempts', db });
   await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics', db });
 
-  // ---- Readings (módulo de Adrián) ----
+  // ---- Readings ----
   const readingRepository = buildReadingRepository();
   const auditRepository = buildAuditRepository();
   const readingService = buildReadingService({ readingRepository, auditRepository });
 
-  // Middleware de autenticación (nuevo, ADR 0001 + 0004)
   const authMiddleware = authenticate(db);
 
   await registerReadingRoutes(fastify, {
