@@ -18,11 +18,11 @@ import { analyticsService } from '../../services/analyticsService.js';
 
 function escapeHtml(text) {
   return String(text)
-    .replaceAll('&', '&')
-    .replaceAll('<', '<')
-    .replaceAll('>', '>')
-    .replaceAll('"', '"')
-    .replaceAll("'", ''');
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 const $ = (id) => document.getElementById(id);
