@@ -16,7 +16,6 @@ import { env } from '../../config/env.js';
 import { AppError, ErrorCodes } from '../../shared/errors/index.js';
 import { authService } from './auth.service.js';
 
-
 export async function authRoutes(fastify, opts) {
   const { db } = opts;
   const service = authService(db);

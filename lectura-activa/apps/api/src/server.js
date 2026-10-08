@@ -105,7 +105,6 @@ export async function buildServer({ withDb = true } = {}) {
     }),
   });
 
-
   // multipart para subir PDFs
   await fastify.register(multipart, {
     limits: {
