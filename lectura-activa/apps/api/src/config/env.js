@@ -72,16 +72,15 @@ const schema = z.object({
       message: 'MAILER_MODE=console no está permitido en producción. Usa MAILER_MODE=resend.',
     });
   }
+  // Resend rechaza remitentes de dominios locales o no verificados.
+  if (isProd && value.MAILER_MODE === 'resend' && value.MAILER_FROM.endsWith('.local')) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['MAILER_FROM'],
+      message: 'MAILER_FROM debe ser un correo de un dominio verificado en Resend.',
+    });
+  }
 });
-
-// P1 (07-Oct-2026): en producción, MAILER_FROM no puede ser .local (Resend lo rechaza).
-if (isProd && value.MAILER_MODE === 'resend' && value.MAILER_FROM.endsWith('.local')) {
-  ctx.addIssue({
-    code: 'custom',
-    path: ['MAILER_FROM'],
-    message: 'MAILER_FROM debe ser un correo de un dominio verificado en Resend.',
-  });
-}
 
 function loadEnv() {
   const parsed = schema.safeParse(process.env);

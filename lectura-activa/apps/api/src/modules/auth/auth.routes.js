@@ -59,31 +59,38 @@ export async function authRoutes(fastify, opts) {
   // ============================================================
   // POST /login
   // ============================================================
-  fastify.post('/login', { schema: loginSchema }, async (req, reply) => {
-    const { email, password } = req.body;
-    const { user, session } = await service.login(email, password);
+  fastify.post(
+    '/login',
+    {
+      schema: loginSchema,
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    },
+    async (req, reply) => {
+      const { email, password } = req.body;
+      const { user, session } = await service.login(email, password);
 
-    reply.setCookie('sb-access-token', session.access_token, {
-      httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      // P1 (07-Oct-2026): 24h para evitar expulsiones silenciosas.
-      // El refresh endpoint se implementará en Fase 2 si es necesario.
-      maxAge: 60 * 60 * 24, // 24 horas
-    });
+      reply.setCookie('sb-access-token', session.access_token, {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        // P1 (07-Oct-2026): 24h para evitar expulsiones silenciosas.
+        // El refresh endpoint se implementará en Fase 2 si es necesario.
+        maxAge: 60 * 60 * 24, // 24 horas
+      });
 
-    reply.setCookie('sb-refresh-token', session.refresh_token, {
-      httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7,
-    });
+      reply.setCookie('sb-refresh-token', session.refresh_token, {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7,
+      });
 
-    const { authUserId, deletedAt, ...safeUser } = user;
-    return reply.send({ user: safeUser });
-  });
+      const { authUserId, deletedAt, ...safeUser } = user;
+      return reply.send({ user: safeUser });
+    }
+  );
 
   // ============================================================
   // POST /register
@@ -110,7 +117,10 @@ export async function authRoutes(fastify, opts) {
   // ============================================================
   fastify.post(
     '/forgot-password',
-    { schema: forgotPasswordSchema },
+    {
+      schema: forgotPasswordSchema,
+      config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+    },
     async (req, reply) => {
       const { email } = req.body;
       const requestIp = req.ip;
@@ -124,7 +134,10 @@ export async function authRoutes(fastify, opts) {
   // ============================================================
   fastify.post(
     '/reset-password',
-    { schema: resetPasswordSchema },
+    {
+      schema: resetPasswordSchema,
+      config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+    },
     async (req, reply) => {
       const { token, newPassword } = req.body;
       const result = await service.resetPassword(token, newPassword);
