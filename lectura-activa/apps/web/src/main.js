@@ -1,5 +1,9 @@
-﻿// lectura-activa/apps/web/src/main.js
+// lectura-activa/apps/web/src/main.js
 import './styles/base.css';
+import { injectSpeedInsights } from '@vercel/speed-insights';
+
+// Initialize Vercel Speed Insights
+injectSpeedInsights();
 
 /**
  * Router simple para la SPA
