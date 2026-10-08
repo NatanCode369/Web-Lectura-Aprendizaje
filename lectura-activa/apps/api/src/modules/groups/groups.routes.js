@@ -15,10 +15,14 @@ export async function groupsRoutes(fastify, opts) {
 
   fastify.addHook('preHandler', authMiddleware);
 
-  fastify.get('/groups', async (request) => {
-    const query = validate(listGroupsSchema, request.query);
-    return groupsService.list(request.user, query);
-  });
+  fastify.get(
+    '/groups',
+    { preHandler: requireRole('teacher', 'admin') },
+    async (request) => {
+      const query = validate(listGroupsSchema, request.query);
+      return groupsService.list(request.user, query);
+    }
+  );
 
   fastify.post(
     '/groups',
@@ -30,9 +34,13 @@ export async function groupsRoutes(fastify, opts) {
     }
   );
 
-  fastify.get('/groups/:id', async (request) => {
-    return groupsService.getById(request.user, request.params.id);
-  });
+  fastify.get(
+    '/groups/:id',
+    { preHandler: requireRole('teacher', 'admin') },
+    async (request) => {
+      return groupsService.getById(request.user, request.params.id);
+    }
+  );
 
   fastify.patch(
     '/groups/:id',

@@ -13,7 +13,7 @@
  */
 
 import { env } from '../../config/env.js';
-import { AppError, ErrorCodes } from '../../shared/errors/index.js';
+import { UnauthorizedError, ForbiddenError } from '../../shared/errors/AppError.js';
 import { authService } from './auth.service.js';
 import {
   validateDomainSchema,
@@ -36,20 +36,14 @@ export async function authRoutes(fastify, opts) {
     async (req) => {
       const secret = req.headers['x-internal-secret'];
       if (secret !== env.INTERNAL_HOOK_SECRET) {
-        throw AppError.unauthorized(
-          ErrorCodes.UNAUTHORIZED_HOOK,
-          'Secreto del hook inválido.'
-        );
+        throw new UnauthorizedError('UNAUTHORIZED_HOOK', 'Secreto del hook inválido.');
       }
 
       const { email } = req.body;
       const result = await service.validateEmailDomain(email);
 
       if (!result.allowed) {
-        throw AppError.forbidden(
-          ErrorCodes.DOMAIN_NOT_ALLOWED,
-          'El dominio del correo no está autorizado.'
-        );
+        throw new ForbiddenError('DOMAIN_NOT_ALLOWED', 'El dominio del correo no está autorizado.');
       }
 
       return { allowed: true, institutionId: result.institutionId };

@@ -11,7 +11,7 @@ export async function attemptsRoutes(fastify, opts) {
   fastify.addHook('preHandler', authMiddleware);
 
   fastify.post(
-    '/assignments/:id/start',
+    '/:id/start',
     { preHandler: requireRole('student') },
     async (request) => {
       const payload = validate(startAttemptSchema, request.body);
@@ -20,7 +20,7 @@ export async function attemptsRoutes(fastify, opts) {
   );
 
   fastify.post(
-    '/assignments/:id/attempts',
+    '/:id/attempts',
     { preHandler: requireRole('student') },
     async (request, reply) => {
       const payload = validate(submitAttemptSchema, request.body);

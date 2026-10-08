@@ -28,7 +28,7 @@ export const assignmentService = {
    * Idempotente por requestId.
    */
   async start(assignmentId, requestId) {
-    return api.post(`/assignments/${assignmentId}/start`, { requestId });
+    return api.post(`/attempts/${assignmentId}/start`, { requestId });
   },
 
   /**
@@ -39,7 +39,7 @@ export const assignmentService = {
     assignmentId,
     { requestId, activityId, answers, timeSpentSeconds },
   ) {
-    return api.post(`/assignments/${assignmentId}/attempts`, {
+    return api.post(`/attempts/${assignmentId}/attempts`, {
       requestId,
       activityId,
       answers,

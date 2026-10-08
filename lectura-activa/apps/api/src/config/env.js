@@ -75,9 +75,6 @@ const schema = z.object({
       .string()
       .default('http://localhost:5173')
       .transform((v) => v.split(',').map((s) => s.trim()).filter(Boolean)),
-  ANALYTICS_JOB_SECRET: isProd
-      ? z.string().min(32, 'ANALYTICS_JOB_SECRET debe tener al menos 32 caracteres')
-      : z.string().min(1).optional(),
   ORIGIN_SHARED_SECRET: z.string().min(32).optional(),
   REQUIRE_EDGE: z
       .enum(['true', 'false'])

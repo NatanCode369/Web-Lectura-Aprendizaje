@@ -1,6 +1,6 @@
 import { analyticsRepository } from './analytics.repository.js';
 import { groupsRepository } from '../groups/groups.repository.js';
-import { AppError } from '../../shared/errors/AppError.js';
+import { NotFoundError, ForbiddenError } from '../../shared/errors/AppError.js';
 
 function aggregate(rows) {
   const totals = rows.reduce(
@@ -31,14 +31,14 @@ function aggregate(rows) {
 
 export const analyticsService = {
   async getGroupAnalytics(user, groupId, { from, to }) {
-    const group = await groupsRepository.findByIdForTeacher(groupId, user.userId);
+    const group = await groupsRepository.findByIdForTeacher(groupId, user._id);
 
     if (!group) {
       if (user.role === 'admin') {
         const anyGroup = await groupsRepository.findById(groupId);
-        if (!anyGroup) throw AppError.notFound('NOT_FOUND', 'Grupo no encontrado');
+        if (!anyGroup) throw new NotFoundError('Grupo');
       } else {
-        throw AppError.forbidden('FORBIDDEN', 'Este grupo no te pertenece');
+        throw new ForbiddenError('Este grupo no te pertenece');
       }
     }
 

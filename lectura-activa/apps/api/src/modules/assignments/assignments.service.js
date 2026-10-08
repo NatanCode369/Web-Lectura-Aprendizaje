@@ -1,5 +1,5 @@
 import { assignmentsRepository } from './assignments.repository.js';
-import { readingsRepository } from '../readings/readings.repository.js';
+import { readingsRepository } from '../readings/reading.repository.js';
 import { groupsRepository } from '../groups/groups.repository.js';
 import { studentAssignmentsService } from '../studentAssignments/studentAssignments.service.js';
 import {
@@ -7,8 +7,8 @@ import {
   assertDatesValid,
   buildActivitySnapshot
 } from './assignments.domain.js';
-import { AppError } from '../../shared/errors/AppError.js';
-import { logger } from '../../shared/logger/index.js';
+import { ForbiddenError, NotFoundError } from '../../shared/errors/AppError.js';
+import { logger } from '../../shared/logger.js';
 
 export const assignmentsService = {
   async create(user, payload) {
@@ -16,17 +16,17 @@ export const assignmentsService = {
 
     const [reading, group] = await Promise.all([
       readingsRepository.findById(payload.readingId),
-      groupsRepository.findByIdForTeacher(payload.groupId, user.userId)
+      groupsRepository.findByIdForTeacher(payload.groupId, user._id)
     ]);
 
-    if (!group) throw AppError.forbidden('FORBIDDEN', 'El grupo no te pertenece');
+    if (!group) throw new ForbiddenError('El grupo no te pertenece');
     assertReadingPublished(reading);
 
     const assignment = await assignmentsRepository.create({
       readingId: reading._id,
       readingVersion: reading.version ?? 1,
       groupId: group._id,
-      teacherId: user.userId,
+      teacherId: user._id,
       availableFrom: new Date(payload.availableFrom),
       dueAt: new Date(payload.dueAt),
       timeLimit: payload.timeLimit ?? null,
@@ -40,7 +40,7 @@ export const assignmentsService = {
       {
         assignmentId: assignment._id,
         groupId: group._id,
-        teacherId: user.userId
+        teacherId: user._id
       },
       'assignment created'
     );
@@ -48,18 +48,18 @@ export const assignmentsService = {
   },
 
   async listForTeacher(user, query) {
-    return assignmentsRepository.listForTeacher(user.userId, query);
+    return assignmentsRepository.listForTeacher(user._id, query);
   },
 
   async getByIdForTeacher(user, id) {
-    const assignment = await assignmentsRepository.findByIdForTeacher(id, user.userId);
-    if (!assignment) throw AppError.notFound('NOT_FOUND', 'Asignación no encontrada');
+    const assignment = await assignmentsRepository.findByIdForTeacher(id, user._id);
+    if (!assignment) throw new NotFoundError('Asignación');
     return assignment;
   },
 
   async close(user, id) {
-    const assignment = await assignmentsRepository.findByIdForTeacher(id, user.userId);
-    if (!assignment) throw AppError.notFound('NOT_FOUND', 'Asignación no encontrada');
+    const assignment = await assignmentsRepository.findByIdForTeacher(id, user._id);
+    if (!assignment) throw new NotFoundError('Asignación');
     return assignmentsRepository.updateStatus(id, 'closed');
   }
 };

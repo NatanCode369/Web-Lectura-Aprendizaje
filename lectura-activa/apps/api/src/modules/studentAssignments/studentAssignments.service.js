@@ -1,9 +1,9 @@
 import { studentAssignmentsRepository } from './studentAssignments.repository.js';
 import { assignmentsRepository } from '../assignments/assignments.repository.js';
 import { groupsRepository } from '../groups/groups.repository.js';
-import { readingsRepository } from '../readings/readings.repository.js';
-import { logger } from '../../shared/logger/index.js';
-import { AppError } from '../../shared/errors/AppError.js';
+import { readingsRepository } from '../readings/reading.repository.js';
+import { logger } from '../../shared/logger.js';
+import { NotFoundError } from '../../shared/errors/AppError.js';
 
 export const studentAssignmentsService = {
   /**
@@ -94,7 +94,7 @@ export const studentAssignmentsService = {
   async getMine(studentId, studentAssignmentId) {
     const sa = await studentAssignmentsRepository.findById(studentAssignmentId);
     if (!sa || sa.studentId.toString() !== studentId) {
-      throw AppError.notFound('NOT_FOUND', 'Tarea no encontrada');
+      throw new NotFoundError('Tarea');
     }
 
     // Enriquecer con assignment, readingTitle, groupName
