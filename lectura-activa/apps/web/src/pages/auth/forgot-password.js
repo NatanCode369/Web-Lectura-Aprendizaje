@@ -1,7 +1,7 @@
 /* Pantalla: Recuperar contraseña — Dueño: Omar */
-import '../../utils/analytics.js';
-import { isInstitutionalEmail } from '../../utils/validators.js';
-import { forgotPassword } from '../../services/authService.js';
+
+import { isValidEmail } from "../../utils/validators.js";
+import { api } from "../../services/apiClient.js";
 
 const form = document.getElementById("forgot-form");
 const emailInput = document.getElementById("email");
@@ -15,8 +15,8 @@ form.addEventListener("submit", async (e) => {
 
   const email = emailInput.value.trim().toLowerCase();
 
-  if (!isInstitutionalEmail(email)) {
-    return mostrarError("Debes usar tu correo institucional.");
+  if (!isValidEmail(email)) {
+    return mostrarError("Ingresa un correo válido.");
   }
 
   const submitBtn = form.querySelector('button[type="submit"]');
@@ -26,14 +26,17 @@ form.addEventListener("submit", async (e) => {
   }
 
   try {
-    await forgotPassword(email);
+    await api.post("/auth/forgot-password", { email });
+
     formSuccess.textContent =
-      "Si el correo existe, recibirás un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada.";
+      "Si el correo está registrado, recibirás un enlace en unos minutos. Revisa tu bandeja de entrada.";
     formSuccess.hidden = false;
     form.reset();
   } catch (error) {
     console.error("[forgot-password] Error:", error);
-    mostrarError(error.message || "No pudimos procesar tu solicitud.");
+    mostrarError(
+      error?.message || "No pudimos enviar el correo. Intenta de nuevo.",
+    );
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;

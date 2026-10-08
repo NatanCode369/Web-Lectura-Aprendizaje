@@ -1,6 +1,7 @@
 import '../../../utils/analytics.js';
 /* Pantalla: Mi progreso — Dueño: Omar */
 
+import { requireLogin } from "../../../utils/authGuard.js";
 import { assignmentService } from "../../../services/assignmentsService.js";
 import {
   formatDate,
@@ -153,12 +154,6 @@ async function loadProgress() {
     showState("content");
   } catch (error) {
     console.error("[my-progress] Error al cargar:", error);
-
-    if (error.status === 401) {
-      window.location.href = "/src/pages/auth/login.html";
-      return;
-    }
-
     showError(error.message || "No pudimos cargar tu progreso.");
   }
 }
@@ -166,7 +161,10 @@ async function loadProgress() {
 /* Init */
 function init() {
   console.info("[my-progress] Pantalla cargada.");
-  loadProgress();
+  requireLogin().then((user) => {
+    if (!user) return; // redirigido al login
+    loadProgress();
+  });
 }
 
 init();

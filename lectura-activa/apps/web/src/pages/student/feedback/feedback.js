@@ -1,6 +1,7 @@
 import '../../../utils/analytics.js';
 /* Pantalla: Feedback (Resultados) — Dueño: Omar */
 
+import { requireLogin } from "../../../utils/authGuard.js";
 import { assignmentService } from "../../../services/assignmentsService.js";
 import {
   formatDateTime,
@@ -125,11 +126,6 @@ async function loadFeedback() {
   } catch (error) {
     console.error("[feedback] Error al cargar:", error);
 
-    if (error.status === 401) {
-      window.location.href = "/src/pages/auth/login.html";
-      return;
-    }
-
     if (error.status === 404) {
       showError("No encontramos estos resultados.");
       return;
@@ -148,7 +144,10 @@ async function loadFeedback() {
 function init() {
   state.studentAssignmentId = getParam("id");
   console.info("[feedback] Pantalla cargada. ID:", state.studentAssignmentId);
-  loadFeedback();
+  requireLogin().then((user) => {
+    if (!user) return; // redirigido al login
+    loadFeedback();
+  });
 }
 
 init();
