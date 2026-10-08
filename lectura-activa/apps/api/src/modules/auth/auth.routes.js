@@ -1,15 +1,5 @@
 /**
  * Rutas del módulo auth.
- *
- * Endpoints públicos:
- * - POST /api/v1/auth/login
- * - POST /api/v1/auth/register
- * - POST /api/v1/auth/logout
- * - POST /api/v1/auth/forgot-password
- * - POST /api/v1/auth/reset-password
- *
- * Endpoint interno:
- * - POST /api/v1/auth/internal/validate-domain
  */
 
 import { env } from '../../config/env.js';
@@ -46,6 +36,7 @@ export async function authRoutes(fastify, opts) {
       const result = await service.validateEmailDomain(email);
 
       if (!result.allowed) {
+        await service.auditDomainRejection(email);
         throw AppError.forbidden(
           ErrorCodes.DOMAIN_NOT_ALLOWED,
           'El dominio del correo no está autorizado.'
@@ -59,38 +50,29 @@ export async function authRoutes(fastify, opts) {
   // ============================================================
   // POST /login
   // ============================================================
-  fastify.post(
-    '/login',
-    {
-      schema: loginSchema,
-      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
-    },
-    async (req, reply) => {
-      const { email, password } = req.body;
-      const { user, session } = await service.login(email, password);
+  fastify.post('/login', { schema: loginSchema }, async (req, reply) => {
+    const { email, password } = req.body;
+    const { user, session } = await service.login(email, password);
 
-      reply.setCookie('sb-access-token', session.access_token, {
-        httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        // P1 (07-Oct-2026): 24h para evitar expulsiones silenciosas.
-        // El refresh endpoint se implementará en Fase 2 si es necesario.
-        maxAge: 60 * 60 * 24, // 24 horas
-      });
+    reply.setCookie('sb-access-token', session.access_token, {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24,
+    });
 
-      reply.setCookie('sb-refresh-token', session.refresh_token, {
-        httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24 * 7,
-      });
+    reply.setCookie('sb-refresh-token', session.refresh_token, {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
+    });
 
-      const { authUserId, deletedAt, ...safeUser } = user;
-      return reply.send({ user: safeUser });
-    }
-  );
+    const { authUserId, deletedAt, ...safeUser } = user;
+    return reply.send({ user: safeUser });
+  });
 
   // ============================================================
   // POST /register
@@ -108,7 +90,8 @@ export async function authRoutes(fastify, opts) {
     reply.clearCookie('sb-access-token', { path: '/' });
     reply.clearCookie('sb-refresh-token', { path: '/' });
 
-    const result = await service.logout();
+    const actorId = req.user?._id ?? null;
+    const result = await service.logout(actorId);
     return reply.send(result);
   });
 
@@ -117,10 +100,7 @@ export async function authRoutes(fastify, opts) {
   // ============================================================
   fastify.post(
     '/forgot-password',
-    {
-      schema: forgotPasswordSchema,
-      config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
-    },
+    { schema: forgotPasswordSchema },
     async (req, reply) => {
       const { email } = req.body;
       const requestIp = req.ip;
@@ -134,10 +114,7 @@ export async function authRoutes(fastify, opts) {
   // ============================================================
   fastify.post(
     '/reset-password',
-    {
-      schema: resetPasswordSchema,
-      config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
-    },
+    { schema: resetPasswordSchema },
     async (req, reply) => {
       const { token, newPassword } = req.body;
       const result = await service.resetPassword(token, newPassword);
