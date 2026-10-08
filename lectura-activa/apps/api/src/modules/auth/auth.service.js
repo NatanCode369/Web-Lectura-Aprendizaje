@@ -161,21 +161,41 @@ export function authService(db) {
       const { data, error } = await supabaseAdmin.auth.admin.createUser({
         email: normalized,
         password,
-        email_confirm: env.NODE_ENV !== 'production',
+        // P1 (07-Oct-2026): auto-confirmar siempre. La pertenencia se valida
+        // por dominio institucional (hook before-user-created + validateEmailDomain).
+        email_confirm: true,
         user_metadata: { full_name: fullName },
       });
 
-      if (error) {
-        if (
-          error.message?.toLowerCase().includes('already') ||
-          error.message?.toLowerCase().includes('duplicate') ||
-          error.status === 422
-        ) {
+            if (error) {
+        const msg = error.message?.toLowerCase() ?? '';
+
+        // P1 (07-Oct-2026): separar "correo duplicado" de "contraseña inválida".
+        // Correo duplicado: 'already registered', 'duplicate', 'user already exists'.
+        if (msg.includes('already') || msg.includes('duplicate')) {
           throw AppError.conflict(
             ErrorCodes.EMAIL_ALREADY_EXISTS,
             'Ese correo ya está registrado.'
           );
         }
+
+        // Contraseña débil o rechazada por Supabase (error 422 con mensaje de password).
+        if (msg.includes('password') || msg.includes('weak')) {
+          throw AppError.unprocessable(
+            'WEAK_PASSWORD',
+            'La contraseña no cumple los requisitos de seguridad.'
+          );
+        }
+
+        // Otros 422: validación.
+        if (error.status === 422) {
+          throw AppError.badRequest(
+            'VALIDATION_ERROR',
+            'Los datos enviados no son válidos.'
+          );
+        }
+
+        // Fallback: error desconocido.
         throw AppError.internal(
           'SUPABASE_ERROR',
           'No se pudo crear la cuenta. Intenta de nuevo.'
@@ -214,24 +234,8 @@ export function authService(db) {
         return { ok: true };
       }
 
-      // Buscar el usuario en Supabase (para obtener el fullName).
-      // Si no existe, tampoco lo revelamos.
-      let supabaseUser = null;
-      try {
-        const { data, error } = await supabaseAdmin.auth.admin.listUsers({
-          page: 1,
-          perPage: 1,
-        });
-        if (error) supabaseUser = null;
-        // Nota: listUsers no filtra por email en la API admin.
-        // Alternativa: usar generateLink con type: 'recovery' y capturar el error.
-        // Para simplificar, intentamos generar el link; si falla con "not found",
-        // devolvemos ok: true sin enviar correo.
-      } catch (err) {
-        supabaseUser = null;
-      }
-
       // Verificar que el usuario exista en Supabase (sin revelar al cliente).
+      // P1 (07-Oct-2026): eliminado listUsers innecesario.
       // Usamos generateLink solo para verificar existencia.
       let userExists = true;
       try {
