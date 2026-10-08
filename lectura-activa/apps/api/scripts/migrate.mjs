@@ -173,6 +173,46 @@ async function main() {
     },
   ]);
 
+  // ---------- auditLogs ----------
+  await ensureCollection(db, 'auditLogs', {
+    $jsonSchema: {
+      bsonType: 'object',
+      required: ['action', 'resourceType', 'createdAt'],
+      properties: {
+        _id: { bsonType: 'objectId' },
+        actorId: { bsonType: ['objectId', 'null'] },
+        action: { bsonType: 'string', minLength: 3, maxLength: 60 },
+        resourceType: { bsonType: 'string', minLength: 2, maxLength: 60 },
+        resourceId: { bsonType: ['objectId', 'null'] },
+        metadata: { bsonType: 'object' },
+        createdAt: { bsonType: 'date' },
+      },
+      additionalProperties: false,
+    },
+  });
+
+  await ensureIndexes(db, 'auditLogs', [
+    {
+      keys: { actorId: 1, createdAt: -1 },
+      options: { name: 'by_actor_recent' },
+    },
+    {
+      keys: { action: 1, createdAt: -1 },
+      options: { name: 'by_action_recent' },
+    },
+    {
+      keys: { resourceType: 1, resourceId: 1, createdAt: -1 },
+      options: { name: 'by_resource_recent' },
+    },
+  ]);
+
+  // TTL: MongoDB borra automáticamente los auditLogs después de 90 días.
+  await db.collection('auditLogs').createIndex(
+    { createdAt: 1 },
+    { expireAfterSeconds: 60 * 60 * 24 * 90, name: 'ttl_90_days' }
+  );
+  console.log('  ✔ TTL index ttl_90_days en auditLogs (90 días)');
+
   await client.close();
   console.log('\n✅ Migración completada.');
 }
