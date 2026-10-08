@@ -1,5 +1,5 @@
 /* Pantalla: Registro — Dueño: Omar */
-
+import '../../utils/analytics.js';
 import {
   isValidEmail,
   validatePassword,

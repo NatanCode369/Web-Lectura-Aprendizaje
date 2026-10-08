@@ -19,8 +19,6 @@ const ACTIVITY_SCREENS = {
   true_false: "true-false.html",
   ordering: "ordering.html",
   matching: "matching.html",
-  short_answer: "short-answer.html",
-  short_text: "short-answer.html",
   detective: "detective-words.html",
 };
 
@@ -106,7 +104,7 @@ function renderPdf(reading) {
     if (els.pdfWrapper) {
       els.pdfWrapper.innerHTML = `
         <div class="activity__pdf-empty">
-          <span class="activity__pdf-empty-icon" aria-hidden="true"></span>
+          <span class="activity__pdf-empty-icon" aria-hidden="true">📄</span>
           <p class="activity__pdf-empty-text">
             El PDF de esta lectura aún no está disponible.
           </p>
@@ -114,7 +112,7 @@ function renderPdf(reading) {
       `;
     }
     console.warn(
-      "[reading-activity] El backend no devolvió URL del PDF. Revisar con Adrián.",
+      "[reading-activity] El backend no devolvió URL del PDF. Revisar con Adrián."
     );
     return;
   }
@@ -140,7 +138,7 @@ function updateTimer() {
     els.timerContainer.classList.remove(
       "activity__timer--warning",
       "activity__timer--danger",
-      "activity__timer--over",
+      "activity__timer--over"
     );
 
     if (state.remainingSeconds < 0) {
@@ -189,12 +187,12 @@ function renderActivitiesList() {
   els.activitiesList.innerHTML = state.activities
     .map((activity) => {
       const info = ACTIVITY_INFO[activity.type] || {
-        icon: "",
+        icon: "📝",
         title: "Actividad",
       };
       const screen = ACTIVITY_SCREENS[activity.type];
       const isCompleted = state.completedActivityIds.has(
-        String(activity.activityId),
+        String(activity.activityId)
       );
 
       if (!screen) {
@@ -211,7 +209,7 @@ function renderActivitiesList() {
         `;
       }
 
-      const statusIcon = isCompleted ? "" : "";
+      const statusIcon = isCompleted ? "✅" : "⏳";
       const statusText = isCompleted ? "Completada" : "Pendiente";
 
       const content = `
@@ -234,7 +232,7 @@ function renderActivitiesList() {
       }
 
       const href = `../activities/${screen}?id=${encodeURIComponent(
-        state.studentAssignmentId,
+        state.studentAssignmentId
       )}&activityId=${encodeURIComponent(activity.activityId)}`;
 
       return `
@@ -266,7 +264,7 @@ function updateCompletionState() {
 
   if (els.goToFeedback) {
     els.goToFeedback.href = `../feedback/feedback.html?id=${encodeURIComponent(
-      state.studentAssignmentId,
+      state.studentAssignmentId
     )}`;
   }
 }
@@ -303,7 +301,7 @@ async function loadActivity() {
   try {
     /* 1. Cargar la tarea */
     const saResponse = await assignmentService.getMine(
-      state.studentAssignmentId,
+      state.studentAssignmentId
     );
     const studentAssignment = saResponse?.data ?? saResponse;
 
@@ -314,7 +312,7 @@ async function loadActivity() {
 
     if (studentAssignment.status === "completed") {
       window.location.href = `../feedback/feedback.html?id=${encodeURIComponent(
-        state.studentAssignmentId,
+        state.studentAssignmentId
       )}`;
       return;
     }
@@ -330,7 +328,7 @@ async function loadActivity() {
       } catch (readingError) {
         console.warn(
           "[reading-activity] No se pudo cargar la lectura:",
-          readingError,
+          readingError
         );
         state.reading = null;
       }
@@ -339,7 +337,7 @@ async function loadActivity() {
     /* 3. Llamar a start para obtener activitySnapshot */
     const startResponse = await assignmentService.start(
       studentAssignment.assignmentId,
-      generateRequestId(),
+      generateRequestId()
     );
 
     state.activities = startResponse?.activitySnapshot || [];
@@ -417,7 +415,7 @@ function init() {
   state.studentAssignmentId = getParam("id");
   console.info(
     "[reading-activity] Pantalla cargada. ID:",
-    state.studentAssignmentId,
+    state.studentAssignmentId
   );
 
   if (els.toggle) els.toggle.addEventListener("click", togglePanel);

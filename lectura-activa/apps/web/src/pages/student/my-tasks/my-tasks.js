@@ -1,3 +1,4 @@
+import '../../../utils/analytics.js';
 /* Pantalla: Mis tareas — Dueño: Omar */
 
 import { requireLogin } from "../../../utils/authGuard.js";

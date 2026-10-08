@@ -1,3 +1,4 @@
+import '../../../utils/analytics.js';
 /* Pantalla: Mi perfil — Dueño: Omar */
 
 import { api } from "../../../services/apiClient.js";

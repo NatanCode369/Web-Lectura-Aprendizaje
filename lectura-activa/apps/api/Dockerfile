@@ -1,7 +1,7 @@
 # Imagen de producción para Google Cloud Run.
 # Multi-stage: el stage `deps` instala paquetes; `runner` copia solo lo necesario.
 
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
@@ -9,7 +9,7 @@ COPY package.json package-lock.json* ./
 # Si aún no hay lockfile, caemos a npm install (menos ideal en CI).
 RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
 
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
