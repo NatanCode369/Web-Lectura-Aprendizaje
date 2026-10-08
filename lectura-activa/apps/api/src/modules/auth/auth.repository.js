@@ -79,3 +79,6 @@ export function passwordResetsRepo(db) {
     },
   };
 }
+// Re-exportar los repos de whitelist para que `auth.service.js` los importe
+// desde el mismo lugar.
+export { adminsRepo, teachersRepo } from './roles.repository.js';

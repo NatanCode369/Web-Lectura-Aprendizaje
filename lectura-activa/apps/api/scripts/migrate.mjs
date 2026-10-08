@@ -85,7 +85,7 @@ async function main() {
   ]);
 
   // ---------- users ----------
-    // ---------- passwordResets ----------
+  // ---------- passwordResets ----------
   await ensureCollection(db, 'passwordResets', {
     $jsonSchema: {
       bsonType: 'object',
@@ -123,9 +123,59 @@ async function main() {
     );
   console.log('  ✔ TTL index ttl_expiresAt en passwordResets');
 
-    await client.close();
-    console.log('\n✅ Migración completada.');
-  }
+  // ---------- admins ----------
+  await ensureCollection(db, 'admins', {
+    $jsonSchema: {
+      bsonType: 'object',
+      required: ['email', 'createdAt'],
+      properties: {
+        _id: { bsonType: 'objectId' },
+        email: {
+          bsonType: 'string',
+          pattern: '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$',
+        },
+        addedBy: { bsonType: ['objectId', 'null'] },
+        createdAt: { bsonType: 'date' },
+      },
+      additionalProperties: false,
+    },
+  });
+
+  await ensureIndexes(db, 'admins', [
+    {
+      keys: { email: 1 },
+      options: { unique: true, name: 'uniq_email' },
+    },
+  ]);
+
+  // ---------- teachers ----------
+  await ensureCollection(db, 'teachers', {
+    $jsonSchema: {
+      bsonType: 'object',
+      required: ['email', 'createdAt'],
+      properties: {
+        _id: { bsonType: 'objectId' },
+        email: {
+          bsonType: 'string',
+          pattern: '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$',
+        },
+        addedBy: { bsonType: ['objectId', 'null'] },
+        createdAt: { bsonType: 'date' },
+      },
+      additionalProperties: false,
+    },
+  });
+
+  await ensureIndexes(db, 'teachers', [
+    {
+      keys: { email: 1 },
+      options: { unique: true, name: 'uniq_email' },
+    },
+  ]);
+
+  await client.close();
+  console.log('\n✅ Migración completada.');
+}
 
 main().catch((err) => {
   console.error('❌ Error en migración:', err);

@@ -79,6 +79,20 @@ export async function registerReadingRoutes(
   );
 
   app.post(
+    `${prefix}/:id/publish`,
+    { preHandler: [authenticate, requireRoles('teacher', 'admin')] },
+    async (request, reply) => {
+      try {
+        return reply.send(
+          await readingService.publish(request.params.id, request.user)
+        );
+      } catch (error) {
+        return sendError(reply, error, request.id);
+      }
+    }
+  );
+
+  app.post(
     '/api/v1/readings/:id/media',
     { preHandler: [authenticate, requireRoles('teacher', 'admin')] },
     async (request, reply) => {
