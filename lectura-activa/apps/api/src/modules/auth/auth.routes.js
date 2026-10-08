@@ -1,19 +1,9 @@
 /**
  * Rutas del módulo auth.
- *
- * Endpoints públicos:
- * - POST /api/v1/auth/login
- * - POST /api/v1/auth/register
- * - POST /api/v1/auth/logout
- * - POST /api/v1/auth/forgot-password
- * - POST /api/v1/auth/reset-password
- *
- * Endpoint interno:
- * - POST /api/v1/auth/internal/validate-domain
  */
 
 import { env } from '../../config/env.js';
-import { UnauthorizedError, ForbiddenError } from '../../shared/errors/AppError.js';
+import { AppError, ErrorCodes } from '../../shared/errors/index.js';
 import { authService } from './auth.service.js';
 import {
   validateDomainSchema,
@@ -36,14 +26,21 @@ export async function authRoutes(fastify, opts) {
     async (req) => {
       const secret = req.headers['x-internal-secret'];
       if (secret !== env.INTERNAL_HOOK_SECRET) {
-        throw new UnauthorizedError('UNAUTHORIZED_HOOK', 'Secreto del hook inválido.');
+        throw AppError.unauthorized(
+          ErrorCodes.UNAUTHORIZED_HOOK,
+          'Secreto del hook inválido.'
+        );
       }
 
       const { email } = req.body;
       const result = await service.validateEmailDomain(email);
 
       if (!result.allowed) {
-        throw new ForbiddenError('DOMAIN_NOT_ALLOWED', 'El dominio del correo no está autorizado.');
+        await service.auditDomainRejection(email);
+        throw AppError.forbidden(
+          ErrorCodes.DOMAIN_NOT_ALLOWED,
+          'El dominio del correo no está autorizado.'
+        );
       }
 
       return { allowed: true, institutionId: result.institutionId };
@@ -62,7 +59,7 @@ export async function authRoutes(fastify, opts) {
       secure: env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60,
+      maxAge: 60 * 60 * 24,
     });
 
     reply.setCookie('sb-refresh-token', session.refresh_token, {
@@ -93,7 +90,8 @@ export async function authRoutes(fastify, opts) {
     reply.clearCookie('sb-access-token', { path: '/' });
     reply.clearCookie('sb-refresh-token', { path: '/' });
 
-    const result = await service.logout();
+    const actorId = req.user?._id ?? null;
+    const result = await service.logout(actorId);
     return reply.send(result);
   });
 

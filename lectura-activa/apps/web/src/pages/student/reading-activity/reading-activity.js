@@ -1,5 +1,6 @@
 /* Pantalla: Lectura y actividades — Dueño: Omar */
 
+import { requireLogin } from "../../../utils/authGuard.js";
 import { assignmentService } from "../../../services/assignmentsService.js";
 import { readingService } from "../../../services/readingsService.js";
 import { formatTimer } from "../../../utils/formatters.js";
@@ -23,11 +24,13 @@ const ACTIVITY_SCREENS = {
 
 /* Iconos y títulos por tipo */
 const ACTIVITY_INFO = {
-  multiple_choice: { icon: "❓", title: "Preguntas de comprensión" },
-  true_false: { icon: "✓", title: "Verdadero o falso" },
-  ordering: { icon: "🔀", title: "Ordena la historia" },
-  matching: { icon: "🔗", title: "Relacionar conceptos" },
-  detective: { icon: "🔍", title: "Detective de palabras" },
+  multiple_choice: { icon: "", title: "Preguntas de comprensión" },
+  true_false: { icon: "", title: "Verdadero o falso" },
+  ordering: { icon: "", title: "Ordena la historia" },
+  matching: { icon: "", title: "Relacionar conceptos" },
+  short_answer: { icon: "", title: "Respuesta corta" },
+  short_text: { icon: "", title: "Respuesta corta" },
+  detective: { icon: "", title: "Detective de palabras" },
 };
 
 /* ============================================================
@@ -109,7 +112,7 @@ function renderPdf(reading) {
       `;
     }
     console.warn(
-      "[reading-activity] El backend no devolvió URL del PDF. Revisar con Adrián.",
+      "[reading-activity] El backend no devolvió URL del PDF. Revisar con Adrián."
     );
     return;
   }
@@ -135,7 +138,7 @@ function updateTimer() {
     els.timerContainer.classList.remove(
       "activity__timer--warning",
       "activity__timer--danger",
-      "activity__timer--over",
+      "activity__timer--over"
     );
 
     if (state.remainingSeconds < 0) {
@@ -189,7 +192,7 @@ function renderActivitiesList() {
       };
       const screen = ACTIVITY_SCREENS[activity.type];
       const isCompleted = state.completedActivityIds.has(
-        String(activity.activityId),
+        String(activity.activityId)
       );
 
       if (!screen) {
@@ -229,7 +232,7 @@ function renderActivitiesList() {
       }
 
       const href = `../activities/${screen}?id=${encodeURIComponent(
-        state.studentAssignmentId,
+        state.studentAssignmentId
       )}&activityId=${encodeURIComponent(activity.activityId)}`;
 
       return `
@@ -261,7 +264,7 @@ function updateCompletionState() {
 
   if (els.goToFeedback) {
     els.goToFeedback.href = `../feedback/feedback.html?id=${encodeURIComponent(
-      state.studentAssignmentId,
+      state.studentAssignmentId
     )}`;
   }
 }
@@ -296,8 +299,9 @@ async function loadActivity() {
   showState("loading");
 
   try {
+    /* 1. Cargar la tarea */
     const saResponse = await assignmentService.getMine(
-      state.studentAssignmentId,
+      state.studentAssignmentId
     );
     const studentAssignment = saResponse?.data ?? saResponse;
 
@@ -308,13 +312,14 @@ async function loadActivity() {
 
     if (studentAssignment.status === "completed") {
       window.location.href = `../feedback/feedback.html?id=${encodeURIComponent(
-        state.studentAssignmentId,
+        state.studentAssignmentId
       )}`;
       return;
     }
 
     state.studentAssignment = studentAssignment;
 
+    /* 2. Cargar la lectura (para el PDF) */
     const readingId = studentAssignment.assignment?.readingId;
     if (readingId) {
       try {
@@ -323,19 +328,21 @@ async function loadActivity() {
       } catch (readingError) {
         console.warn(
           "[reading-activity] No se pudo cargar la lectura:",
-          readingError,
+          readingError
         );
         state.reading = null;
       }
     }
 
+    /* 3. Llamar a start para obtener activitySnapshot */
     const startResponse = await assignmentService.start(
       studentAssignment.assignmentId,
-      generateRequestId(),
+      generateRequestId()
     );
 
     state.activities = startResponse?.activitySnapshot || [];
 
+    /* 4. Marcar actividades ya completadas */
     const progress = studentAssignment.activityProgress || [];
     progress.forEach((p) => {
       if (p.status === "completed" && p.activityId) {
@@ -343,6 +350,7 @@ async function loadActivity() {
       }
     });
 
+    /* 5. Rellenar el título */
     const title =
       studentAssignment.readingTitle ||
       state.reading?.title ||
@@ -351,8 +359,10 @@ async function loadActivity() {
     if (els.title) els.title.textContent = title;
     document.title = `${title} — Lectura Activa`;
 
+    /* 6. Renderizar el PDF */
     renderPdf(state.reading);
 
+    /* 7. Contadores */
     if (els.activitiesCount) {
       els.activitiesCount.textContent = String(state.activities.length);
     }
@@ -363,6 +373,7 @@ async function loadActivity() {
       els.completedCount.textContent = String(state.completedActivityIds.size);
     }
 
+    /* 8. Temporizador */
     const timeLimitMinutes =
       studentAssignment.assignment?.timeLimitMinutes ?? 20;
     state.totalSeconds = timeLimitMinutes * 60;
@@ -370,8 +381,10 @@ async function loadActivity() {
     if (els.timer) els.timer.textContent = formatTimer(state.remainingSeconds);
     startTimer();
 
+    /* 9. Mostrar contenido */
     showState("content");
 
+    /* 10. Si todas están completas, abrir el panel */
     if (
       state.activities.length > 0 &&
       state.completedActivityIds.size === state.activities.length
@@ -380,11 +393,6 @@ async function loadActivity() {
     }
   } catch (error) {
     console.error("[reading-activity] Error al cargar:", error);
-
-    if (error.status === 401) {
-      window.location.href = "/src/pages/auth/login.html";
-      return;
-    }
 
     if (error.status === 404) {
       showError("No encontramos esta tarea.");
@@ -407,12 +415,15 @@ function init() {
   state.studentAssignmentId = getParam("id");
   console.info(
     "[reading-activity] Pantalla cargada. ID:",
-    state.studentAssignmentId,
+    state.studentAssignmentId
   );
 
   if (els.toggle) els.toggle.addEventListener("click", togglePanel);
 
-  loadActivity();
+  requireLogin().then((user) => {
+    if (!user) return; // redirigido al login
+    loadActivity();
+  });
 }
 
 init();

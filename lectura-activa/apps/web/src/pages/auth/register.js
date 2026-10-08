@@ -1,7 +1,7 @@
 /* Pantalla: Registro — Dueño: Omar */
 import '../../utils/analytics.js';
 import {
-  isInstitutionalEmail,
+  isValidEmail,
   validatePassword,
   validateFullName,
   validatePasswordMatch,
@@ -27,8 +27,8 @@ form.addEventListener("submit", async (e) => {
   const nombreCheck = validateFullName(nombre);
   if (!nombreCheck.valid) return mostrarError(nombreCheck.message);
 
-  if (!isInstitutionalEmail(email)) {
-    return mostrarError("Debes usar tu correo institucional.");
+  if (!isValidEmail(email)) {
+    return mostrarError("Ingresa un correo válido.");
   }
 
   const passCheck = validatePassword(password);
@@ -49,12 +49,20 @@ form.addEventListener("submit", async (e) => {
     window.location.href = "./login.html";
   } catch (error) {
     console.error("[register] Error:", error);
+
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.textContent = "Registrarme";
     }
 
-    if (error.status === 409) {
+    // Manejo de códigos de error del backend (ADR 0006)
+    if (error.code === "EMAIL_ALREADY_EXISTS") {
+      mostrarError("Ya existe una cuenta con ese correo.");
+    } else if (error.code === "WEAK_PASSWORD") {
+      mostrarError("La contraseña no cumple con los requisitos de seguridad.");
+    } else if (error.code === "DOMAIN_NOT_ALLOWED") {
+      mostrarError("Tu dominio de correo no está autorizado.");
+    } else if (error.status === 409) {
       mostrarError("Ya existe una cuenta con ese correo.");
     } else if (error.status === 403) {
       mostrarError("Tu dominio de correo no está autorizado.");

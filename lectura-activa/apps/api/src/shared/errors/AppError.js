@@ -42,6 +42,13 @@ export class AppError extends Error {
   static internal(code = ErrorCodes.INTERNAL_ERROR, message = 'Error interno', details) {
     return new AppError(500, code, message, details);
   }
+  static unprocessable(
+    code = 'UNPROCESSABLE',
+    message = 'No se puede procesar la solicitud',
+    meta
+  ) {
+    return new AppError(422, code, message, meta);
+  }
 }
 
 // ---------- Subclases específicas — Forma A ----------
@@ -156,4 +163,5 @@ export const ErrorCodes = Object.freeze({
   FILE_TOO_LARGE: 'FILE_TOO_LARGE',
   FILE_TOO_SMALL: 'FILE_TOO_SMALL',
   INVALID_PDF: 'INVALID_PDF',
+  MISSING_FILE: 'MISSING_FILE',
 });

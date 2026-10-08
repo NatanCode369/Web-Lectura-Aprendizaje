@@ -11,14 +11,19 @@ import {
   supabaseAdminReady,
 } from '../../config/supabase.js';
 import { createMailer } from '../../shared/mailer.js';
+import { auditService } from '../../shared/audit.service.js';
 import { usersRepo } from '../users/users.repository.js';
 import { buildNewUserDoc } from '../users/users.domain.js';
 import { institutionsRepo, passwordResetsRepo } from './auth.repository.js';
+import { adminsRepo, teachersRepo } from './auth.repository.js';
 import {
   extractDomain,
   normalizeEmail,
-  defaultRoleForNewUser,
 } from './auth.domain.js';
+import {
+  resolveRoleFromWhitelist,
+  shouldUpdateRole,
+} from './roles.domain.js';
 import {
   generateResetToken,
   hashResetToken,
@@ -34,7 +39,10 @@ export function authService(db) {
   const institutions = institutionsRepo(db);
   const users = usersRepo(db);
   const passwordResets = passwordResetsRepo(db);
+  const admins = adminsRepo(db);
+  const teachers = teachersRepo(db);
   const mailer = createMailer();
+  const audit = auditService(db);
 
   function ensureSupabaseReady() {
     if (!supabaseReady) {
@@ -82,8 +90,35 @@ export function authService(db) {
 
       const email = normalizeEmail(rawEmail);
 
+      const adminEmails = await admins.findAllEmails();
+      const teacherEmails = await teachers.findAllEmails();
+      const resolvedRole = resolveRoleFromWhitelist(email, {
+        admins: adminEmails,
+        teachers: teacherEmails,
+      });
+
       const existing = await users.findByAuthUserId(authUserId);
-      if (existing) return existing;
+      if (existing) {
+        if (shouldUpdateRole(existing.role, resolvedRole)) {
+          const updated = await users.updateById(existing._id, {
+            role: resolvedRole,
+          });
+
+          await audit.log({
+            actorId: existing._id,
+            action: 'role.changed',
+            resourceType: 'user',
+            resourceId: existing._id,
+            metadata: {
+              from: existing.role,
+              to: resolvedRole,
+            },
+          });
+
+          return updated ?? existing;
+        }
+        return existing;
+      }
 
       const validation = await this.validateEmailDomain(email);
       if (!validation.allowed) {
@@ -98,11 +133,24 @@ export function authService(db) {
         email,
         fullName: claims.user_metadata?.full_name ?? null,
         institutionId: validation.institutionId,
-        role: defaultRoleForNewUser(),
+        role: resolvedRole,
       });
 
       try {
-        return await users.create(doc);
+        const created = await users.create(doc);
+
+        await audit.log({
+          actorId: created._id,
+          action: 'role.assigned',
+          resourceType: 'user',
+          resourceId: created._id,
+          metadata: {
+            role: resolvedRole,
+            reason: 'lazy_provisioning',
+          },
+        });
+
+        return created;
       } catch (err) {
         if (err?.code === 11000) {
           const raced = await users.findByAuthUserId(authUserId);
@@ -123,6 +171,15 @@ export function authService(db) {
       });
 
       if (error || !data?.user || !data?.session) {
+        await audit.log({
+          actorId: null,
+          action: 'login.failure',
+          resourceType: 'user',
+          metadata: {
+            email: audit.maskEmail(normalized),
+            reason: 'invalid_credentials',
+          },
+        });
         throw AppError.unauthorized(
           ErrorCodes.INVALID_CREDENTIALS,
           'Correo o contraseña incorrectos.'
@@ -133,6 +190,14 @@ export function authService(db) {
         sub: data.user.id,
         email: data.user.email,
         user_metadata: data.user.user_metadata ?? {},
+      });
+
+      await audit.log({
+        actorId: appUser._id,
+        action: 'login.success',
+        resourceType: 'user',
+        resourceId: appUser._id,
+        metadata: { role: appUser.role },
       });
 
       return {
@@ -152,6 +217,15 @@ export function authService(db) {
 
       const validation = await this.validateEmailDomain(normalized);
       if (!validation.allowed) {
+        await audit.log({
+          actorId: null,
+          action: 'register.failure',
+          resourceType: 'user',
+          metadata: {
+            email: audit.maskEmail(normalized),
+            reason: 'domain_not_allowed',
+          },
+        });
         throw AppError.forbidden(
           ErrorCodes.DOMAIN_NOT_ALLOWED,
           'El dominio del correo no está autorizado.'
@@ -161,26 +235,86 @@ export function authService(db) {
       const { data, error } = await supabaseAdmin.auth.admin.createUser({
         email: normalized,
         password,
-        email_confirm: env.NODE_ENV !== 'production',
+        email_confirm: true,
         user_metadata: { full_name: fullName },
       });
 
       if (error) {
-        if (
-          error.message?.toLowerCase().includes('already') ||
-          error.message?.toLowerCase().includes('duplicate') ||
-          error.status === 422
-        ) {
+        const msg = error.message?.toLowerCase() ?? '';
+
+        if (msg.includes('already') || msg.includes('duplicate')) {
+          await audit.log({
+            actorId: null,
+            action: 'register.failure',
+            resourceType: 'user',
+            metadata: {
+              email: audit.maskEmail(normalized),
+              reason: 'email_exists',
+            },
+          });
           throw AppError.conflict(
             ErrorCodes.EMAIL_ALREADY_EXISTS,
             'Ese correo ya está registrado.'
           );
         }
+
+        if (msg.includes('password') || msg.includes('weak')) {
+          await audit.log({
+            actorId: null,
+            action: 'register.failure',
+            resourceType: 'user',
+            metadata: {
+              email: audit.maskEmail(normalized),
+              reason: 'weak_password',
+            },
+          });
+          throw AppError.unprocessable(
+            'WEAK_PASSWORD',
+            'La contraseña no cumple los requisitos de seguridad.'
+          );
+        }
+
+        if (error.status === 422) {
+          await audit.log({
+            actorId: null,
+            action: 'register.failure',
+            resourceType: 'user',
+            metadata: {
+              email: audit.maskEmail(normalized),
+              reason: 'validation_error',
+            },
+          });
+          throw AppError.badRequest(
+            'VALIDATION_ERROR',
+            'Los datos enviados no son válidos.'
+          );
+        }
+
+        await audit.log({
+          actorId: null,
+          action: 'register.failure',
+          resourceType: 'user',
+          metadata: {
+            email: audit.maskEmail(normalized),
+            reason: 'unknown_error',
+          },
+        });
         throw AppError.internal(
           'SUPABASE_ERROR',
           'No se pudo crear la cuenta. Intenta de nuevo.'
         );
       }
+
+      await audit.log({
+        actorId: null,
+        action: 'register.success',
+        resourceType: 'user',
+        resourceId: null,
+        metadata: {
+          email: audit.maskEmail(normalized),
+          role: 'student',
+        },
+      });
 
       return {
         user: {
@@ -190,49 +324,29 @@ export function authService(db) {
       };
     },
 
-    async logout() {
+    async logout(actorId = null) {
+      if (actorId) {
+        await audit.log({
+          actorId,
+          action: 'logout',
+          resourceType: 'user',
+          resourceId: actorId,
+          metadata: {},
+        });
+      }
       return { ok: true };
     },
 
-    /**
-     * POST /api/v1/auth/forgot-password
-     *
-     * Genera un token propio, lo guarda hasheado en Mongo y envía un correo
-     * con el link para restablecer la contraseña.
-     *
-     * SIEMPRE responde OK (no revela si el email existe o no).
-     */
     async forgotPassword(email, requestIp) {
       ensureSupabaseAdminReady();
 
       const normalized = normalizeEmail(email);
 
-      // Verificar que el dominio sea institucional.
-      // Si no lo es, NO revelamos el error y devolvemos ok: true.
       const validation = await this.validateEmailDomain(normalized);
       if (!validation.allowed) {
         return { ok: true };
       }
 
-      // Buscar el usuario en Supabase (para obtener el fullName).
-      // Si no existe, tampoco lo revelamos.
-      let supabaseUser = null;
-      try {
-        const { data, error } = await supabaseAdmin.auth.admin.listUsers({
-          page: 1,
-          perPage: 1,
-        });
-        if (error) supabaseUser = null;
-        // Nota: listUsers no filtra por email en la API admin.
-        // Alternativa: usar generateLink con type: 'recovery' y capturar el error.
-        // Para simplificar, intentamos generar el link; si falla con "not found",
-        // devolvemos ok: true sin enviar correo.
-      } catch (err) {
-        supabaseUser = null;
-      }
-
-      // Verificar que el usuario exista en Supabase (sin revelar al cliente).
-      // Usamos generateLink solo para verificar existencia.
       let userExists = true;
       try {
         const { error: linkError } = await supabaseAdmin.auth.admin.generateLink({
@@ -247,14 +361,11 @@ export function authService(db) {
       }
 
       if (!userExists) {
-        // Silencioso: respondemos ok sin enviar correo.
         return { ok: true };
       }
 
-      // Invalidar tokens previos del mismo email.
       await passwordResets.invalidateAllForEmail(normalized);
 
-      // Generar nuevo token.
       const token = generateResetToken();
       const tokenHash = hashResetToken(token);
       const expiresAt = calculateExpiration(env.RESET_TOKEN_TTL_MINUTES);
@@ -268,7 +379,6 @@ export function authService(db) {
         })
       );
 
-      // Construir link y correo.
       const resetLink = buildResetLink(env.FRONTEND_URL, token);
       const html = buildResetEmailHtml({
         fullName: null,
@@ -287,23 +397,23 @@ export function authService(db) {
           html,
           text,
         });
+
+        await audit.log({
+          actorId: null,
+          action: 'reset.requested',
+          resourceType: 'passwordReset',
+          metadata: { email: audit.maskEmail(normalized) },
+        });
       } catch (err) {
-        // No revelar al cliente, pero loguear.
         console.error('Error enviando correo de recuperación:', err);
       }
 
       return { ok: true };
     },
 
-    /**
-     * POST /api/v1/auth/reset-password
-     *
-     * Valida el token y actualiza la contraseña en Supabase.
-     */
     async resetPassword(token, newPassword) {
       ensureSupabaseAdminReady();
 
-      // 1. Validar formato del token.
       if (!isValidTokenFormat(token)) {
         throw AppError.badRequest(
           'INVALID_RESET_TOKEN',
@@ -311,7 +421,6 @@ export function authService(db) {
         );
       }
 
-      // 2. Validar fortaleza de la contraseña.
       if (!newPassword || newPassword.length < 8) {
         throw AppError.badRequest(
           'WEAK_PASSWORD',
@@ -319,7 +428,6 @@ export function authService(db) {
         );
       }
 
-      // 3. Buscar el token en Mongo.
       const tokenHash = hashResetToken(token);
       const record = await passwordResets.findByTokenHash(tokenHash);
 
@@ -330,7 +438,6 @@ export function authService(db) {
         );
       }
 
-      // 4. Verificar que no esté usado.
       if (record.usedAt) {
         throw AppError.badRequest(
           'INVALID_RESET_TOKEN',
@@ -338,7 +445,6 @@ export function authService(db) {
         );
       }
 
-      // 5. Verificar expiración.
       if (new Date(record.expiresAt) < new Date()) {
         throw AppError.badRequest(
           'INVALID_RESET_TOKEN',
@@ -346,7 +452,6 @@ export function authService(db) {
         );
       }
 
-      // 6. Buscar el usuario en Supabase por email.
       const { data: linkData, error: linkError } =
         await supabaseAdmin.auth.admin.generateLink({
           type: 'recovery',
@@ -360,7 +465,6 @@ export function authService(db) {
         );
       }
 
-      // 7. Actualizar contraseña.
       const { error: updateError } =
         await supabaseAdmin.auth.admin.updateUserById(linkData.user.id, {
           password: newPassword,
@@ -373,10 +477,30 @@ export function authService(db) {
         );
       }
 
-      // 8. Marcar token como usado.
       await passwordResets.markAsUsed(tokenHash);
 
+      await audit.log({
+        actorId: null,
+        action: 'reset.completed',
+        resourceType: 'user',
+        resourceId: null,
+        metadata: { email: audit.maskEmail(record.email) },
+      });
+
       return { ok: true, message: 'Contraseña actualizada correctamente.' };
+    },
+
+    /**
+     * Audita un rechazo de dominio desde el hook de Supabase.
+     * Se llama desde `auth.routes.js` en `/internal/validate-domain`.
+     */
+    async auditDomainRejection(email) {
+      await audit.log({
+        actorId: null,
+        action: 'domain.rejected',
+        resourceType: 'user',
+        metadata: { email: audit.maskEmail(email) },
+      });
     },
   };
 }

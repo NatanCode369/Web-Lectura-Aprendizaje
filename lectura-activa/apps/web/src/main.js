@@ -1,72 +1,55 @@
-﻿// lectura-activa/apps/web/src/main.js
+// lectura-activa/apps/web/src/main.js
 import './styles/base.css';
-import './styles/auth.css';
-import './utils/analytics.js';
+import { injectSpeedInsights } from '@vercel/speed-insights';
+
+// Initialize Vercel Speed Insights
+injectSpeedInsights();
 
 /**
  * Router simple para la SPA
  * Detecta la ruta actual y carga la página correspondiente
  */
-const ROUTE_MAP = {
-  // Auth routes
-  '/': 'auth/login.html',
-  '/login': 'auth/login.html',
-  '/register': 'auth/register.html',
-  '/forgot-password': 'auth/forgot-password.html',
-  '/reset-password': 'auth/reset-password.html',
-
-  // Student routes
-  '/catalog': 'student/catalog/catalog.html',
-  '/my-tasks': 'student/my-tasks/my-tasks.html',
-  '/my-progress': 'student/my-progress/my-progress.html',
-  '/reading-detail': 'student/reading-detail/reading-detail.html',
-  '/reading-activity': 'student/reading-activity/reading-activity.html',
-  '/feedback': 'student/feedback/feedback.html',
-  '/user-profile': 'student/user-profile/user-profile.html',
-  '/activities/multiple-choice': 'student/activities/multiple-choice.html',
-  '/activities/true-false': 'student/activities/true-false.html',
-  '/activities/ordering': 'student/activities/ordering.html',
-  '/activities/matching': 'student/activities/matching.html',
-  '/activities/short-answer': 'student/activities/short-answer.html',
-  '/activities/detective-words': 'student/activities/detective-words.html',
-
-  // Teacher routes
-  '/dashboard': 'teacher/dashboard-teacher.html',
-  '/groups': 'teacher/groups.html',
-  '/reading-new': 'teacher/reading-new.html',
-  '/reading-edit': 'teacher/reading-edit.html',
-  '/activities-edit': 'teacher/activities-edit.html',
-  '/stats': 'teacher/stats.html',
-};
-
 async function router() {
   const app = document.querySelector('#app');
-
+  
   if (!app) {
     console.warn('[router] No se encontró #app en el DOM. Abortando.');
     return;
   }
 
+  // Obtener la ruta actual (sin la raíz de la aplicación)
   const path = window.location.pathname;
-
+  
   try {
-    const page = ROUTE_MAP[path];
-
-    if (!page) {
+    let html = '';
+    
+    // Rutas disponibles
+    if (path === '/' || path === '') {
+      // Ruta raíz → login
+      const response = await fetch('/src/pages/auth/login.html');
+      html = await response.text();
+    } else if (path === '/register') {
+      const response = await fetch('/src/pages/auth/register.html');
+      html = await response.text();
+    } else if (path === '/forgot-password') {
+      const response = await fetch('/src/pages/auth/forgot-password.html');
+      html = await response.text();
+    } else if (path === '/dashboard') {
+      const response = await fetch('/src/pages/dashboard/dashboard.html');
+      html = await response.text();
+    } else {
       // Ruta no encontrada → redirigir a login
-      window.location.href = '/login';
+      window.location.href = '/';
       return;
     }
-
-    const response = await fetch(`/src/pages/${page}`);
-    if (!response.ok) {
-      throw new Error(`Failed to load ${page}: ${response.status}`);
-    }
-    const html = await response.text();
-
+    
     // Inyectar el HTML en el #app
     app.innerHTML = html;
-
+    
+    // ⭐ Aquí es donde cargas el JS de la página (login.js, register.js, etc.)
+    // El HTML ya incluye <script type="module" src="./login.js"></script>
+    // así que se ejecutará automáticamente después de insertarlo
+    
   } catch (err) {
     console.error('[router] Error cargando página:', err);
     app.innerHTML = '<h1>Error al cargar la página</h1>';
@@ -82,9 +65,7 @@ if (document.readyState === 'loading') {
 
 // Manejar cambios de URL (para navegación sin recargar la página)
 window.addEventListener('navigate', router);
-
-// Navegación programática
-window.navigateTo = (path) => {
-  window.history.pushState({}, '', path);
-  window.dispatchEvent(new Event('navigate'));
-};
+import './styles/base.css';
+import './styles/auth.css';
+import './pages/auth/login.js';
+import './utils/analytics.js';

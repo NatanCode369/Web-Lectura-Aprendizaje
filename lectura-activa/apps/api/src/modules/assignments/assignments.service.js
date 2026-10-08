@@ -1,5 +1,5 @@
 import { assignmentsRepository } from './assignments.repository.js';
-import { readingsRepository } from '../readings/reading.repository.js';
+import { buildReadingRepository } from '../readings/reading.repository.js';
 import { groupsRepository } from '../groups/groups.repository.js';
 import { studentAssignmentsService } from '../studentAssignments/studentAssignments.service.js';
 import {
@@ -7,26 +7,30 @@ import {
   assertDatesValid,
   buildActivitySnapshot
 } from './assignments.domain.js';
-import { ForbiddenError, NotFoundError } from '../../shared/errors/AppError.js';
-import { logger } from '../../shared/logger.js';
+import { ForbiddenError, NotFoundError } from '../../shared/errors/index.js';
+import { logger } from '../../shared/logger/index.js';
+
+// El módulo de readings exporta una factory; el resto son singletons.
+// Instancia única local para no romper el patrón.
+const readingRepository = buildReadingRepository();
 
 export const assignmentsService = {
   async create(user, payload) {
     assertDatesValid(payload.availableFrom, payload.dueAt);
 
     const [reading, group] = await Promise.all([
-      readingsRepository.findById(payload.readingId),
-      groupsRepository.findByIdForTeacher(payload.groupId, user._id)
+      readingRepository.findById(payload.readingId),
+      groupsRepository.findByIdForTeacher(payload.groupId, user.userId)
     ]);
 
-    if (!group) throw new ForbiddenError('El grupo no te pertenece');
+    if (!group) throw new ForbiddenError('FORBIDDEN', 'El grupo no te pertenece');
     assertReadingPublished(reading);
 
     const assignment = await assignmentsRepository.create({
       readingId: reading._id,
       readingVersion: reading.version ?? 1,
       groupId: group._id,
-      teacherId: user._id,
+      teacherId: user.userId,
       availableFrom: new Date(payload.availableFrom),
       dueAt: new Date(payload.dueAt),
       timeLimit: payload.timeLimit ?? null,
@@ -40,7 +44,7 @@ export const assignmentsService = {
       {
         assignmentId: assignment._id,
         groupId: group._id,
-        teacherId: user._id
+        teacherId: user.userId
       },
       'assignment created'
     );
@@ -48,17 +52,17 @@ export const assignmentsService = {
   },
 
   async listForTeacher(user, query) {
-    return assignmentsRepository.listForTeacher(user._id, query);
+    return assignmentsRepository.listForTeacher(user.userId, query);
   },
 
   async getByIdForTeacher(user, id) {
-    const assignment = await assignmentsRepository.findByIdForTeacher(id, user._id);
+    const assignment = await assignmentsRepository.findByIdForTeacher(id, user.userId);
     if (!assignment) throw new NotFoundError('Asignación');
     return assignment;
   },
 
   async close(user, id) {
-    const assignment = await assignmentsRepository.findByIdForTeacher(id, user._id);
+    const assignment = await assignmentsRepository.findByIdForTeacher(id, user.userId);
     if (!assignment) throw new NotFoundError('Asignación');
     return assignmentsRepository.updateStatus(id, 'closed');
   }

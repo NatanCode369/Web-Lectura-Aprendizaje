@@ -85,7 +85,7 @@ async function main() {
   ]);
 
   // ---------- users ----------
-    // ---------- passwordResets ----------
+  // ---------- passwordResets ----------
   await ensureCollection(db, 'passwordResets', {
     $jsonSchema: {
       bsonType: 'object',
@@ -123,9 +123,99 @@ async function main() {
     );
   console.log('  ✔ TTL index ttl_expiresAt en passwordResets');
 
-    await client.close();
-    console.log('\n✅ Migración completada.');
-  }
+  // ---------- admins ----------
+  await ensureCollection(db, 'admins', {
+    $jsonSchema: {
+      bsonType: 'object',
+      required: ['email', 'createdAt'],
+      properties: {
+        _id: { bsonType: 'objectId' },
+        email: {
+          bsonType: 'string',
+          pattern: '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$',
+        },
+        addedBy: { bsonType: ['objectId', 'null'] },
+        createdAt: { bsonType: 'date' },
+      },
+      additionalProperties: false,
+    },
+  });
+
+  await ensureIndexes(db, 'admins', [
+    {
+      keys: { email: 1 },
+      options: { unique: true, name: 'uniq_email' },
+    },
+  ]);
+
+  // ---------- teachers ----------
+  await ensureCollection(db, 'teachers', {
+    $jsonSchema: {
+      bsonType: 'object',
+      required: ['email', 'createdAt'],
+      properties: {
+        _id: { bsonType: 'objectId' },
+        email: {
+          bsonType: 'string',
+          pattern: '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$',
+        },
+        addedBy: { bsonType: ['objectId', 'null'] },
+        createdAt: { bsonType: 'date' },
+      },
+      additionalProperties: false,
+    },
+  });
+
+  await ensureIndexes(db, 'teachers', [
+    {
+      keys: { email: 1 },
+      options: { unique: true, name: 'uniq_email' },
+    },
+  ]);
+
+  // ---------- auditLogs ----------
+  await ensureCollection(db, 'auditLogs', {
+    $jsonSchema: {
+      bsonType: 'object',
+      required: ['action', 'resourceType', 'createdAt'],
+      properties: {
+        _id: { bsonType: 'objectId' },
+        actorId: { bsonType: ['objectId', 'null'] },
+        action: { bsonType: 'string', minLength: 3, maxLength: 60 },
+        resourceType: { bsonType: 'string', minLength: 2, maxLength: 60 },
+        resourceId: { bsonType: ['objectId', 'null'] },
+        metadata: { bsonType: 'object' },
+        createdAt: { bsonType: 'date' },
+      },
+      additionalProperties: false,
+    },
+  });
+
+  await ensureIndexes(db, 'auditLogs', [
+    {
+      keys: { actorId: 1, createdAt: -1 },
+      options: { name: 'by_actor_recent' },
+    },
+    {
+      keys: { action: 1, createdAt: -1 },
+      options: { name: 'by_action_recent' },
+    },
+    {
+      keys: { resourceType: 1, resourceId: 1, createdAt: -1 },
+      options: { name: 'by_resource_recent' },
+    },
+  ]);
+
+  // TTL: MongoDB borra automáticamente los auditLogs después de 90 días.
+  await db.collection('auditLogs').createIndex(
+    { createdAt: 1 },
+    { expireAfterSeconds: 60 * 60 * 24 * 90, name: 'ttl_90_days' }
+  );
+  console.log('  ✔ TTL index ttl_90_days en auditLogs (90 días)');
+
+  await client.close();
+  console.log('\n✅ Migración completada.');
+}
 
 main().catch((err) => {
   console.error('❌ Error en migración:', err);
