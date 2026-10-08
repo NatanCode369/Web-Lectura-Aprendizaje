@@ -1,5 +1,9 @@
-﻿// lectura-activa/apps/web/src/main.js
+// lectura-activa/apps/web/src/main.js
 import './styles/base.css';
+import { injectSpeedInsights } from '@vercel/speed-insights';
+
+// Initialize Vercel Speed Insights
+injectSpeedInsights();
 
 /**
  * Router simple para la SPA
@@ -61,3 +65,7 @@ if (document.readyState === 'loading') {
 
 // Manejar cambios de URL (para navegación sin recargar la página)
 window.addEventListener('navigate', router);
+import './styles/base.css';
+import './styles/auth.css';
+import './pages/auth/login.js';
+import './utils/analytics.js';

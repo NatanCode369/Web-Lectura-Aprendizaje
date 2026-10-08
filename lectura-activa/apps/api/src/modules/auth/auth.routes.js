@@ -1,15 +1,5 @@
 /**
  * Rutas del módulo auth.
- *
- * Endpoints públicos:
- * - POST /api/v1/auth/login
- * - POST /api/v1/auth/register
- * - POST /api/v1/auth/logout
- * - POST /api/v1/auth/forgot-password
- * - POST /api/v1/auth/reset-password
- *
- * Endpoint interno:
- * - POST /api/v1/auth/internal/validate-domain
  */
 
 import { env } from '../../config/env.js';
@@ -46,6 +36,7 @@ export async function authRoutes(fastify, opts) {
       const result = await service.validateEmailDomain(email);
 
       if (!result.allowed) {
+        await service.auditDomainRejection(email);
         throw AppError.forbidden(
           ErrorCodes.DOMAIN_NOT_ALLOWED,
           'El dominio del correo no está autorizado.'
@@ -99,7 +90,8 @@ export async function authRoutes(fastify, opts) {
     reply.clearCookie('sb-access-token', { path: '/' });
     reply.clearCookie('sb-refresh-token', { path: '/' });
 
-    const result = await service.logout();
+    const actorId = req.user?._id ?? null;
+    const result = await service.logout(actorId);
     return reply.send(result);
   });
 

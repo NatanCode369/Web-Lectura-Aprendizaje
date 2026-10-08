@@ -1,5 +1,7 @@
+import '../../../utils/analytics.js';
 /* Pantalla: Mis tareas — Dueño: Omar */
 
+import { requireLogin } from "../../../utils/authGuard.js";
 import { assignmentService } from "../../../services/assignmentsService.js";
 import { formatDateTime } from "../../../utils/formatters.js";
 import { qs, qsa, escapeHtml } from "../../../utils/dom.js";
@@ -67,7 +69,7 @@ function isDueSoon(isoDate) {
   return diffDays >= 0 && diffDays <= 3;
 }
 
-/* Render de una tarjeta — usa los campos enriquecidos del backend */
+/* Render de una tarjeta */
 function renderTaskCard(task) {
   const config = STATUS_CONFIG[task.status] || STATUS_CONFIG.pending;
   const assignment = task.assignment || {};
@@ -181,11 +183,6 @@ async function loadTasks() {
   } catch (error) {
     console.error("[my-tasks] Error al cargar tareas:", error);
 
-    if (error.status === 401) {
-      window.location.href = "/src/pages/auth/login.html";
-      return;
-    }
-
     if (els.empty) els.empty.hidden = false;
     if (els.listContainer) els.listContainer.hidden = true;
     if (els.statsContainer) els.statsContainer.hidden = true;
@@ -218,8 +215,11 @@ function setupFilters() {
 /* Inicialización */
 function init() {
   console.info("[my-tasks] Pantalla cargada.");
-  setupFilters();
-  loadTasks();
+  requireLogin().then((user) => {
+    if (!user) return; // redirigido al login
+    setupFilters();
+    loadTasks();
+  });
 }
 
 init();
