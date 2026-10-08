@@ -42,6 +42,13 @@ export class AppError extends Error {
   static internal(code = ErrorCodes.INTERNAL_ERROR, message = 'Error interno', details) {
     return new AppError(500, code, message, details);
   }
+  static unprocessable(
+    code = 'UNPROCESSABLE',
+    message = 'No se puede procesar la solicitud',
+    meta
+  ) {
+    return new AppError(422, code, message, meta);
+  }
 }
 
 // ---------- Subclases específicas — Forma A ----------
@@ -124,11 +131,11 @@ export class ForbiddenError extends AppError {
 }
 
 // ---------- Catálogo de códigos ----------
-
 export const ErrorCodes = Object.freeze({
   // Auth / sesión
   UNAUTHENTICATED: 'UNAUTHENTICATED',
   INVALID_TOKEN: 'INVALID_TOKEN',
+  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',   // ← AÑADIDO POR TI
   AUTH_NOT_CONFIGURED: 'AUTH_NOT_CONFIGURED',
   DOMAIN_NOT_ALLOWED: 'DOMAIN_NOT_ALLOWED',
   UNAUTHORIZED_HOOK: 'UNAUTHORIZED_HOOK',

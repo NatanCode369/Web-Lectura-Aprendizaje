@@ -1,11 +1,14 @@
-import { requireSession } from '../../shared/auth/session.js';
 import { requireRole } from '../../shared/authorization/policies.js';
+import { authenticate } from '../../shared/middleware/authenticate.js';
 import { validate } from '../../shared/validation/index.js';
 import { attemptsService } from './attempts.service.js';
 import { startAttemptSchema, submitAttemptSchema } from './attempts.schemas.js';
 
-export async function attemptsRoutes(fastify) {
-  fastify.addHook('preHandler', requireSession);
+export async function attemptsRoutes(fastify, opts) {
+  const { db } = opts;
+  const authMiddleware = authenticate(db);
+
+  fastify.addHook('preHandler', authMiddleware);
 
   fastify.post(
     '/assignments/:id/start',

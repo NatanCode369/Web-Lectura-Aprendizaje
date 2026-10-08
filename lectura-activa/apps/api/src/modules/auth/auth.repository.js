@@ -1,18 +1,14 @@
 /**
  * Repositorio de auth — acceso a MongoDB.
  *
- * Solo consulta `institutions` para validar dominios.
- * No conoce Fastify ni reglas de negocio.
+ * - institutions: valida dominios.
+ * - passwordResets: guarda tokens de recuperación.
  */
 
 export function institutionsRepo(db) {
   const col = db.collection('institutions');
 
   return {
-    /**
-     * Busca una institución cuyo `allowedEmailDomains` contenga el dominio dado.
-     * Devuelve solo los campos necesarios.
-     */
     async findByDomain(domain) {
       if (!domain) return null;
       return col.findOne(
@@ -21,10 +17,6 @@ export function institutionsRepo(db) {
       );
     },
 
-    /**
-     * Devuelve todos los dominios permitidos de todas las instituciones activas.
-     * Útil para diagnósticos; no usar en hot path.
-     */
     async findAllAllowedDomains() {
       const docs = await col
         .find(
@@ -36,3 +28,57 @@ export function institutionsRepo(db) {
     },
   };
 }
+
+export function passwordResetsRepo(db) {
+  const col = db.collection('passwordResets');
+
+  return {
+    /**
+     * Guarda un nuevo token de recuperación.
+     */
+    async create(doc) {
+      const result = await col.insertOne(doc);
+      return { ...doc, _id: result.insertedId };
+    },
+
+    /**
+     * Busca un token por su hash.
+     * Devuelve el documento completo (incluye expiresAt y usedAt).
+     */
+    async findByTokenHash(tokenHash) {
+      if (!tokenHash) return null;
+      return col.findOne({ tokenHash });
+    },
+
+    /**
+     * Marca un token como usado (para que no se pueda reutilizar).
+     */
+    async markAsUsed(tokenHash) {
+      return col.updateOne(
+        { tokenHash, usedAt: null },
+        { $set: { usedAt: new Date() } }
+      );
+    },
+
+    /**
+     * Invalida todos los tokens activos de un email.
+     * Se usa al pedir uno nuevo (por seguridad).
+     */
+    async invalidateAllForEmail(email) {
+      return col.updateMany(
+        { email, usedAt: null },
+        { $set: { usedAt: new Date() } }
+      );
+    },
+
+    /**
+     * Limpia tokens expirados. Se puede llamar desde un job periódico.
+     */
+    async deleteExpired() {
+      return col.deleteMany({ expiresAt: { $lt: new Date() } });
+    },
+  };
+}
+// Re-exportar los repos de whitelist para que `auth.service.js` los importe
+// desde el mismo lugar.
+export { adminsRepo, teachersRepo } from './roles.repository.js';

@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import multipart from '@fastify/multipart';
+import cookie from '@fastify/cookie';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'url';
 
@@ -21,11 +22,10 @@ import { studentAssignmentsRoutes } from './modules/studentAssignments/studentAs
 import { attemptsRoutes } from './modules/attempts/attempts.routes.js';
 import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
 
-import { buildUserRepository } from './modules/users/user.repository.js';
 import { buildReadingRepository } from './modules/readings/reading.repository.js';
 import { buildAuditRepository } from './modules/readings/audit.repository.js';
 import { buildReadingService } from './modules/readings/reading.service.js';
-import { buildAuth } from './shared/auth.js';
+import { authenticate } from './shared/middleware/authenticate.js';
 import { registerReadingRoutes } from './modules/readings/reading.routes.js';
 
 export async function buildServer({ withDb = true } = {}) {
@@ -37,18 +37,44 @@ export async function buildServer({ withDb = true } = {}) {
 
   fastify.addHook('onRequest', requestId);
 
+  // ---- Plugins de seguridad ----
   await fastify.register(helmet, { contentSecurityPolicy: false });
+
+  // ---- CORS ----
+  // Dev: permite cualquier localhost/127.0.0.1 y los orígenes configurados.
+  // Prod: solo los orígenes de CORS_ORIGINS.
+  const isDev = env.NODE_ENV !== 'production';
+  const allowedOrigins = Array.isArray(env.CORS_ORIGINS)
+    ? env.CORS_ORIGINS
+    : String(env.CORS_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean);
 
   await fastify.register(cors, {
     origin: (origin, callback) => {
-      const allowedOrigins = env.CORS_ORIGINS || [];
+      // Sin Origin: PowerShell, curl, health checks, Postman
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Origen explícitamente permitido
       if (allowedOrigins.includes('*')) {
-        return callback(null, true);  // Sin credentials
+        return callback(null, true);
       }
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      callback(new Error('Not allowed by CORS'));
+
+      // En dev: permitir cualquier localhost/127.0.0.1 en cualquier puerto
+      if (isDev && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      // En dev: permitir cualquier IP de red local (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+      if (isDev && /^https?:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      logger.warn({ origin, allowedOrigins }, 'CORS: origen no permitido');
+      return callback(new Error(`Not allowed by CORS: ${origin}`));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
@@ -62,11 +88,14 @@ export async function buildServer({ withDb = true } = {}) {
     requireEdge: env.REQUIRE_EDGE,
   });
 
+  // ---- Cookies HttpOnly (ADR 0004) ----
+  await fastify.register(cookie, {
+    secret: env.COOKIE_SECRET,
+  });
+
   await fastify.register(rateLimit, {
     max: 120,
     timeWindow: '1 minute',
-    // Detrás de Cloudflare todas las peticiones llegan con IPs de Cloudflare:
-    // se usa la IP real que reenvía el Worker (solo si trae el secreto).
     keyGenerator: (req) => clientKey(req, env.ORIGIN_SHARED_SECRET),
     errorResponseBuilder: (req) => ({
       error: {
@@ -77,15 +106,16 @@ export async function buildServer({ withDb = true } = {}) {
     }),
   });
 
-  // ⭐ multipart para subir PDFs
+  // ---- multipart para subir PDFs ----
   await fastify.register(multipart, {
     limits: {
-      fileSize: 20 * 1024 * 1024, // 20 MB
+      fileSize: 20 * 1024 * 1024,
       files: 1,
       fields: 5,
     },
   });
 
+  // ---- Manejo de errores global ----
   fastify.setErrorHandler(errorHandler);
 
   fastify.setNotFoundHandler((req, reply) => {
@@ -98,11 +128,13 @@ export async function buildServer({ withDb = true } = {}) {
     });
   });
 
+  // ---- Conexión a MongoDB ----
   let db = null;
   if (withDb) {
     db = await connectDb();
   }
 
+  // ---- Health checks ----
   fastify.get('/health', async () => ({
     status: 'ok',
     service: 'lectura-activa-api',
@@ -123,22 +155,30 @@ export async function buildServer({ withDb = true } = {}) {
     return { status: 'ready', db: dbOk };
   });
 
+  // ---- Rutas de negocio ----
   await fastify.register(authRoutes, { prefix: '/api/v1/auth', db });
-  await fastify.register(usersRoutes, { prefix: '/api/v1/users', db });
+  await fastify.register(usersRoutes, { prefix: '/api/v1', db });
   await fastify.register(groupsRoutes, { prefix: '/api/v1/groups', db });
   await fastify.register(assignmentsRoutes, { prefix: '/api/v1/assignments', db });
   await fastify.register(studentAssignmentsRoutes, { prefix: '/api/v1/student-assignments', db });
   await fastify.register(attemptsRoutes, { prefix: '/api/v1/attempts', db });
   await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics', db });
 
-  const userRepository = buildUserRepository();
+  // ---- Readings (módulo de Adrián) ----
   const readingRepository = buildReadingRepository();
   const auditRepository = buildAuditRepository();
   const readingService = buildReadingService({ readingRepository, auditRepository });
-  const auth = buildAuth({ userRepository });
 
-  await registerReadingRoutes(fastify, { auth, readingService, prefix: '/api/v1/readings' });
+  // Middleware de autenticación (nuevo, ADR 0001 + 0004)
+  const authMiddleware = authenticate(db);
 
+  await registerReadingRoutes(fastify, {
+    authenticate: authMiddleware,
+    readingService,
+    prefix: '/api/v1/readings',
+  });
+
+  // ---- Cierre ordenado ----
   fastify.addHook('onClose', async () => {
     if (withDb) {
       await closeDb();
@@ -167,7 +207,7 @@ export async function start() {
 
   try {
     const port = Number(env.PORT ?? process.env.PORT ?? 3000);
-    const host = env.HOST ?? process.env.HOST ?? '0.0.0.0';
+    const host = process.env.HOST ?? '0.0.0.0';
 
     await fastify.listen({ port, host });
     logger.info(`✅ API escuchando en http://${host}:${port}`);

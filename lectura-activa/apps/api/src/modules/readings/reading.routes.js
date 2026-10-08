@@ -11,23 +11,29 @@ export async function registerReadingRoutes(
   app,
   { authenticate, readingService, prefix = '/api/v1/readings' }
 ) {
-  app.get('/api/v1/readings', { preHandler: [authenticate, requireRoles('student', 'teacher', 'admin')], schema: { querystring: readingListQuery } }, async (request, reply) => {
-    try {
-      const query = {
-        ...request.query,
-        page: request.query.page ?? 1,
-        limit: request.query.limit ?? 20
-      };
-      return reply.send(await readingService.list(query, request.user));
-    } catch (error) {
-      return sendError(reply, error, request.id);
+  app.get(
+    '/api/v1/readings',
+    {
+      preHandler: [authenticate, requireRoles('student', 'teacher', 'admin')],
+      schema: { querystring: readingListQuery },
+    },
+    async (request, reply) => {
+      try {
+        const query = {
+          ...request.query,
+          page: request.query.page ?? 1,
+          limit: request.query.limit ?? 20,
+        };
+        return reply.send(await readingService.list(query, request.user));
+      } catch (error) {
+        return sendError(reply, error, request.id);
+      }
     }
-  }
   );
 
   app.get(
     '/api/v1/readings/:id',
-    { preHandler: auth },
+    { preHandler: [authenticate] },
     async (request, reply) => {
       try {
         return reply.send(
@@ -42,7 +48,7 @@ export async function registerReadingRoutes(
   app.post(
     '/api/v1/readings',
     {
-      preHandler: [auth, requireRoles('teacher', 'admin')],
+      preHandler: [authenticate, requireRoles('teacher', 'admin')],
       schema: { body: readingWriteBody },
     },
     async (request, reply) => {
@@ -58,7 +64,7 @@ export async function registerReadingRoutes(
   app.patch(
     '/api/v1/readings/:id',
     {
-      preHandler: [auth, requireRoles('teacher', 'admin')],
+      preHandler: [authenticate, requireRoles('teacher', 'admin')],
       schema: { body: readingPatchBody },
     },
     async (request, reply) => {
@@ -73,20 +79,22 @@ export async function registerReadingRoutes(
   );
 
   app.post(
-    `${prefix}/:id/media`, {
-    preHandler: [authenticate, requireRoles('teacher', 'admin')]
-  }, async (request, reply) => {
-    try {
-      return reply.send(await readingService.publish(request.params.id, request.user));
-    } catch (error) {
-      return sendError(reply, error, request.id);
+    `${prefix}/:id/publish`,
+    { preHandler: [authenticate, requireRoles('teacher', 'admin')] },
+    async (request, reply) => {
+      try {
+        return reply.send(
+          await readingService.publish(request.params.id, request.user)
+        );
+      } catch (error) {
+        return sendError(reply, error, request.id);
+      }
     }
-  }
   );
 
   app.post(
     '/api/v1/readings/:id/media',
-    { preHandler: [auth, requireRoles('teacher', 'admin')] },
+    { preHandler: [authenticate, requireRoles('teacher', 'admin')] },
     async (request, reply) => {
       try {
         const data = await request.file();
