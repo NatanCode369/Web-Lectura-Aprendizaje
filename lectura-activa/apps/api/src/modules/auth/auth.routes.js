@@ -15,6 +15,13 @@
 import { env } from '../../config/env.js';
 import { AppError, ErrorCodes } from '../../shared/errors/index.js';
 import { authService } from './auth.service.js';
+import {
+  validateDomainSchema,
+  loginSchema,
+  registerSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+} from './auth.schemas.js';
 
 export async function authRoutes(fastify, opts) {
   const { db } = opts;
@@ -61,9 +68,7 @@ export async function authRoutes(fastify, opts) {
       secure: env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      // P1 (07-Oct-2026): 24h para evitar expulsiones silenciosas.
-      // El refresh endpoint se implementará en Fase 2 si es necesario.
-      maxAge: 60 * 60 * 24, // 24 horas
+      maxAge: 60 * 60 * 24,
     });
 
     reply.setCookie('sb-refresh-token', session.refresh_token, {
