@@ -4,6 +4,8 @@
 
 import { AppError, ErrorCodes } from '../../shared/errors/AppError.js';
 import { env } from '../../config/env.js';
+import { adminsRepo, teachersRepo } from './auth.repository.js';
+import { resolveRoleFromWhitelist, shouldUpdateRole } from './roles.domain.js';
 import {
   supabaseAuth,
   supabaseAdmin,
@@ -34,6 +36,8 @@ export function authService(db) {
   const institutions = institutionsRepo(db);
   const users = usersRepo(db);
   const passwordResets = passwordResetsRepo(db);
+  const admins = adminsRepo(db);
+  const teachers = teachersRepo(db);
   const mailer = createMailer();
 
   function ensureSupabaseReady() {
@@ -70,47 +74,67 @@ export function authService(db) {
     },
 
     async ensureUserFromJwt(claims) {
-      const authUserId = claims?.sub;
-      const rawEmail = claims?.email;
+  const authUserId = claims?.sub;
+  const rawEmail = claims?.email;
 
-      if (!authUserId || !rawEmail) {
-        throw AppError.unauthorized(
-          ErrorCodes.INVALID_TOKEN,
-          'El token no contiene la información mínima requerida.'
-        );
-      }
+  if (!authUserId || !rawEmail) {
+    throw AppError.unauthorized(
+      ErrorCodes.INVALID_TOKEN,
+      'El token no contiene la información mínima requerida.'
+    );
+  }
 
-      const email = normalizeEmail(rawEmail);
+  const email = normalizeEmail(rawEmail);
 
-      const existing = await users.findByAuthUserId(authUserId);
-      if (existing) return existing;
+  // Resolver el rol según la whitelist (P1, 07-Oct-2026).
+  const adminEmails = await admins.findAllEmails();
+  const teacherEmails = await teachers.findAllEmails();
+  const resolvedRole = resolveRoleFromWhitelist(email, {
+    admins: adminEmails,
+    teachers: teacherEmails,
+  });
 
-      const validation = await this.validateEmailDomain(email);
-      if (!validation.allowed) {
-        throw AppError.forbidden(
-          ErrorCodes.DOMAIN_NOT_ALLOWED,
-          'El dominio de tu correo no está autorizado.'
-        );
-      }
-
-      const doc = buildNewUserDoc({
-        authUserId,
-        email,
-        fullName: claims.user_metadata?.full_name ?? null,
-        institutionId: validation.institutionId,
-        role: defaultRoleForNewUser(),
+  // 1. ¿Ya existe?
+  const existing = await users.findByAuthUserId(authUserId);
+  if (existing) {
+    // Si el rol cambió (usuario promovido a admin/teacher), actualizar.
+    if (shouldUpdateRole(existing.role, resolvedRole)) {
+      const updated = await users.updateById(existing._id, {
+        role: resolvedRole,
       });
+      return updated ?? existing;
+    }
+    return existing;
+  }
 
-      try {
-        return await users.create(doc);
-      } catch (err) {
-        if (err?.code === 11000) {
-          const raced = await users.findByAuthUserId(authUserId);
-          if (raced) return raced;
-        }
-        throw err;
-      }
-    },
+  // 2. Defensa en profundidad: revalidar dominio antes de crear
+  const validation = await this.validateEmailDomain(email);
+  if (!validation.allowed) {
+    throw AppError.forbidden(
+      ErrorCodes.DOMAIN_NOT_ALLOWED,
+      'El dominio de tu correo no está autorizado.'
+    );
+  }
+
+  // 3. Crear documento con el rol resuelto por whitelist
+  const doc = buildNewUserDoc({
+    authUserId,
+    email,
+    fullName: claims.user_metadata?.full_name ?? null,
+    institutionId: validation.institutionId,
+    role: resolvedRole,
+  });
+
+  try {
+    return await users.create(doc);
+  } catch (err) {
+    if (err?.code === 11000) {
+      const raced = await users.findByAuthUserId(authUserId);
+      if (raced) return raced;
+    }
+    throw err;
+  }
+},
 
     async login(email, password) {
       ensureSupabaseReady();
@@ -161,21 +185,41 @@ export function authService(db) {
       const { data, error } = await supabaseAdmin.auth.admin.createUser({
         email: normalized,
         password,
-        email_confirm: env.NODE_ENV !== 'production',
+        // P1 (07-Oct-2026): auto-confirmar siempre. La pertenencia se valida
+        // por dominio institucional (hook before-user-created + validateEmailDomain).
+        email_confirm: true,
         user_metadata: { full_name: fullName },
       });
 
-      if (error) {
-        if (
-          error.message?.toLowerCase().includes('already') ||
-          error.message?.toLowerCase().includes('duplicate') ||
-          error.status === 422
-        ) {
+            if (error) {
+        const msg = error.message?.toLowerCase() ?? '';
+
+        // P1 (07-Oct-2026): separar "correo duplicado" de "contraseña inválida".
+        // Correo duplicado: 'already registered', 'duplicate', 'user already exists'.
+        if (msg.includes('already') || msg.includes('duplicate')) {
           throw AppError.conflict(
             ErrorCodes.EMAIL_ALREADY_EXISTS,
             'Ese correo ya está registrado.'
           );
         }
+
+        // Contraseña débil o rechazada por Supabase (error 422 con mensaje de password).
+        if (msg.includes('password') || msg.includes('weak')) {
+          throw AppError.unprocessable(
+            'WEAK_PASSWORD',
+            'La contraseña no cumple los requisitos de seguridad.'
+          );
+        }
+
+        // Otros 422: validación.
+        if (error.status === 422) {
+          throw AppError.badRequest(
+            'VALIDATION_ERROR',
+            'Los datos enviados no son válidos.'
+          );
+        }
+
+        // Fallback: error desconocido.
         throw AppError.internal(
           'SUPABASE_ERROR',
           'No se pudo crear la cuenta. Intenta de nuevo.'
@@ -214,24 +258,8 @@ export function authService(db) {
         return { ok: true };
       }
 
-      // Buscar el usuario en Supabase (para obtener el fullName).
-      // Si no existe, tampoco lo revelamos.
-      let supabaseUser = null;
-      try {
-        const { data, error } = await supabaseAdmin.auth.admin.listUsers({
-          page: 1,
-          perPage: 1,
-        });
-        if (error) supabaseUser = null;
-        // Nota: listUsers no filtra por email en la API admin.
-        // Alternativa: usar generateLink con type: 'recovery' y capturar el error.
-        // Para simplificar, intentamos generar el link; si falla con "not found",
-        // devolvemos ok: true sin enviar correo.
-      } catch (err) {
-        supabaseUser = null;
-      }
-
       // Verificar que el usuario exista en Supabase (sin revelar al cliente).
+      // P1 (07-Oct-2026): eliminado listUsers innecesario.
       // Usamos generateLink solo para verificar existencia.
       let userExists = true;
       try {

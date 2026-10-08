@@ -68,7 +68,9 @@ export async function authRoutes(fastify, opts) {
       secure: env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60,
+      // P1 (07-Oct-2026): 24h para evitar expulsiones silenciosas.
+      // El refresh endpoint se implementará en Fase 2 si es necesario.
+      maxAge: 60 * 60 * 24, // 24 horas
     });
 
     reply.setCookie('sb-refresh-token', session.refresh_token, {
