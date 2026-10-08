@@ -1,5 +1,6 @@
 /* Pantalla: Catálogo de lecturas — Dueño: Omar */
 
+import { requireLogin } from "../../../utils/authGuard.js";
 import { readingService } from "../../../services/readingsService.js";
 import { formatDifficulty } from "../../../utils/formatters.js";
 import { qs, debounce, escapeHtml } from "../../../utils/dom.js";
@@ -202,7 +203,10 @@ if (els.retryButton) {
 
 function init() {
   console.info("[catalog] Pantalla cargada.");
-  loadReadings();
+  requireLogin().then((user) => {
+    if (!user) return; // redirigido al login
+    loadReadings();
+  });
 }
 
 init();

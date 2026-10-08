@@ -1,5 +1,6 @@
 /* Pantalla: Detalle de lectura — Dueño: Omar */
 
+import { requireLogin } from "../../../utils/authGuard.js";
 import { readingService } from "../../../services/readingsService.js";
 import { formatDifficulty, formatLevel } from "../../../utils/formatters.js";
 import { qs, getParam, escapeHtml } from "../../../utils/dom.js";
@@ -32,10 +33,10 @@ const els = {
   ctaPrimaryText: qs('[data-field="ctaPrimaryText"]'),
 };
 
-/* Iconos y textos por tipo de actividad (según el backend) */
+/* Iconos y textos por tipo de actividad */
 const ACTIVITY_META = {
   multiple_choice: {
-    icon: "❓",
+    icon: "",
     title: "Preguntas de comprensión",
     text: "Responde preguntas sobre los personajes y la historia.",
   },
@@ -50,12 +51,12 @@ const ACTIVITY_META = {
     text: "Escribe una respuesta breve a cada pregunta.",
   },
   ordering: {
-    icon: "🔀",
+    icon: "",
     title: "Ordena la historia",
     text: "Arrastra los hechos al orden correcto.",
   },
   matching: {
-    icon: "🔗",
+    icon: "",
     title: "Relacionar conceptos",
     text: "Une cada concepto con su definición.",
   },
@@ -93,7 +94,7 @@ function renderActivities(activities) {
   els.activitiesList.innerHTML = activities
     .map((activity) => {
       const meta = ACTIVITY_META[activity.type] || {
-        icon: "📝",
+        icon: "",
         title: "Actividad",
         text: "Completa esta actividad.",
       };
@@ -158,15 +159,7 @@ function renderSummary(reading) {
   }
 }
 
-/* Rellenar el CTA según el estado del estudiante
- * Por ahora: siempre "Empezar a leer".
- *
- * TODO: cuando tengamos el endpoint del estado del estudiante,
- * cambiar según `studentAssignment.status`:
- *   - pending      → "Empezar a leer"  → reading-activity.html
- *   - in_progress  → "Continuar leyendo" + badge "En progreso"
- *   - completed    → "Ver resultados"  → feedback.html
- */
+/* Rellenar el CTA según el estado del estudiante */
 function renderCta(reading) {
   const readingId = encodeURIComponent(reading.id);
 
@@ -243,7 +236,6 @@ function handleError(error) {
 function normalizeReading(raw) {
   if (!raw) return null;
 
-  // El backend devuelve `_id` (MongoDB). Lo normalizamos a `id`.
   const id = raw.id ?? raw._id?.toString();
 
   return {
@@ -282,7 +274,10 @@ async function loadReading() {
 function init() {
   state.readingId = getParam("id");
   console.info("[reading-detail] Pantalla cargada. ID:", state.readingId);
-  loadReading();
+  requireLogin().then((user) => {
+    if (!user) return; // redirigido al login
+    loadReading();
+  });
 }
 
 init();

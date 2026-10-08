@@ -1,6 +1,6 @@
 /* Pantalla: Recuperar contraseña — Dueño: Omar */
 
-import { isInstitutionalEmail } from "../../utils/validators.js";
+import { isValidEmail } from "../../utils/validators.js";
 import { api } from "../../services/apiClient.js";
 
 const form = document.getElementById("forgot-form");
@@ -15,8 +15,8 @@ form.addEventListener("submit", async (e) => {
 
   const email = emailInput.value.trim().toLowerCase();
 
-  if (!isInstitutionalEmail(email)) {
-    return mostrarError("Debes usar tu correo institucional (@kinal.edu.gt).");
+  if (!isValidEmail(email)) {
+    return mostrarError("Ingresa un correo válido.");
   }
 
   const submitBtn = form.querySelector('button[type="submit"]');
@@ -26,7 +26,6 @@ form.addEventListener("submit", async (e) => {
   }
 
   try {
-    // El backend SIEMPRE devuelve { ok: true } por seguridad
     await api.post("/auth/forgot-password", { email });
 
     formSuccess.textContent =

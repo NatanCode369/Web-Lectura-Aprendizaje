@@ -1,5 +1,6 @@
 /* Pantalla: Lectura y actividades — Dueño: Omar */
 
+import { requireLogin } from "../../../utils/authGuard.js";
 import { assignmentService } from "../../../services/assignmentsService.js";
 import { readingService } from "../../../services/readingsService.js";
 import { formatTimer } from "../../../utils/formatters.js";
@@ -25,13 +26,13 @@ const ACTIVITY_SCREENS = {
 
 /* Iconos y títulos por tipo */
 const ACTIVITY_INFO = {
-  multiple_choice: { icon: "❓", title: "Preguntas de comprensión" },
-  true_false: { icon: "✓", title: "Verdadero o falso" },
-  ordering: { icon: "🔀", title: "Ordena la historia" },
-  matching: { icon: "🔗", title: "Relacionar conceptos" },
-  short_answer: { icon: "✎", title: "Respuesta corta" },
-  short_text: { icon: "✎", title: "Respuesta corta" },
-  detective: { icon: "🔍", title: "Detective de palabras" },
+  multiple_choice: { icon: "", title: "Preguntas de comprensión" },
+  true_false: { icon: "", title: "Verdadero o falso" },
+  ordering: { icon: "", title: "Ordena la historia" },
+  matching: { icon: "", title: "Relacionar conceptos" },
+  short_answer: { icon: "", title: "Respuesta corta" },
+  short_text: { icon: "", title: "Respuesta corta" },
+  detective: { icon: "", title: "Detective de palabras" },
 };
 
 /* ============================================================
@@ -105,7 +106,7 @@ function renderPdf(reading) {
     if (els.pdfWrapper) {
       els.pdfWrapper.innerHTML = `
         <div class="activity__pdf-empty">
-          <span class="activity__pdf-empty-icon" aria-hidden="true">📄</span>
+          <span class="activity__pdf-empty-icon" aria-hidden="true"></span>
           <p class="activity__pdf-empty-text">
             El PDF de esta lectura aún no está disponible.
           </p>
@@ -188,7 +189,7 @@ function renderActivitiesList() {
   els.activitiesList.innerHTML = state.activities
     .map((activity) => {
       const info = ACTIVITY_INFO[activity.type] || {
-        icon: "📝",
+        icon: "",
         title: "Actividad",
       };
       const screen = ACTIVITY_SCREENS[activity.type];
@@ -210,7 +211,7 @@ function renderActivitiesList() {
         `;
       }
 
-      const statusIcon = isCompleted ? "✅" : "⏳";
+      const statusIcon = isCompleted ? "" : "";
       const statusText = isCompleted ? "Completada" : "Pendiente";
 
       const content = `
@@ -300,7 +301,7 @@ async function loadActivity() {
   showState("loading");
 
   try {
-    /* 1. Cargar la tarea (con readingTitle, groupName, timeLimitMinutes) */
+    /* 1. Cargar la tarea */
     const saResponse = await assignmentService.getMine(
       state.studentAssignmentId,
     );
@@ -335,7 +336,7 @@ async function loadActivity() {
       }
     }
 
-    /* 3. Llamar a start para obtener activitySnapshot (idempotente) */
+    /* 3. Llamar a start para obtener activitySnapshot */
     const startResponse = await assignmentService.start(
       studentAssignment.assignmentId,
       generateRequestId(),
@@ -351,7 +352,7 @@ async function loadActivity() {
       }
     });
 
-    /* 5. Rellenar el título — usamos readingTitle del backend */
+    /* 5. Rellenar el título */
     const title =
       studentAssignment.readingTitle ||
       state.reading?.title ||
@@ -374,7 +375,7 @@ async function loadActivity() {
       els.completedCount.textContent = String(state.completedActivityIds.size);
     }
 
-    /* 8. Temporizador — usamos timeLimitMinutes del backend */
+    /* 8. Temporizador */
     const timeLimitMinutes =
       studentAssignment.assignment?.timeLimitMinutes ?? 20;
     state.totalSeconds = timeLimitMinutes * 60;
@@ -394,11 +395,6 @@ async function loadActivity() {
     }
   } catch (error) {
     console.error("[reading-activity] Error al cargar:", error);
-
-    if (error.status === 401) {
-      window.location.href = "/src/pages/auth/login.html";
-      return;
-    }
 
     if (error.status === 404) {
       showError("No encontramos esta tarea.");
@@ -426,7 +422,10 @@ function init() {
 
   if (els.toggle) els.toggle.addEventListener("click", togglePanel);
 
-  loadActivity();
+  requireLogin().then((user) => {
+    if (!user) return; // redirigido al login
+    loadActivity();
+  });
 }
 
 init();
