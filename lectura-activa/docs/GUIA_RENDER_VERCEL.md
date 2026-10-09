@@ -109,10 +109,16 @@ Revisar primero los usos de `import.meta.env` dentro de
 realmente utiliza el frontend, por ejemplo:
 
 ```text
-VITE_API_URL=https://<dominio-de-render>
+VITE_API_URL=/api/v1
 VITE_SUPABASE_URL=https://<proyecto>.supabase.co
 VITE_SUPABASE_ANON_KEY=<clave anon>
 ```
+
+`VITE_API_URL` debe ser la ruta relativa `/api/v1`, no la URL directa de Render.
+Así el navegador llama al mismo origen de Vercel y la regla de `vercel.json`
+reenviará `/api/*` a Render. Si se usa directamente el dominio `onrender.com`,
+la petición es cross-site y el navegador no enviará las cookies `SameSite=Lax`
+de la sesión.
 
 No configurar en Vercel:
 
@@ -143,7 +149,8 @@ El orden recomendado es:
 
 1. Desplegar la API en Render.
 2. Obtener la URL pública de Render.
-3. Configurar `VITE_API_URL` en Vercel con esa URL.
+3. Confirmar que el rewrite de `apps/web/vercel.json` apunta a esa URL y
+   configurar `VITE_API_URL=/api/v1` en Vercel.
 4. Desplegar el frontend en Vercel.
 5. Obtener la URL final de Vercel.
 6. Actualizar en Render `FRONTEND_URL` y `CORS_ORIGINS`.
