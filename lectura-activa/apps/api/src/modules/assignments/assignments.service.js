@@ -8,7 +8,7 @@ import {
   buildActivitySnapshot
 } from './assignments.domain.js';
 import { ForbiddenError, NotFoundError } from '../../shared/errors/index.js';
-import { logger } from '../../shared/logger/index.js';
+import { logger } from '../../shared/logger.js';
 
 // El módulo de readings exporta una factory; el resto son singletons.
 // Instancia única local para no romper el patrón.
