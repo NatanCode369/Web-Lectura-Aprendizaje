@@ -41,7 +41,7 @@ export async function buildServer({ withDb = true } = {}) {
   await fastify.register(helmet, { contentSecurityPolicy: false });
 
   // ---- CORS ----
-  // Dev: permite cualquier localhost/127.0.0.1 y los orígenes configurados.
+  // Dev: permite localhost/127.0.0.1 y los orígenes configurados.
   // Prod: solo los orígenes de CORS_ORIGINS.
   const isDev = env.NODE_ENV !== 'production';
   const allowedOrigins = Array.isArray(env.CORS_ORIGINS)
@@ -63,13 +63,8 @@ export async function buildServer({ withDb = true } = {}) {
         return callback(null, true);
       }
 
-      // En dev: permitir cualquier localhost/127.0.0.1 en cualquier puerto
+      // En dev: permitir localhost/127.0.0.1 en cualquier puerto
       if (isDev && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-        return callback(null, true);
-      }
-
-      // En dev: permitir cualquier IP de red local (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-      if (isDev && /^https?:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(origin)) {
         return callback(null, true);
       }
 
@@ -82,7 +77,6 @@ export async function buildServer({ withDb = true } = {}) {
     exposedHeaders: ['x-request-id'],
   });
 
-  // Si REQUIRE_EDGE=true, solo se acepta tráfico que venga del Worker.
   registerEdgeGuard(fastify, {
     secret: env.ORIGIN_SHARED_SECRET,
     requireEdge: env.REQUIRE_EDGE,
@@ -106,7 +100,7 @@ export async function buildServer({ withDb = true } = {}) {
     }),
   });
 
-  // ---- multipart para subir PDFs ----
+  // multipart para subir PDFs
   await fastify.register(multipart, {
     limits: {
       fileSize: 20 * 1024 * 1024,
@@ -158,18 +152,18 @@ export async function buildServer({ withDb = true } = {}) {
   // ---- Rutas de negocio ----
   await fastify.register(authRoutes, { prefix: '/api/v1/auth', db });
   await fastify.register(usersRoutes, { prefix: '/api/v1', db });
+
   await fastify.register(groupsRoutes, { prefix: '/api/v1/groups', db });
   await fastify.register(assignmentsRoutes, { prefix: '/api/v1/assignments', db });
+  await fastify.register(attemptsRoutes, { prefix: '/api/v1/assignments', db });
   await fastify.register(studentAssignmentsRoutes, { prefix: '/api/v1/student-assignments', db });
-  await fastify.register(attemptsRoutes, { prefix: '/api/v1/attempts', db });
   await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics', db });
 
-  // ---- Readings (módulo de Adrián) ----
+  // ---- Readings ----
   const readingRepository = buildReadingRepository();
   const auditRepository = buildAuditRepository();
   const readingService = buildReadingService({ readingRepository, auditRepository });
 
-  // Middleware de autenticación (nuevo, ADR 0001 + 0004)
   const authMiddleware = authenticate(db);
 
   await registerReadingRoutes(fastify, {

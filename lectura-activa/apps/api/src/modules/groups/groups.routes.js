@@ -15,13 +15,13 @@ export async function groupsRoutes(fastify, opts) {
 
   fastify.addHook('preHandler', authMiddleware);
 
-  fastify.get('/groups', async (request) => {
+  fastify.get('/', async (request) => {
     const query = validate(listGroupsSchema, request.query);
     return groupsService.list(request.user, query);
   });
 
   fastify.post(
-    '/groups',
+    '/',
     { preHandler: requireRole('teacher', 'admin') },
     async (request, reply) => {
       const payload = validate(createGroupSchema, request.body);
@@ -30,12 +30,12 @@ export async function groupsRoutes(fastify, opts) {
     }
   );
 
-  fastify.get('/groups/:id', async (request) => {
+  fastify.get('/:id', async (request) => {
     return groupsService.getById(request.user, request.params.id);
   });
 
   fastify.patch(
-    '/groups/:id',
+    '/:id',
     { preHandler: requireRole('teacher', 'admin') },
     async (request) => {
       const patch = validate(updateGroupSchema, request.body);
@@ -44,7 +44,7 @@ export async function groupsRoutes(fastify, opts) {
   );
 
   fastify.delete(
-    '/groups/:id',
+    '/:id',
     { preHandler: requireRole('teacher', 'admin') },
     async (request) => {
       return groupsService.remove(request.user, request.params.id);
@@ -52,7 +52,7 @@ export async function groupsRoutes(fastify, opts) {
   );
 
   fastify.post(
-    '/groups/:id/students',
+    '/:id/students',
     { preHandler: requireRole('teacher', 'admin') },
     async (request) => {
       const { studentIds } = validate(addStudentsSchema, request.body);
@@ -61,7 +61,7 @@ export async function groupsRoutes(fastify, opts) {
   );
 
   fastify.delete(
-    '/groups/:id/students/:studentId',
+    '/:id/students/:studentId',
     { preHandler: requireRole('teacher', 'admin') },
     async (request) => {
       return groupsService.removeStudent(

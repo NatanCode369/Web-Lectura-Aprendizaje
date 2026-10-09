@@ -1,6 +1,6 @@
 import { sendError } from '../../shared/http.js';
 import { requireRoles } from '../../shared/auth.js';
-import { ValidationError } from '../../shared/errors/index.js';
+import { ValidationError, ErrorCodes } from '../../shared/errors/index.js';
 import {
   readingListQuery,
   readingPatchBody,
@@ -79,8 +79,10 @@ export async function registerReadingRoutes(
   );
 
   app.post(
-    `${prefix}/:id/publish`,
-    { preHandler: [authenticate, requireRoles('teacher', 'admin')] },
+    '/api/v1/readings/:id/publish',
+    {
+      preHandler: [authenticate, requireRoles('teacher', 'admin')],
+    },
     async (request, reply) => {
       try {
         return reply.send(
@@ -92,6 +94,11 @@ export async function registerReadingRoutes(
     }
   );
 
+  /**
+   * POST /api/v1/readings/:id/media
+   * Sube un PDF y lo adjunta a la lectura.
+   * multipart/form-data con un campo `file`.
+   */
   app.post(
     '/api/v1/readings/:id/media',
     { preHandler: [authenticate, requireRoles('teacher', 'admin')] },
@@ -100,7 +107,7 @@ export async function registerReadingRoutes(
         const data = await request.file();
         if (!data) {
           throw new ValidationError(
-            'MISSING_FILE',
+            ErrorCodes.MISSING_FILE,
             'No se recibió ningún archivo'
           );
         }

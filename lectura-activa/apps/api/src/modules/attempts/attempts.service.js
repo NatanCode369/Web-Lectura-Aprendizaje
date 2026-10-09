@@ -11,16 +11,16 @@ import {
 import { assertAssignmentIsOpen } from '../assignments/assignments.domain.js';
 import { groupsRepository } from '../groups/groups.repository.js';
 import { getDb } from '../../shared/db.js';
-import { AppError } from '../../shared/errors/AppError.js';
-import { logger } from '../../shared/logger/index.js';
+import { ForbiddenError, NotFoundError, ConflictError } from '../../shared/errors/AppError.js';
+import { logger } from '../../shared/logger.js';
 
 async function loadContext(user, assignmentId) {
   const assignment = await assignmentsRepository.findById(assignmentId);
-  if (!assignment) throw AppError.notFound('NOT_FOUND', 'Asignación no encontrada');
+  if (!assignment) throw new NotFoundError('Asignación');
 
   const sa = await studentAssignmentsRepository.findByAssignmentAndStudent(
     assignmentId,
-    user.userId
+    user._id
   );
   return { assignment, sa };
 }
@@ -38,14 +38,14 @@ export const attemptsService = {
     if (!studentAssignment) {
       const group = await groupsRepository.findById(assignment.groupId);
       const isMember = group?.studentIds?.some(
-        (studentId) => String(studentId) === String(user.userId)
+        (studentId) => String(studentId) === String(user._id)
       );
       if (!isMember) {
-        throw AppError.forbidden('FORBIDDEN', 'No tienes esta tarea asignada');
+        throw new ForbiddenError('No tienes esta tarea asignada');
       }
       studentAssignment = await studentAssignmentsRepository.ensure({
         assignmentId: assignment._id,
-        studentId: user.userId
+        studentId: user._id
       });
     }
 
@@ -73,9 +73,9 @@ export const attemptsService = {
     const { assignment, sa } = await loadContext(user, assignmentId);
     assertAssignmentIsOpen(assignment);
 
-    if (!sa) throw AppError.forbidden('FORBIDDEN', 'No tienes esta tarea asignada');
+    if (!sa) throw new ForbiddenError('No tienes esta tarea asignada');
     if (sa.status === 'completed') {
-      throw AppError.conflict('CONFLICT', 'Esta tarea ya fue completada');
+      throw new ConflictError('Esta tarea ya fue completada');
     }
 
     const existing = await attemptsRepository.findByRequestId(payload.requestId);

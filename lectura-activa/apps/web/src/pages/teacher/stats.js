@@ -1,282 +1,155 @@
 import '../../utils/analytics.js';
 /**
  * ============================================================
- * Estadísticas del docente
+ * Estadísticas del docente — Conectado al backend analytics
  * ============================================================
  *
- * Por ahora usa localStorage (mientras el backend de analytics
- * no esté conectado del todo). Cuando esté listo, reemplazar
- * las funciones cargarGrupos/cargarLecturas por llamadas a:
- *   import { analyticsService } from '../../services/analyticsService.js';
- *   const data = await analyticsService.byGroup(groupId);
+ * Endpoints usados (ver services/analyticsService.js):
+ *   GET /api/v1/analytics/groups/:groupId    → métricas diarias por grupo
+ *   GET /api/v1/analytics/readings/:readingId → métricas diarias por lectura
  *
- * Claves usadas en localStorage:
- *   grupos_docente-demo           → [{ nombre, estudiantes: [email] }]
- *   lecturas_docente              → [{ id, title }]
- *   actividades_<lecturaId>       → { trivia: [...], verdaderoFalso: [...] }
- *   asignaciones_<email>          → [{ lecturaId }]
- *   resultado_<lecturaId>         → { respuestas, tiempoUsadoSegundos }
+ * Auth: Bearer token (Supabase) · Rol requerido: teacher
  * ============================================================
  */
 
-(function () {
-  'use strict';
+import { groupsService } from '../../services/groupsService.js';
+import { teacherReadingService } from '../../services/teacherReadingsService.js';
+import { analyticsService } from '../../services/analyticsService.js';
 
-  // ============================================================
-  // CONFIGURACIÓN
-  // ============================================================
-  const DOCENTE_ID = 'docente-demo';
-  const KEY_GRUPOS = `grupos_${DOCENTE_ID}`;
-  const KEY_LECTURAS = 'lecturas_docente';
+function escapeHtml(text) {
+  return String(text)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
 
-  const NOMBRE_ESTADO = {
-    'al-dia': 'Al día',
-    'atrasado': 'Atrasado',
-    'sin-empezar': 'Sin empezar'
-  };
+const $ = (id) => document.getElementById(id);
 
-  const CLASE_ESTADO = {
-    'al-dia': 'badge--ok',
-    'atrasado': 'badge--late',
-    'sin-empezar': 'badge--soon'
-  };
-
-  // ============================================================
-  // REFERENCIAS
-  // ============================================================
-  const $ = (id) => document.getElementById(id);
-  const selLectura = $('filtro-lectura');
-  const selGrupo = $('filtro-grupo');
-
-  // ============================================================
-  // UTILIDADES
-  // ============================================================
-  function escapeHtml(texto) {
-    return String(texto)
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-  }
-
-  function promedio(valores) {
-    const v = valores.filter((x) => x !== null && x !== undefined);
-    return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null;
-  }
-
-  // ============================================================
-  // CARGA DESDE LOCALSTORAGE
-  // ============================================================
-  function cargarGrupos() {
-    try {
-      return JSON.parse(localStorage.getItem(KEY_GRUPOS) || '[]');
-    } catch {
-      return [];
-    }
-  }
-
-  function cargarLecturas() {
-    try {
-      return JSON.parse(localStorage.getItem(KEY_LECTURAS) || '[]');
-    } catch {
-      return [];
-    }
-  }
-
-  // ============================================================
-  // CALCULAR SCORE REAL
-  // ============================================================
-  function calcularScore(lecturaId, resultado) {
-    const actsGuardadas = localStorage.getItem(`actividades_${lecturaId}`);
-    if (!actsGuardadas) return 0;
-
-    let acts;
-    try {
-      acts = JSON.parse(actsGuardadas);
-    } catch {
-      return 0;
-    }
-
-    const respuestas = resultado.respuestas || {};
-    let correctas = 0;
-    let total = 0;
-
-    (acts.trivia || []).forEach((q, i) => {
-      const idx = String(i);
-      total++;
-      if (respuestas[idx] === q.correcta) correctas++;
-    });
-
-    const offset = (acts.trivia || []).length;
-    (acts.verdaderoFalso || []).forEach((v, j) => {
-      const idx = String(offset + j);
-      total++;
-      if (respuestas[idx] === v.respuesta) correctas++;
-    });
-
-    if (total === 0) return 0;
-    return Math.round((correctas / total) * 100);
-  }
-
-  // ============================================================
-  // CONSTRUIR FILAS
-  // ============================================================
-  function construirFilas() {
-    const lecturaId = selLectura.value;
-    const grupoFiltro = selGrupo.value;
-
-    if (!lecturaId) return [];
-
-    const grupos = cargarGrupos();
-    const filas = [];
-
-    grupos.forEach((grupo) => {
-      if (grupoFiltro !== 'todos' && grupo.nombre !== grupoFiltro) return;
-
-      (grupo.estudiantes || []).forEach((email) => {
-        const asignaciones = JSON.parse(
-          localStorage.getItem(`asignaciones_${email}`) || '[]'
-        );
-        const asignacion = asignaciones.find((a) => a.lecturaId === lecturaId);
-
-        if (!asignacion) return;
-
-        const resultadoGuardado = localStorage.getItem(
-          `resultado_${lecturaId}`
-        );
-        let estado = 'sin-empezar';
-        let puntaje = null;
-        let minutos = null;
-
-        if (resultadoGuardado) {
-          let r;
-          try {
-            r = JSON.parse(resultadoGuardado);
-          } catch {
-            r = null;
-          }
-
-          if (r) {
-            puntaje = calcularScore(lecturaId, r);
-            minutos = Math.round((r.tiempoUsadoSegundos || 0) / 60);
-            estado = puntaje >= 60 ? 'al-dia' : 'atrasado';
-          }
-        }
-
-        filas.push({
-          nombre: email.split('@')[0],
-          grupo: grupo.nombre,
-          estado,
-          puntaje,
-          minutos
-        });
-      });
-    });
-
-    return filas;
-  }
-
-  // ============================================================
-  // RENDER
-  // ============================================================
-  function renderResumen(filas) {
-    const prom = promedio(filas.map((f) => f.puntaje));
-    const tiempo = promedio(filas.map((f) => f.minutos));
-    const alDia = filas.filter((f) => f.estado === 'al-dia').length;
-    const atrasados = filas.filter((f) => f.estado === 'atrasado').length;
-
-    $('stat-promedio').textContent = prom === null ? '—' : prom + '/100';
-    $('stat-tiempo').textContent = tiempo === null ? '—' : tiempo + ' min';
-    $('stat-aldia').textContent = filas.length
-      ? Math.round((alDia / filas.length) * 100) + '%'
-      : '—';
-    $('stat-atrasados').textContent = atrasados;
-  }
-
-  function renderGrupos(filas) {
-    const grupos = [...new Set(filas.map((f) => f.grupo))];
-
-    $('progreso-grupos').innerHTML =
-      grupos
-        .map((g) => {
-          const delGrupo = filas.filter((f) => f.grupo === g);
-          const alDia = delGrupo.filter((f) => f.estado === 'al-dia').length;
-          const pct = delGrupo.length
-            ? Math.round((alDia / delGrupo.length) * 100)
-            : 0;
-          return `
-            <div>
-              <div class="progress__row"><span>${escapeHtml(g)}</span><span>${pct}%</span></div>
-              <div class="progress"><div class="progress__bar" style="width: ${pct}%"></div></div>
-            </div>`;
-        })
-        .join('') || '<p class="panel__hint">Sin datos para mostrar.</p>';
-  }
-
-  function renderEstudiantes(filas) {
-    const cuerpo = $('estudiantes-body');
-
-    if (filas.length === 0) {
-      cuerpo.innerHTML =
-        '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #64748b;">No hay estudiantes con esta lectura asignada.</td></tr>';
-      return;
-    }
-
-    cuerpo.innerHTML = filas
-      .map(
-        (f) => `
+function showError(message) {
+  console.error('[stats] Error:', message);
+  const $tbody = $('lecturas-body');
+  if ($tbody) {
+    $tbody.innerHTML = `
       <tr>
-        <td>${escapeHtml(f.nombre)}</td>
-        <td>${escapeHtml(f.grupo)}</td>
-        <td><span class="badge ${CLASE_ESTADO[f.estado]}">${NOMBRE_ESTADO[f.estado]}</span></td>
-        <td>${f.puntaje === null ? '—' : f.puntaje + '/100'}</td>
-        <td>${f.minutos === null ? '—' : f.minutos + ' min'}</td>
+        <td colspan="6" style="text-align: center; padding: 30px; color: #b91c1c;">
+          Error: ${escapeHtml(message)}
+        </td>
       </tr>
-    `
-      )
-      .join('');
+    `;
+  }
+}
+
+async function renderStats(grupos, lecturas) {
+  if ($('stat-grupos')) $('stat-grupos').textContent = grupos.length;
+  if ($('stat-lecturas')) $('stat-lecturas').textContent = lecturas.length;
+
+  try {
+    const detalles = await Promise.all(grupos.map((g) => groupsService.getById(g._id)));
+    const total = detalles.reduce((acc, g) => acc + (g.studentIds?.length || 0), 0);
+    if ($('stat-conectados')) $('stat-conectados').textContent = total;
+  } catch {
+    if ($('stat-conectados')) $('stat-conectados').textContent = '—';
+  }
+}
+
+function renderLecturas(lecturas, asignaciones) {
+  const $tbody = $('lecturas-body');
+  if (!$tbody) return;
+
+  if (lecturas.length === 0) {
+    $tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align: center; padding: 30px; color: #64748b;">
+          Aún no hay lecturas publicadas. <a href="./reading-new.html">Crea una aquí</a>.
+        </td>
+      </tr>
+    `;
+    return;
   }
 
-  function renderPreguntas() {
-    $('preguntas-list').innerHTML =
-      '<p class="panel__hint">Disponible cuando haya más resultados registrados.</p>';
+  $tbody.innerHTML = lecturas.map((l) => {
+    const cantidadGrupos = asignaciones.filter((a) => a.readingId === l.id).length;
+
+    return `
+      <tr>
+        <td>${escapeHtml(l.title)}</td>
+        <td>${l.difficulty === 'easy' ? 'Fácil' : l.difficulty === 'medium' ? 'Medio' : 'Avanzado'}</td>
+        <td>${l.estimatedMinutes} min</td>
+        <td><span class="badge badge--ok">Publicada</span></td>
+        <td>${cantidadGrupos}</td>
+        <td>
+          <div class="table__actions">
+            <a href="./reading-edit.html?id=${encodeURIComponent(l.id)}" class="btn btn--ghost btn--sm">Editar</a>
+            <a href="./stats.html?id=${encodeURIComponent(l.id)}" class="btn btn--ghost btn--sm">Estadísticas</a>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function renderProgreso(grupos, lecturas) {
+  const $lista = document.querySelector('.progress-list');
+  if (!$lista) return;
+
+  if (grupos.length === 0) {
+    $lista.innerHTML = '<p class="panel__hint">Aún no tienes grupos. <a href="./groups.html">Crea uno aquí</a>.</p>';
+    return;
+  }
+  if (lecturas.length === 0) {
+    $lista.innerHTML = '<p class="panel__hint">Aún no hay lecturas publicadas. El progreso aparecerá cuando asignes lecturas.</p>';
+    return;
   }
 
-  function render() {
-    const filas = construirFilas();
-    renderResumen(filas);
-    renderGrupos(filas);
-    renderEstudiantes(filas);
-    renderPreguntas();
+  try {
+    const filas = await Promise.all(grupos.map(async (g) => {
+      let pct = 0;
+      try {
+        const { rows = [] } = await analyticsService.byGroup(g._id);
+        const asignadas = rows.reduce((acc, r) => acc + (r.assignedCount || 0), 0);
+        const completadas = rows.reduce((acc, r) => acc + (r.completedCount || 0), 0);
+        pct = asignadas > 0 ? Math.round((completadas / asignadas) * 100) : 0;
+      } catch {
+        pct = 0;
+      }
+      return `
+        <div>
+          <div class="progress__row"><span>${escapeHtml(g.name)}</span><span>${pct}%</span></div>
+          <div class="progress"><div class="progress__bar" style="width: ${pct}%"></div></div>
+        </div>
+      `;
+    }));
+    $lista.innerHTML = filas.join('');
+  } catch (error) {
+    console.error('[stats] Error al cargar progreso por grupo:', error);
+    $lista.innerHTML = '<p class="panel__hint">No se pudo cargar el progreso por grupo.</p>';
   }
+}
 
-  // ============================================================
-  // ARRANQUE
-  // ============================================================
-  function init() {
-    const lecturas = cargarLecturas();
+async function init() {
+  try {
+    const [gruposResp, lecturasResp, asignacionesResp] = await Promise.all([
+      groupsService.list(),
+      teacherReadingService.listPublished(),
+      (async () => {
+        // Usamos el teacherAssignmentService indirectamente
+        const { api } = await import('../../services/apiClient.js');
+        const resp = await api.get('/assignments');
+        return resp;
+      })()
+    ]);
+    const grupos = gruposResp.items || [];
+    const lecturas = lecturasResp.data || [];
+    const asignaciones = asignacionesResp.items || [];
 
-    if (lecturas.length === 0) {
-      selLectura.innerHTML = '<option value="">— Sin lecturas —</option>';
-    } else {
-      selLectura.innerHTML = lecturas
-        .map((l) => `<option value="${l.id}">${escapeHtml(l.title)}</option>`)
-        .join('');
-    }
-
-    const grupos = cargarGrupos();
-    selGrupo.innerHTML =
-      '<option value="todos">Todos los grupos</option>' +
-      grupos
-        .map((g) => `<option value="${escapeHtml(g.nombre)}">${escapeHtml(g.nombre)}</option>`)
-        .join('');
-
-    selLectura.addEventListener('change', render);
-    selGrupo.addEventListener('change', render);
-
-    render();
+    renderLecturas(lecturas, asignaciones);
+    renderStats(grupos, lecturas);
+    await renderProgreso(grupos, lecturas);
+  } catch (error) {
+    showError(error.message);
   }
+}
 
-  init();
-})();
+init();

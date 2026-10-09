@@ -3,7 +3,7 @@ import { studentAssignmentsRepository } from '../studentAssignments/studentAssig
 import { analyticsRepository } from './analytics.repository.js';
 import { computeDailyMetrics, dayKey } from './analytics.domain.js';
 import { startOfUtcDay, endOfUtcDay } from '../../shared/utils/dates.js';
-import { logger } from '../../shared/logger/index.js';
+import { logger } from '../../shared/logger.js';
 
 /**
  * ADR-0004: cálculo diario de analítica.

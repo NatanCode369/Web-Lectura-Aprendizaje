@@ -1,9 +1,13 @@
 import { studentAssignmentsRepository } from './studentAssignments.repository.js';
 import { assignmentsRepository } from '../assignments/assignments.repository.js';
 import { groupsRepository } from '../groups/groups.repository.js';
-import { readingsRepository } from '../readings/readings.repository.js';
+import { buildReadingRepository } from '../readings/reading.repository.js';
 import { logger } from '../../shared/logger/index.js';
-import { AppError } from '../../shared/errors/AppError.js';
+import { NotFoundError } from '../../shared/errors/index.js';
+
+// El módulo de readings exporta una factory; el resto son singletons.
+// Construimos una instancia única local para no romper el patrón.
+const readingRepository = buildReadingRepository();
 
 export const studentAssignmentsService = {
   /**
@@ -44,12 +48,26 @@ export const studentAssignmentsService = {
     );
 
     // Obtener readingIds y groupIds únicos para fetch en batch
-    const readingIds = [...new Set(assignments.filter(Boolean).map((a) => a.readingId?.toString()).filter(Boolean))];
-    const groupIds = [...new Set(assignments.filter(Boolean).map((a) => a.groupId?.toString()).filter(Boolean))];
+    const readingIds = [
+      ...new Set(
+        assignments
+          .filter(Boolean)
+          .map((a) => a.readingId?.toString())
+          .filter(Boolean)
+      ),
+    ];
+    const groupIds = [
+      ...new Set(
+        assignments
+          .filter(Boolean)
+          .map((a) => a.groupId?.toString())
+          .filter(Boolean)
+      ),
+    ];
 
     const [readings, groups] = await Promise.all([
-      Promise.all(readingIds.map((id) => readingsRepository.findById(id))),
-      Promise.all(groupIds.map((id) => groupsRepository.findById(id)))
+      Promise.all(readingIds.map((id) => readingRepository.findById(id))),
+      Promise.all(groupIds.map((id) => groupsRepository.findById(id))),
     ]);
 
     const readingById = new Map(
@@ -82,9 +100,9 @@ export const studentAssignmentsService = {
               availableFrom: a.availableFrom,
               dueAt: a.dueAt,
               timeLimitMinutes: a.timeLimitMinutes ?? 20,
-              status: a.status
+              status: a.status,
             }
-          : null
+          : null,
       };
     });
 
@@ -94,7 +112,7 @@ export const studentAssignmentsService = {
   async getMine(studentId, studentAssignmentId) {
     const sa = await studentAssignmentsRepository.findById(studentAssignmentId);
     if (!sa || sa.studentId.toString() !== studentId) {
-      throw AppError.notFound('NOT_FOUND', 'Tarea no encontrada');
+      throw new NotFoundError('Tarea');
     }
 
     // Enriquecer con assignment, readingTitle, groupName
@@ -106,7 +124,7 @@ export const studentAssignmentsService = {
       assignment = await assignmentsRepository.findById(sa.assignmentId);
       if (assignment) {
         if (assignment.readingId) {
-          const reading = await readingsRepository.findById(assignment.readingId);
+          const reading = await readingRepository.findById(assignment.readingId);
           readingTitle = reading?.title ?? null;
         }
         if (assignment.groupId) {
@@ -130,9 +148,9 @@ export const studentAssignmentsService = {
             availableFrom: assignment.availableFrom,
             dueAt: assignment.dueAt,
             timeLimitMinutes: assignment.timeLimitMinutes ?? 20,
-            status: assignment.status
+            status: assignment.status,
           }
-        : null
+        : null,
     };
-  }
+  },
 };

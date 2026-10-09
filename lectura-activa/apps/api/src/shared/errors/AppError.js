@@ -163,4 +163,5 @@ export const ErrorCodes = Object.freeze({
   FILE_TOO_LARGE: 'FILE_TOO_LARGE',
   FILE_TOO_SMALL: 'FILE_TOO_SMALL',
   INVALID_PDF: 'INVALID_PDF',
+  MISSING_FILE: 'MISSING_FILE',
 });
