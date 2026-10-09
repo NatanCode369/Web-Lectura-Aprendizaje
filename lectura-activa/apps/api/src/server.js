@@ -44,9 +44,15 @@ export async function buildServer({ withDb = true } = {}) {
   // Dev: permite localhost/127.0.0.1 y los orígenes configurados.
   // Prod: solo los orígenes de CORS_ORIGINS.
   const isProd = env.NODE_ENV === 'production';
-const allowedOrigins = isProd
-  ? (env.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean)
-  : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+  
+  // env.CORS_ORIGINS ya es un array por el transform de Zod en config/env.js
+  const corsOrigins = Array.isArray(env.CORS_ORIGINS) 
+    ? env.CORS_ORIGINS 
+    : (env.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+  
+  const allowedOrigins = isProd
+    ? corsOrigins
+    : [...corsOrigins, 'http://localhost:5173', 'http://127.0.0.1:5173'];
 
 await fastify.register(cors, {
   origin: (origin, callback) => {
