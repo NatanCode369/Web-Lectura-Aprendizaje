@@ -14,7 +14,7 @@ if (!MONGODB_URI) {
   process.exit(1);
 }
 
-const DB_NAME = process.env.MONGODB_DB ?? 'lectura_activa';
+const DB_NAME = process.env.MONGODB_DB ?? 'lectura-activa';
 
 async function ensureCollection(db, name, validator) {
   const existing = await db.listCollections({ name }).toArray();

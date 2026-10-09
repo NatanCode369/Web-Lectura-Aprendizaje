@@ -32,7 +32,7 @@ const schema = z
             'En producción MONGODB_URI debe apuntar a MongoDB Atlas'
           )
       : z.string().url().default('mongodb://localhost:27017'),
-    MONGODB_DB: z.string().min(1).default('lectura_activa'),
+    MONGODB_DB: z.string().min(1).default('lectura-activa'),
     SUPABASE_URL: optionalInDev('SUPABASE_URL'),
     SUPABASE_ANON_KEY: optionalInDev('SUPABASE_ANON_KEY'),
     SUPABASE_SERVICE_ROLE_KEY: optionalInDev('SUPABASE_SERVICE_ROLE_KEY'),
