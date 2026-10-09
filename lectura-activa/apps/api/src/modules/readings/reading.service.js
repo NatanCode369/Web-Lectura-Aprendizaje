@@ -41,20 +41,6 @@ function canManage(reading, user) {
 
 // validatePdfFile is imported from pdf.path.js
 // assertPdfMagicBytes is imported from pdf.path.js
-  if (!buffer || buffer.length < PDF_MAGIC_BYTES.length) {
-    throw new ValidationError(
-      ErrorCodes.FILE_TOO_SMALL,
-      'El archivo es demasiado pequeño para ser un PDF'
-    );
-  }
-  const magic = buffer.subarray(0, PDF_MAGIC_BYTES.length).toString('ascii');
-  if (magic !== PDF_MAGIC_BYTES) {
-    throw new ValidationError(
-      ErrorCodes.INVALID_PDF,
-      'El archivo no es un PDF válido'
-    );
-  }
-}
 
 function findPdfMedia(reading) {
   const media = Array.isArray(reading.media) ? reading.media : [];
