@@ -24,7 +24,6 @@ import {
   calculateNextId,
   validatePdfFile,
   assertPdfMagicBytes,
-  sanitizeFilename,
   PDF_BUCKET,
   PDF_MAX_BYTES,
 } from './pdf.path.js';
@@ -40,28 +39,8 @@ function canManage(reading, user) {
   return user.role === 'admin' || (user.role === 'teacher' && reading.authorId.equals(user._id));
 }
 
-function validatePdfFile({ mimetype, filename, size }) {
-  if (mimetype !== 'application/pdf') {
-    throw new ValidationError(
-      ErrorCodes.INVALID_MIME,
-      `Tipo de archivo no permitido. Solo PDF (recibido: ${mimetype})`
-    );
-  }
-  if (!filename || filename.trim().length === 0) {
-    throw new ValidationError(
-      ErrorCodes.MISSING_FILENAME,
-      'El archivo no tiene nombre'
-    );
-  }
-  if (typeof size === 'number' && size > PDF_MAX_BYTES) {
-    throw new ValidationError(
-      ErrorCodes.FILE_TOO_LARGE,
-      'El PDF supera el límite de 20 MB'
-    );
-  }
-}
-
-function assertPdfMagicBytes(buffer) {
+// validatePdfFile is imported from pdf.path.js
+// assertPdfMagicBytes is imported from pdf.path.js
   if (!buffer || buffer.length < PDF_MAGIC_BYTES.length) {
     throw new ValidationError(
       ErrorCodes.FILE_TOO_SMALL,
