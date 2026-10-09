@@ -46,7 +46,7 @@ const radios = document.querySelectorAll('input[name="formato"]');
 const cajaTexto = document.getElementById('formato-texto');
 const cajaPdf = document.getElementById('formato-pdf');
 const $listaGrupos = document.getElementById('lista-grupos');
-const pdfInput = document.getElementById('pdf-file');
+const pdfInput = document.getElementById('pdf');
 
 // ============================================================
 // CARGAR GRUPOS DEL DOCENTE (GET /groups)
