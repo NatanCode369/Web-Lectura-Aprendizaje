@@ -19,27 +19,29 @@ export async function authRoutes(fastify, opts) {
   const service = authService(db);
 
   function setSessionCookies(reply, session) {
-    const accessTokenMaxAge =
-      Number.isInteger(session.expires_in) && session.expires_in > 0
-        ? session.expires_in
-        : 60 * 60;
+  const accessTokenMaxAge =
+    Number.isInteger(session.expires_in) && session.expires_in > 0
+      ? session.expires_in
+      : 60 * 60;
 
-    reply.setCookie('sb-access-token', session.access_token, {
-      httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: accessTokenMaxAge,
-    });
+  const isProd = env.NODE_ENV === 'production';
+  
+  reply.setCookie('sb-access-token', session.access_token, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',  // ← CAMBIO CLAVE
+    path: '/',
+    maxAge: accessTokenMaxAge,
+  });
 
-    reply.setCookie('sb-refresh-token', session.refresh_token, {
-      httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7,
-    });
-  }
+  reply.setCookie('sb-refresh-token', session.refresh_token, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',  // ← CAMBIO CLAVE
+    path: '/',
+    maxAge: 60 * 60 * 24 * 7,
+  });
+}
 
   function clearSessionCookies(reply) {
     reply.clearCookie('sb-access-token', { path: '/' });

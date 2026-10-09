@@ -38,6 +38,14 @@ async function refreshSession() {
   if (!response.ok) {
     throw createHttpError(response, await readErrorBody(response));
   }
+
+  // NUEVO: Actualizar usuario en sessionStorage tras refresh
+  try {
+    const { fetchMe } = await import("./authService.js");
+    await fetchMe();
+  } catch (e) {
+    console.warn("[apiClient] No se pudo actualizar usuario tras refresh:", e);
+  }
 }
 
 function redirectToLogin() {
