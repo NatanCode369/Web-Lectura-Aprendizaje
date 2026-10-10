@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "migrate": "node scripts/migrate.mjs",
-    "seed": "node scripts/seed.mjs"
+    "seed": "node scripts/seed.mjs",
+    "import:readings:storage": "node scripts/import-readings-from-storage.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",

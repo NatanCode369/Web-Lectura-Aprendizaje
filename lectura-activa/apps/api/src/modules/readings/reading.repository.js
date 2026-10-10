@@ -21,6 +21,17 @@ export function buildReadingRepository() {
       return collection().findOne({ _id, deletedAt: { $exists: false } });
     },
 
+    async findByMediaPath(path) {
+      if (!path || typeof path !== 'string') return null;
+      const normalized = path.trim();
+      if (!normalized) return null;
+
+      return collection().findOne({
+        deletedAt: { $exists: false },
+        'media.path': normalized,
+      });
+    },
+
     async updateById(id, filter, update) {
       const _id = toObjectId(id);
       if (!_id) return null;
