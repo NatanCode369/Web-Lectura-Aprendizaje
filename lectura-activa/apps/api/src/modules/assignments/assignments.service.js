@@ -9,10 +9,11 @@ import {
 } from './assignments.domain.js';
 import { ForbiddenError, NotFoundError } from '../../shared/errors/index.js';
 import { logger } from '../../shared/logger.js';
+import { getDb } from '../../shared/db.js';
+import { auditService } from '../../shared/audit.service.js';
 
-// El módulo de readings exporta una factory; el resto son singletons.
-// Instancia única local para no romper el patrón.
 const readingRepository = buildReadingRepository();
+const getAudit = () => auditService(getDb());
 
 export const assignmentsService = {
   async create(user, payload) {
@@ -20,7 +21,7 @@ export const assignmentsService = {
 
     const [reading, group] = await Promise.all([
       readingRepository.findById(payload.readingId),
-      groupsRepository.findByIdForTeacher(payload.groupId, user.userId)
+      groupsRepository.findByIdForTeacher(payload.groupId, user._id)
     ]);
 
     if (!group) throw new ForbiddenError('FORBIDDEN', 'El grupo no te pertenece');
@@ -30,7 +31,7 @@ export const assignmentsService = {
       readingId: reading._id,
       readingVersion: reading.version ?? 1,
       groupId: group._id,
-      teacherId: user.userId,
+      teacherId: user._id,
       availableFrom: new Date(payload.availableFrom),
       dueAt: new Date(payload.dueAt),
       timeLimit: payload.timeLimit ?? null,
@@ -40,11 +41,23 @@ export const assignmentsService = {
 
     await studentAssignmentsService.materializeForGroup(assignment, group);
 
+    await getAudit().log({
+      actorId: user._id,
+      action: 'assignment.created',
+      resourceType: 'assignment',
+      resourceId: assignment._id,
+      metadata: {
+        groupId: group._id.toString(),
+        readingId: reading._id.toString(),
+        dueAt: assignment.dueAt.toISOString(),
+      },
+    });
+
     logger.info(
       {
         assignmentId: assignment._id,
         groupId: group._id,
-        teacherId: user.userId
+        teacherId: user._id
       },
       'assignment created'
     );
@@ -52,18 +65,29 @@ export const assignmentsService = {
   },
 
   async listForTeacher(user, query) {
-    return assignmentsRepository.listForTeacher(user.userId, query);
+    return assignmentsRepository.listForTeacher(user._id, query);
   },
 
   async getByIdForTeacher(user, id) {
-    const assignment = await assignmentsRepository.findByIdForTeacher(id, user.userId);
+    const assignment = await assignmentsRepository.findByIdForTeacher(id, user._id);
     if (!assignment) throw new NotFoundError('Asignación');
     return assignment;
   },
 
   async close(user, id) {
-    const assignment = await assignmentsRepository.findByIdForTeacher(id, user.userId);
+    const assignment = await assignmentsRepository.findByIdForTeacher(id, user._id);
     if (!assignment) throw new NotFoundError('Asignación');
-    return assignmentsRepository.updateStatus(id, 'closed');
+
+    const closed = await assignmentsRepository.updateStatus(id, 'closed');
+
+    await getAudit().log({
+      actorId: user._id,
+      action: 'assignment.closed',
+      resourceType: 'assignment',
+      resourceId: assignment._id,
+      metadata: {},
+    });
+
+    return closed;
   }
 };
