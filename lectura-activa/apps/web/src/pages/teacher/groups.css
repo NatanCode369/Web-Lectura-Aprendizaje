@@ -85,120 +85,9 @@
   flex: 1;
 }
 
-/* Modal */
-.modal {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: grid;
-  place-items: center;
-}
-
-.modal[hidden] {
-  display: none;
-}
-
-.modal__backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.5);
-}
-
-.modal__content {
-  position: relative;
-  background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 480px;
-  max-height: 90vh;
-  overflow: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-}
-
-.modal__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.modal__title {
-  font-size: 1.15rem;
-  color: #1e3a8a;
-  margin: 0;
-}
-
-.modal__close {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #64748b;
-  padding: 0;
-  line-height: 1;
-}
-
-.modal__body {
-  padding: 20px;
-  display: grid;
-  gap: 16px;
-}
-
-.modal__footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 20px;
-  border-top: 1px solid #e2e8f0;
-}
-
-.modal__code {
-  font-size: 0.95rem;
-  color: #64748b;
-  margin: 0;
-}
-
-.field-inline {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.field-inline input {
-  flex: 1;
-  font-family: monospace;
-}
-
-/* Lista de estudiantes */
-.students-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 6px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.students-list li {
-  padding: 10px 14px;
-  background: #f8fafc;
-  border-radius: 6px;
-  font-size: 0.9rem;
-}
-
-.students-list .empty {
-  color: #94a3b8;
-  font-style: italic;
-  text-align: center;
-  background: none;
-}
-
 /* ============================================================
-   Modal: Agregar estudiantes
+   Modal genérico
    ============================================================ */
-
 .modal {
   position: fixed;
   inset: 0;
@@ -213,7 +102,8 @@
   display: none;
 }
 
-.modal__overlay {
+.modal__overlay,
+.modal__backdrop {
   position: absolute;
   inset: 0;
   background: rgba(15, 23, 42, 0.6);
@@ -282,6 +172,34 @@
   border-color: #2563eb;
 }
 
+.modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.modal__code {
+  font-size: 0.95rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.field-inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.field-inline input {
+  flex: 1;
+  font-family: monospace;
+}
+
+/* ============================================================
+   Lista de estudiantes
+   ============================================================ */
 .students-list {
   list-style: none;
   padding: 0;
@@ -289,6 +207,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .students-list__item {
@@ -299,6 +219,7 @@
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.15s ease;
+  background: #f8fafc;
 }
 
 .students-list__item:hover {
@@ -336,14 +257,9 @@
   font-size: 14px;
 }
 
-.modal__footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid #e2e8f0;
-}
-/* Botón Quitar estudiante */
+/* ============================================================
+   Botón Quitar estudiante
+   ============================================================ */
 .btn-remove-student {
   margin-left: auto;
   color: #dc2626;
@@ -355,6 +271,7 @@
   background: #fee2e2;
   color: #991b1b;
 }
+
 /* ============================================================
    Modal: Asignar lectura
    ============================================================ */
