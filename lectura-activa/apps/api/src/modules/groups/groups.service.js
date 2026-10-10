@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb';
 import { groupsRepository } from './groups.repository.js';
 import { getDb } from '../../shared/db.js';
+import { auditService } from '../../shared/audit.service.js';
 import {
   assertGroupName,
   assertStudentsFit,
@@ -14,6 +15,8 @@ import {
 } from '../../shared/errors/AppError.js';
 import { logger } from '../../shared/logger.js';
 
+const getAudit = () => auditService(getDb());
+
 export const groupsService = {
   async create(user, payload) {
     assertGroupName(payload.name);
@@ -25,6 +28,14 @@ export const groupsService = {
       teacherId: user._id,
       studentIds: payload.studentIds ?? [],
       status: 'active',
+    });
+
+    await getAudit().log({
+      actorId: user._id,
+      action: 'group.created',
+      resourceType: 'group',
+      resourceId: group._id,
+      metadata: { name: group.name, schoolYear: group.schoolYear },
     });
 
     logger.info({ groupId: group._id, teacherId: user._id }, 'group created');
@@ -42,22 +53,65 @@ export const groupsService = {
   },
 
   async update(user, id, patch) {
-    const group = await groupsRepository.findByIdForTeacher(id, user._id);
-    if (!group) throw new NotFoundError('Grupo');
-    return groupsRepository.update(id, patch);
-  },
+  const group = await groupsRepository.findByIdForTeacher(id, user._id);
+  if (!group) throw new NotFoundError('Grupo');
+
+  const updated = await groupsRepository.update(id, patch);
+
+  // Si el patch archiva el grupo, evento específico
+  if (patch.status === 'archived' && group.status !== 'archived') {
+    await getAudit().log({
+      actorId: user._id,
+      action: 'group.archived',
+      resourceType: 'group',
+      resourceId: group._id,
+      metadata: { name: group.name },
+    });
+  } else {
+    await getAudit().log({
+      actorId: user._id,
+      action: 'group.updated',
+      resourceType: 'group',
+      resourceId: group._id,
+      metadata: { fieldsChanged: Object.keys(patch) },
+    });
+  }
+
+  return updated;
+},
 
   async archive(user, id) {
     const group = await groupsRepository.findByIdForTeacher(id, user._id);
     if (!group) throw new NotFoundError('Grupo');
     assertCanArchive(group);
-    return groupsRepository.update(id, { status: 'archived' });
+
+    const updated = await groupsRepository.update(id, { status: 'archived' });
+
+    await getAudit().log({
+      actorId: user._id,
+      action: 'group.archived',
+      resourceType: 'group',
+      resourceId: group._id,
+      metadata: { name: group.name },
+    });
+
+    return updated;
   },
 
   async remove(user, id) {
     const group = await groupsRepository.findByIdForTeacher(id, user._id);
     if (!group) throw new NotFoundError('Grupo');
+
     await groupsRepository.softDelete(id);
+
+    await getAudit().log({
+      actorId: user._id,
+      action: 'group.deleted',
+      resourceType: 'group',
+      resourceId: group._id,
+      metadata: { name: group.name },
+    });
+
     return { ok: true };
   },
 
@@ -91,9 +145,20 @@ export const groupsService = {
 
     if (validIds.size === 0) {
       throw new ValidationError('Ningún estudiante es válido para añadir');
-}
+    }
 
     const updated = await groupsRepository.addStudents(id, [...validIds]);
+
+    await getAudit().log({
+      actorId: user._id,
+      action: 'group.student.added',
+      resourceType: 'group',
+      resourceId: group._id,
+      metadata: {
+        addedCount: validIds.size,
+        rejectedCount: rejected.length,
+      },
+    });
 
     logger.info(
       { groupId: id, added: validIds.size, rejected: rejected.length },
@@ -110,7 +175,18 @@ export const groupsService = {
   async removeStudent(user, id, studentId) {
     const group = await groupsRepository.findByIdForTeacher(id, user._id);
     if (!group) throw new NotFoundError('Grupo');
-    return groupsRepository.removeStudent(id, studentId);
+
+    const result = await groupsRepository.removeStudent(id, studentId);
+
+    await getAudit().log({
+      actorId: user._id,
+      action: 'group.student.removed',
+      resourceType: 'group',
+      resourceId: group._id,
+      metadata: { studentId },
+    });
+
+    return result;
   },
 
   async listStudents(user, groupId) {
