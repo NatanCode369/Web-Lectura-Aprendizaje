@@ -1,196 +1,297 @@
-import '../../utils/analytics.js';
-/**
- * ============================================================
- * CONTRATO DE API — Grupos (ya conectado)
- * ============================================================
- *
- * Endpoints usados (ver services/groupsService.js):
- *   GET    /api/v1/groups?status=active  → { items, total, page, limit }
- *   POST   /api/v1/groups                → { name, schoolYear: string }
- *   GET    /api/v1/groups/:id            → detalle con studentIds
- *   DELETE /api/v1/groups/:id            → borrado lógico
- *
- * Lo que el backend todavía NO ofrece (por eso no está en pantalla):
- *   - código de grupo para que el estudiante se una
- *   - alta de estudiantes por correo (POST /groups/:id/students recibe
- *     ObjectId de Mongo y no hay endpoint para buscarlos)
- *   - nombres/correos de los estudiantes del grupo
- *
- * Auth: Bearer token (Supabase) · Rol requerido: teacher
- * ============================================================
- */
+/* Pantalla: Gestión de grupos — Dueño: Omar (P5) */
 
-import { groupsService } from '../../services/groupsService.js';
+import { requireLogin } from "../../utils/authGuard.js";
+import { groupsService } from "../../services/groupsService.js";
+import { usersService } from "../../services/usersService.js";
+import { qs, escapeHtml, debounce } from "../../utils/dom.js";
 
-const $ = (id) => document.getElementById(id);
+const state = {
+  groups: [],
+  allStudents: [], // Todos los estudiantes de la institución
+  currentGroupId: null, // Grupo al que estamos agregando estudiantes
+  selectedStudentIds: new Set(),
+};
 
-let grupos = [];
+const els = {
+  list: qs("#groups-list"),
+  btnNew: qs("#btn-new-group"),
+  modal: qs("#add-students-modal"),
+  modalGroupName: qs("#modal-group-name"),
+  searchStudents: qs("#search-students"),
+  studentsList: qs("#students-to-add"),
+  btnAddStudents: qs("#btn-add-students"),
+};
 
-// ============================================================
-// UTILIDADES
-// ============================================================
-function escapeHtml(text) {
-  return String(text)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
+/* ============================================================
+   Render de grupos
+   ============================================================ */
+function renderGroups() {
+  if (!els.list) return;
 
-function avisar(texto, tipo = 'ok') {
-  const $msg = $('mensaje');
-  if (!$msg) return;
-  $msg.textContent = texto;
-  $msg.className = `alert alert--${tipo}`;
-  $msg.hidden = false;
-  setTimeout(() => { $msg.hidden = true; }, 3000);
-}
-
-// ============================================================
-// CARGA (GET /groups)
-// ============================================================
-async function cargarGrupos() {
-  try {
-    const respuesta = await groupsService.list({ status: 'active' });
-    grupos = respuesta.items || [];
-    renderGrupos();
-  } catch (error) {
-    avisar(`No se pudieron cargar los grupos: ${error.message}`, 'error');
-  }
-}
-
-// ============================================================
-// RENDER
-// ============================================================
-function renderGrupos() {
-  const $grid = $('groups-grid');
-  const $sin = $('sin-grupos');
-  if (!$grid || !$sin) return;
-
-  if (grupos.length === 0) {
-    $grid.innerHTML = '';
-    $sin.hidden = false;
+  if (state.groups.length === 0) {
+    els.list.innerHTML = `
+      <p class="panel__hint">
+        Aún no tienes grupos.
+        <button type="button" id="btn-empty-new" class="btn btn--link">Crea uno aquí</button>.
+      </p>
+    `;
+    qs("#btn-empty-new")?.addEventListener("click", createGroup);
     return;
   }
 
-  $sin.hidden = true;
-  $grid.innerHTML = grupos.map((g) => `
-    <div class="group-card" data-id="${escapeHtml(g._id)}">
-      <h3 class="group-card__name">${escapeHtml(g.name)}</h3>
-      <p class="group-card__meta">Año escolar: ${escapeHtml(g.schoolYear)}</p>
-      <div class="group-card__actions">
-        <button type="button" class="btn btn--ghost btn--sm" data-ver="${escapeHtml(g._id)}">Ver estudiantes</button>
-        <button type="button" class="btn btn--ghost btn--sm" data-del="${escapeHtml(g._id)}">Eliminar</button>
+  els.list.innerHTML = state.groups
+    .map(
+      (g) => `
+    <article class="group-card">
+      <div class="group-card__info">
+        <h3 class="group-card__title">${escapeHtml(g.name)}</h3>
+        <p class="group-card__meta">
+          ${g.studentIds?.length || 0} estudiantes
+        </p>
       </div>
-    </div>
-  `).join('');
+      <div class="group-card__actions">
+        <button type="button" class="btn btn--primary btn--sm btn-add" data-id="${escapeHtml(g._id)}" data-name="${escapeHtml(g.name)}">
+          + Agregar estudiantes
+        </button>
+        <a href="./students.html?groupId=${encodeURIComponent(g._id)}" class="btn btn--ghost btn--sm">
+          Ver estudiantes
+        </a>
+        <button type="button" class="btn btn--ghost btn--sm btn-delete" data-id="${escapeHtml(g._id)}">
+          Eliminar
+        </button>
+      </div>
+    </article>
+  `,
+    )
+    .join("");
+
+  els.list.querySelectorAll(".btn-delete").forEach((btn) => {
+    btn.addEventListener("click", () => deleteGroup(btn.dataset.id));
+  });
+
+  els.list.querySelectorAll(".btn-add").forEach((btn) => {
+    btn.addEventListener("click", () =>
+      openAddStudentsModal(btn.dataset.id, btn.dataset.name),
+    );
+  });
 }
 
-// ============================================================
-// MODAL: NUEVO GRUPO (POST /groups)
-// ============================================================
-function abrirModalNuevo() {
-  $('grupo-nombre').value = '';
-  $('grupo-year').value = new Date().getFullYear();
-  $('modal-nuevo').hidden = false;
-  $('grupo-nombre').focus();
-}
-
-function cerrarModales() {
-  $('modal-nuevo').hidden = true;
-  $('modal-ver').hidden = true;
-}
-
-async function crearGrupo() {
-  const nombre = $('grupo-nombre').value.trim();
-  const year = Number($('grupo-year').value);
-
-  if (nombre.length < 2) { avisar('El nombre debe tener al menos 2 caracteres.', 'error'); return; }
-  if (!year || year < 2024) { avisar('Año inválido.', 'error'); return; }
-
-  const $boton = $('btn-guardar-grupo');
-  $boton.disabled = true;
+/* ============================================================
+   Cargar grupos
+   ============================================================ */
+async function loadGroups() {
   try {
-    await groupsService.create({ name: nombre, schoolYear: String(year) });
-    cerrarModales();
-    avisar(`Grupo "${nombre}" creado.`);
-    await cargarGrupos();
+    const resp = await groupsService.list();
+    state.groups = resp.items || [];
+    renderGroups();
   } catch (error) {
-    avisar(`No se pudo crear el grupo: ${error.message}`, 'error');
-  } finally {
-    $boton.disabled = false;
+    console.error("[groups] Error:", error);
+    els.list.innerHTML = `<p class="panel__hint">No se pudieron cargar los grupos: ${escapeHtml(error.message)}</p>`;
   }
 }
 
-// ============================================================
-// MODAL: VER GRUPO (GET /groups/:id)
-// ============================================================
-async function verGrupo(id) {
-  const grupo = grupos.find((g) => g._id === id);
-  if (!grupo) return;
+/* ============================================================
+   Crear grupo
+   ============================================================ */
+async function createGroup() {
+  const name = prompt("Nombre del nuevo grupo (ej: 4A - Mañana):");
+  if (!name) return;
 
-  $('ver-titulo').textContent = grupo.name;
-  const $lista = $('ver-estudiantes');
-  $lista.innerHTML = '<li class="empty">Cargando…</li>';
-  $('modal-ver').hidden = false;
+  const schoolYear = prompt("Año escolar (ej: 2026):") || "2026";
 
   try {
-    const detalle = await groupsService.getById(id);
-    const total = detalle.studentIds?.length || 0;
-    $lista.innerHTML = total === 0
-      ? '<li class="empty">Aún no hay estudiantes en este grupo.</li>'
-      : `<li>${total} estudiante${total === 1 ? '' : 's'} en este grupo.</li>`;
+    await groupsService.create({ name, schoolYear });
+    await loadGroups();
   } catch (error) {
-    $lista.innerHTML = `<li class="empty">No se pudo cargar: ${escapeHtml(error.message)}</li>`;
+    alert("No se pudo crear el grupo: " + error.message);
   }
 }
 
-// ============================================================
-// ELIMINAR (DELETE /groups/:id)
-// ============================================================
-async function eliminarGrupo(id) {
-  const grupo = grupos.find((g) => g._id === id);
-  if (!grupo) return;
-
-  if (!confirm(`¿Eliminar el grupo "${grupo.name}"?`)) return;
+/* ============================================================
+   Eliminar grupo
+   ============================================================ */
+async function deleteGroup(id) {
+  if (!confirm("¿Eliminar este grupo? Esta acción no se puede deshacer."))
+    return;
 
   try {
     await groupsService.remove(id);
-    avisar(`Grupo "${grupo.name}" eliminado.`);
-    await cargarGrupos();
+    await loadGroups();
   } catch (error) {
-    avisar(`No se pudo eliminar: ${error.message}`, 'error');
+    alert("No se pudo eliminar el grupo: " + error.message);
   }
 }
 
-// ============================================================
-// EVENTOS
-// ============================================================
-cargarGrupos();
+/* ============================================================
+   Modal: Agregar estudiantes
+   ============================================================ */
+async function openAddStudentsModal(groupId, groupName) {
+  state.currentGroupId = groupId;
+  state.selectedStudentIds.clear();
 
-if ($('btn-nuevo-grupo')) $('btn-nuevo-grupo').addEventListener('click', abrirModalNuevo);
-if ($('btn-guardar-grupo')) $('btn-guardar-grupo').addEventListener('click', crearGrupo);
+  if (els.modalGroupName) els.modalGroupName.textContent = groupName;
+  if (els.searchStudents) els.searchStudents.value = "";
 
-document.addEventListener('click', (e) => {
-  if (e.target.closest('[data-close]')) {
-    cerrarModales();
+  // Cargar TODOS los estudiantes (si no están cargados)
+  if (state.allStudents.length === 0) {
+    try {
+      const resp = await usersService.listStudents();
+      state.allStudents = resp.items || [];
+    } catch (error) {
+      console.error("[groups] Error al cargar estudiantes:", error);
+      if (els.studentsList) {
+        els.studentsList.innerHTML = `
+          <li class="students-list__empty">
+            No se pudieron cargar los estudiantes: ${escapeHtml(error.message)}
+          </li>
+        `;
+      }
+      if (els.modal) els.modal.hidden = false;
+      return;
+    }
+  }
+
+  // Filtrar estudiantes que ya están en el grupo
+  try {
+    const groupStudents = await groupsService.getStudents(groupId);
+    const existingIds = new Set((groupStudents.items || []).map((s) => s._id));
+    state.availableStudents = state.allStudents.filter(
+      (s) => !existingIds.has(s._id),
+    );
+  } catch (error) {
+    console.warn(
+      "[groups] No se pudieron cargar estudiantes del grupo:",
+      error,
+    );
+    state.availableStudents = state.allStudents;
+  }
+
+  renderStudentsToAdd();
+  if (els.modal) els.modal.hidden = false;
+}
+
+function renderStudentsToAdd() {
+  if (!els.studentsList) return;
+
+  const query = (els.searchStudents?.value || "").trim().toLowerCase();
+  const filtered = query
+    ? state.availableStudents.filter(
+        (s) =>
+          (s.fullName || "").toLowerCase().includes(query) ||
+          (s.email || "").toLowerCase().includes(query),
+      )
+    : state.availableStudents;
+
+  if (filtered.length === 0) {
+    els.studentsList.innerHTML = `
+      <li class="students-list__empty">No hay estudiantes disponibles.</li>
+    `;
     return;
   }
 
-  const $ver = e.target.closest('[data-ver]');
-  if ($ver) {
-    verGrupo($ver.dataset.ver);
-    return;
+  els.studentsList.innerHTML = filtered
+    .map(
+      (s) => `
+    <li class="students-list__item">
+      <input
+        type="checkbox"
+        id="student-${escapeHtml(s._id)}"
+        value="${escapeHtml(s._id)}"
+        ${state.selectedStudentIds.has(s._id) ? "checked" : ""}
+      />
+      <label for="student-${escapeHtml(s._id)}" class="students-list__info">
+        <span class="students-list__name">${escapeHtml(s.fullName || "—")}</span>
+        <span class="students-list__email">${escapeHtml(s.email || "")}</span>
+      </label>
+    </li>
+  `,
+    )
+    .join("");
+
+  // Listeners de checkbox
+  els.studentsList.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+    cb.addEventListener("change", (e) => {
+      if (e.target.checked) {
+        state.selectedStudentIds.add(e.target.value);
+      } else {
+        state.selectedStudentIds.delete(e.target.value);
+      }
+      updateAddButton();
+    });
+  });
+
+  updateAddButton();
+}
+
+function updateAddButton() {
+  if (!els.btnAddStudents) return;
+  const count = state.selectedStudentIds.size;
+  els.btnAddStudents.textContent =
+    count > 0
+      ? `Agregar ${count} estudiante${count !== 1 ? "s" : ""}`
+      : "Agregar seleccionados";
+  els.btnAddStudents.disabled = count === 0;
+}
+
+async function submitAddStudents() {
+  const studentIds = Array.from(state.selectedStudentIds);
+  if (studentIds.length === 0) return;
+
+  if (els.btnAddStudents) {
+    els.btnAddStudents.disabled = true;
+    els.btnAddStudents.textContent = "Agregando...";
   }
 
-  const $del = e.target.closest('[data-del]');
-  if ($del) {
-    eliminarGrupo($del.dataset.del);
-    return;
+  try {
+    await groupsService.addStudents(state.currentGroupId, studentIds);
+    if (els.modal) els.modal.hidden = true;
+    await loadGroups();
+    alert(`${studentIds.length} estudiante(s) agregado(s) correctamente.`);
+  } catch (error) {
+    alert("No se pudieron agregar los estudiantes: " + error.message);
+  } finally {
+    updateAddButton();
+  }
+}
+
+/* ============================================================
+   Eventos del modal
+   ============================================================ */
+if (els.searchStudents) {
+  els.searchStudents.addEventListener(
+    "input",
+    debounce(() => renderStudentsToAdd(), 200),
+  );
+}
+
+if (els.btnAddStudents) {
+  els.btnAddStudents.addEventListener("click", submitAddStudents);
+}
+
+if (els.modal) {
+  els.modal.querySelectorAll("[data-close]").forEach((el) => {
+    el.addEventListener("click", () => {
+      els.modal.hidden = true;
+    });
+  });
+}
+
+// ESC para cerrar el modal
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && els.modal && !els.modal.hidden) {
+    els.modal.hidden = true;
   }
 });
 
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') cerrarModales();
-});
+/* ============================================================
+   Init
+   ============================================================ */
+function init() {
+  console.info("[groups] Pantalla cargada.");
+  requireLogin().then((user) => {
+    if (!user) return;
+    loadGroups();
+  });
+}
+
+init();

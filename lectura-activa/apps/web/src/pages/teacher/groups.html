@@ -31,7 +31,6 @@
             <a href="./activities-edit.html" class="nav__link">Actividades</a>
             <a href="./groups.html" class="nav__link is-active">Grupos</a>
             <a href="./students.html" class="nav__link">Estudiantes</a>
-            <!-- ← NUEVO -->
             <a href="./stats.html" class="nav__link">Estadísticas</a>
           </nav>
         </div>
@@ -122,6 +121,51 @@
             Cerrar
           </button>
         </footer>
+      </div>
+    </div>
+
+    <!-- Modal: Agregar estudiantes al grupo -->
+    <div id="add-students-modal" class="modal" hidden>
+      <div class="modal__overlay" data-close></div>
+      <div class="modal__content">
+        <div class="modal__header">
+          <h2 class="modal__title">
+            Agregar estudiantes al grupo: <span id="modal-group-name"></span>
+          </h2>
+          <button
+            type="button"
+            class="modal__close"
+            data-close
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
+        </div>
+
+        <div class="modal__body">
+          <label for="search-students" class="visually-hidden"
+            >Buscar estudiantes</label
+          >
+          <input
+            type="search"
+            id="search-students"
+            class="input"
+            placeholder="Buscar por nombre o correo..."
+          />
+
+          <ul id="students-to-add" class="students-list">
+            <!-- Se rellena con JS -->
+          </ul>
+        </div>
+
+        <div class="modal__footer">
+          <button type="button" class="btn btn--ghost" data-close>
+            Cancelar
+          </button>
+          <button type="button" id="btn-add-students" class="btn btn--primary">
+            Agregar seleccionados
+          </button>
+        </div>
       </div>
     </div>
 
