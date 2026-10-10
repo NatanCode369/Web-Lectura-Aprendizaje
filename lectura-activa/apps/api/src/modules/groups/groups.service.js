@@ -53,32 +53,49 @@ export const groupsService = {
   },
 
   async update(user, id, patch) {
-  const group = await groupsRepository.findByIdForTeacher(id, user._id);
-  if (!group) throw new NotFoundError('Grupo');
+    const group = await groupsRepository.findByIdForTeacher(id, user._id);
+    if (!group) throw new NotFoundError('Grupo');
 
-  const updated = await groupsRepository.update(id, patch);
+    const updated = await groupsRepository.update(id, patch);
 
-  // Si el patch archiva el grupo, evento específico
-  if (patch.status === 'archived' && group.status !== 'archived') {
-    await getAudit().log({
-      actorId: user._id,
-      action: 'group.archived',
-      resourceType: 'group',
-      resourceId: group._id,
-      metadata: { name: group.name },
-    });
-  } else {
-    await getAudit().log({
-      actorId: user._id,
-      action: 'group.updated',
-      resourceType: 'group',
-      resourceId: group._id,
-      metadata: { fieldsChanged: Object.keys(patch) },
-    });
-  }
+    const isArchiving = patch.status === 'archived' && group.status !== 'archived';
+    const otherFields = Object.keys(patch).filter((k) => k !== 'status');
 
-  return updated;
-},
+    // Si hay cambios en campos que no son status, dispara group.updated
+    if (otherFields.length > 0) {
+      await getAudit().log({
+        actorId: user._id,
+        action: 'group.updated',
+        resourceType: 'group',
+        resourceId: group._id,
+        metadata: { fieldsChanged: otherFields },
+      });
+    }
+
+    // Si está archivando, dispara group.archived
+    if (isArchiving) {
+      await getAudit().log({
+        actorId: user._id,
+        action: 'group.archived',
+        resourceType: 'group',
+        resourceId: group._id,
+        metadata: { name: group.name },
+      });
+    }
+
+    // Si el patch solo cambia status y NO es archive (ej: reactivar), dispara group.updated
+    if (otherFields.length === 0 && !isArchiving) {
+      await getAudit().log({
+        actorId: user._id,
+        action: 'group.updated',
+        resourceType: 'group',
+        resourceId: group._id,
+        metadata: { fieldsChanged: Object.keys(patch) },
+      });
+    }
+
+    return updated;
+  },
 
   async archive(user, id) {
     const group = await groupsRepository.findByIdForTeacher(id, user._id);
