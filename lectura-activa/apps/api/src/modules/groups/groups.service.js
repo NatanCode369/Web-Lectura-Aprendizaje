@@ -7,8 +7,8 @@ import {
   assertCanArchive,
   assertValidStudentIds
 } from './groups.domain.js';
-import { AppError } from '../../shared/errors/AppError.js';
-import { logger } from '../../shared/logger/index.js';
+import { NotFoundError, ValidationError } from '../../shared/errors/AppError.js';
+import { logger } from '../../shared/logger.js';
 
 export const groupsService = {
   async create(user, payload) {

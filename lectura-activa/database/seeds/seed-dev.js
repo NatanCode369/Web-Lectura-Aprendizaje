@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb';
 
 const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017';
-const databaseName = process.env.MONGODB_DB || 'lectura_activa';
+const databaseName = process.env.MONGODB_DB;
 const client = new MongoClient(uri);
 
 try {

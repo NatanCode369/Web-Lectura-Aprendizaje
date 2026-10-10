@@ -1,15 +1,14 @@
-import { AppError } from '../../shared/errors/AppError.js';
+import { ValidationError, ConflictError } from '../../shared/errors/AppError.js';
 
 export function assertReadingPublished(reading) {
   if (!reading || reading.status !== 'published') {
-    throw AppError.badRequest('VALIDATION_ERROR', 'La lectura no está publicada');
+    throw new ValidationError('La lectura no está publicada');
   }
 }
 
 export function assertDatesValid(availableFrom, dueAt) {
   if (new Date(dueAt) <= new Date(availableFrom)) {
-    throw AppError.badRequest(
-      'VALIDATION_ERROR',
+    throw new ValidationError(
       'La fecha de entrega debe ser posterior a la de inicio'
     );
   }
@@ -17,13 +16,13 @@ export function assertDatesValid(availableFrom, dueAt) {
 
 export function assertAssignmentIsOpen(assignment, now = new Date()) {
   if (assignment.status !== 'published') {
-    throw AppError.conflict('CONFLICT', 'La asignación no está publicada');
+    throw new ConflictError('La asignación no está publicada');
   }
   if (assignment.availableFrom && now < new Date(assignment.availableFrom)) {
-    throw AppError.conflict('CONFLICT', 'La asignación aún no está disponible');
+    throw new ConflictError('La asignación aún no está disponible');
   }
   if (assignment.dueAt && now > new Date(assignment.dueAt)) {
-    throw AppError.conflict('CONFLICT', 'La asignación ya venció');
+    throw new ConflictError('La asignación ya venció');
   }
 }
 
@@ -54,6 +53,18 @@ export function buildActivitySnapshot(reading) {
         left: String(p.left ?? ''),
         right: String(p.right ?? '')
       }));
+    }
+    if (a.type === 'detective' && a.config) {
+      // correctAnswer para detective: totalSynonyms para scoring
+      base.correctAnswer = {
+        totalSynonyms: Array.isArray(a.config.synonyms) ? a.config.synonyms.length : 0
+      };
+      // Pasar config al snapshot para el frontend
+      base.config = {
+        target: a.config.target,
+        synonyms: a.config.synonyms,
+        distractors: a.config.distractors
+      };
     }
 
     return base;

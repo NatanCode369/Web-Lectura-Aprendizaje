@@ -131,4 +131,24 @@ export async function registerReadingRoutes(
       }
     }
   );
+
+  /**
+   * DELETE /api/v1/readings/:id/media
+   * Elimina el PDF de la lectura.
+   */
+  app.delete(
+    '/api/v1/readings/:id/media',
+    { preHandler: [authenticate, requireRoles('teacher', 'admin')] },
+    async (request, reply) => {
+      try {
+        const updated = await readingService.deletePdf(
+          request.params.id,
+          request.user
+        );
+        return reply.send(updated);
+      } catch (error) {
+        return sendError(reply, error, request.id);
+      }
+    }
+  );
 }

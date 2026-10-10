@@ -2,7 +2,7 @@ import { studentAssignmentsRepository } from './studentAssignments.repository.js
 import { assignmentsRepository } from '../assignments/assignments.repository.js';
 import { groupsRepository } from '../groups/groups.repository.js';
 import { buildReadingRepository } from '../readings/reading.repository.js';
-import { logger } from '../../shared/logger/index.js';
+import { logger } from '../../shared/logger.js';
 import { NotFoundError } from '../../shared/errors/index.js';
 
 // El módulo de readings exporta una factory; el resto son singletons.

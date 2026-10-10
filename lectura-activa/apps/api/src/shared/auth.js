@@ -1,32 +1,19 @@
 /**
- * Cliente de Supabase y lógica de autenticación.
+ * Lógica de autenticación usando clientes Supabase centralizados.
  * 
+ * Usa los clientes de config/supabase.js (supabaseAuth para validar JWTs).
  * Incluye degradación elegante: si las variables de entorno no están 
- * configuradas (desarrollo local), no crashea al importar, sino que 
- * lanza un error controlado solo cuando se intenta autenticar.
+ * configuradas, lanza error controlado al intentar autenticar.
  */
 
-import { createClient } from '@supabase/supabase-js';
-import { env } from '../config/env.js';
+import { supabaseAuth, supabaseReady } from '../config/supabase.js';
 import { AppError, ErrorCodes } from './errors/index.js';
 
 export { requireRole as requireRoles } from './authorization/policies.js';
 
-// 1. Usar los nombres correctos de las variables (SCREAMING_SNAKE_CASE como en env.js)
-// 2. Validar que no sea el placeholder antes de crear el cliente
-const isValidUrl = env.SUPABASE_URL && !env.SUPABASE_URL.includes('YOUR_PROJECT');
-
-let supabase = null;
-
-if (isValidUrl && env.SUPABASE_ANON_KEY) {
-  supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
-  });
-}
-
 export function buildAuth({ userRepository }) {
   return async function authenticate(request) {
-    if (!supabase) {
+    if (!supabaseReady) {
       throw AppError.unauthorized(
         'AUTH_NOT_CONFIGURED',
         'Supabase no configurado. Revisa tus variables de entorno (.env)'
@@ -43,7 +30,7 @@ export function buildAuth({ userRepository }) {
       throw AppError.unauthorized(ErrorCodes.UNAUTHENTICATED, 'No autenticado');
     }
 
-    const { data, error } = await supabase.auth.getUser(token);
+    const { data, error } = await supabaseAuth.auth.getUser(token);
     if (error || !data?.user) {
       throw AppError.unauthorized('INVALID_TOKEN', 'Token inválido o expirado');
     }

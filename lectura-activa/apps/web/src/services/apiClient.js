@@ -8,6 +8,56 @@
  */
 
 const API_URL = import.meta.env.VITE_API_URL || "/api/v1";
+let refreshRequest = null;
+
+function createHttpError(response, errorBody) {
+  const message = errorBody?.error?.message || `Error ${response.status}`;
+  const error = new Error(message);
+  error.code = errorBody?.error?.code || "UNKNOWN_ERROR";
+  error.status = response.status;
+  return error;
+}
+
+async function readErrorBody(response) {
+  return response.json().catch(() => ({}));
+}
+
+async function refreshSession() {
+  if (!refreshRequest) {
+    refreshRequest = fetch(`${API_URL}/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    }).finally(() => {
+      refreshRequest = null;
+    });
+  }
+
+  const response = await refreshRequest;
+  if (!response.ok) {
+    throw createHttpError(response, await readErrorBody(response));
+  }
+
+  // NUEVO: Actualizar usuario en sessionStorage tras refresh
+  try {
+    const { fetchMe } = await import("./authService.js");
+    await fetchMe();
+  } catch (e) {
+    console.warn("[apiClient] No se pudo actualizar usuario tras refresh:", e);
+  }
+}
+
+function redirectToLogin() {
+  try {
+    sessionStorage.removeItem("lectura-activa:user");
+  } catch {
+    // Storage may be unavailable in private or restricted browsing contexts.
+  }
+  window.location.replace(
+    "/src/pages/auth/login.html?motivo=sesion-expirada",
+  );
+}
 
 /**
  * Hace una petición al backend.
@@ -33,13 +83,29 @@ export async function apiFetch(path, options = {}) {
     finalOptions.body = body !== undefined ? JSON.stringify(body) : "{}";
   }
 
+  const url = `${API_URL}${path}`;
   let response;
   try {
-    response = await fetch(`${API_URL}${path}`, finalOptions);
+    response = await fetch(url, finalOptions);
   } catch (networkError) {
-    throw new Error(
+    const error = new Error(
       "No se pudo conectar con el servidor. Verifica tu conexión.",
     );
+    error.status = 0;
+    throw error;
+  }
+
+  if (response.status === 401 && !path.includes("/auth/")) {
+    try {
+      await refreshSession();
+      response = await fetch(url, finalOptions);
+    } catch (refreshError) {
+      if (refreshError.status === 401) {
+        console.warn("[apiClient] Sesión expirada, redirigiendo al login...");
+        redirectToLogin();
+      }
+      throw refreshError;
+    }
   }
 
   // 204 No Content: no hay body que parsear
@@ -49,23 +115,11 @@ export async function apiFetch(path, options = {}) {
 
   // Si no es 2xx, lanzar error con el mensaje del backend
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    const message = errorBody?.error?.message || `Error ${response.status}`;
-    const code = errorBody?.error?.code || "UNKNOWN_ERROR";
-    const error = new Error(message);
-    error.code = code;
-    error.status = response.status;
+    const error = createHttpError(response, await readErrorBody(response));
 
-    // Si es 401 y no es una ruta de auth, redirigir al login
     if (response.status === 401 && !path.includes("/auth/")) {
       console.warn("[apiClient] Sesión expirada, redirigiendo al login...");
-      // Limpiar la sesión local antes de redirigir
-      try {
-        sessionStorage.removeItem("lectura-activa:user");
-      } catch (e) {
-        // ignore
-      }
-      window.location.href = "/src/pages/auth/login.html";
+      redirectToLogin();
     }
 
     throw error;

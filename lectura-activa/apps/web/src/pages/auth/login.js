@@ -1,14 +1,14 @@
 /* Pantalla: Login — Dueño: Omar */
 
-import { isValidEmail } from '../../utils/validators.js';
-import { login } from '../../services/authService.js';
+import { isValidEmail } from "../../utils/validators.js";
+import { login } from "../../services/authService.js";
 
-const form = document.getElementById('login-form');
-const emailInput = document.getElementById('email');
-const passwordInput = document.getElementById('password');
-const formError = document.getElementById('form-error');
+const form = document.getElementById("login-form");
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const formError = document.getElementById("form-error");
 
-form.addEventListener('submit', async (e) => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
   formError.hidden = true;
 
@@ -16,48 +16,49 @@ form.addEventListener('submit', async (e) => {
   const password = passwordInput.value;
 
   if (!isValidEmail(email)) {
-    return mostrarError('Ingresa un correo válido.');
+    return mostrarError("Ingresa un correo válido.");
   }
 
   if (password.length < 8) {
-    return mostrarError('La contraseña debe tener al menos 8 caracteres.');
+    return mostrarError("La contraseña debe tener al menos 8 caracteres.");
   }
 
   const submitBtn = form.querySelector('button[type="submit"]');
   if (submitBtn) {
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Ingresando...';
+    submitBtn.textContent = "Ingresando...";
   }
 
   try {
     const user = await login({ email, password });
 
+    // ✅ Rutas absolutas desde la raíz del dominio
     const destino =
-      user.role === 'teacher'
-        ? '../teacher/dashboard-teacher.html'
-        : user.role === 'admin'
-          ? '../teacher/dashboard-teacher.html'
-          : '../student/catalog/catalog.html';
+      user.role === "teacher"
+        ? "/src/pages/teacher/dashboard-teacher.html"
+        : user.role === "admin"
+          ? "/src/pages/teacher/dashboard-teacher.html"
+          : "/src/pages/student/catalog/catalog.html";
 
     window.location.href = destino;
   } catch (error) {
-    console.error('[login] Error:', error);
+    console.error("[login] Error:", error);
 
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Acceder';
+      submitBtn.textContent = "Acceder";
     }
 
     if (error.status === 401) {
-      mostrarError('Correo o contraseña incorrectos.');
+      mostrarError("Correo o contraseña incorrectos.");
     } else if (error.status === 403) {
-      mostrarError('Tu dominio de correo no está autorizado.');
+      mostrarError("Tu dominio de correo no está autorizado.");
     } else if (error.status === 429) {
-      mostrarError('Demasiados intentos. Espera un momento.');
+      mostrarError("Demasiados intentos. Espera un momento.");
     } else if (error.status === 503) {
-      mostrarError('El servicio de autenticación no está disponible.');
+      mostrarError("El servicio de autenticación no está disponible.");
     } else {
-      mostrarError(error.message || 'No pudimos iniciar sesión.');
+      mostrarError(error.message || "No pudimos iniciar sesión.");
     }
   }
 });

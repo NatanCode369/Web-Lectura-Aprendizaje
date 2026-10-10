@@ -1,4 +1,4 @@
-import { ValidationError } from '../../shared/errors/index.js';
+import { ValidationError } from '../../shared/errors/AppError.js';
 
 function normalizeText(value) {
   return String(value ?? '')
@@ -60,6 +60,16 @@ export function scoreAnswer(activity, answers) {
       return points;
     }
 
+    case 'detective': {
+      // answers: { found: number, total: number }
+      // correctAnswer: { totalSynonyms: number }
+      const found = Number(answers?.found ?? 0);
+      const total = Number(correctAnswer?.totalSynonyms ?? answers?.total ?? 0);
+      if (total === 0) return 0;
+      const ratio = found / total;
+      return Math.round(points * ratio);
+    }
+
     default:
       throw new ValidationError(
         'VALIDATION_ERROR',
@@ -105,6 +115,7 @@ export function toPublicSnapshot(snapshot) {
     options: a.options ?? null,
     items: a.items ?? null,
     pairs: a.pairs ?? null,
+    config: a.config ?? null,
     points: a.points,
     order: a.order
     // ⚠️ NO incluir correctAnswer

@@ -11,7 +11,7 @@ import { usersRepo } from './users.repository.js';
 import { usersService } from './users.service.js';
 import { patchMeSchema } from './users.schemas.js';
 import { authenticate } from '../../shared/middleware/authenticate.js';
-import { AppError, ErrorCodes } from '../../shared/errors/index.js';
+import { NotFoundError } from '../../shared/errors/AppError.js';
 
 export async function usersRoutes(fastify, opts) {
   const { db } = opts;
@@ -26,10 +26,7 @@ export async function usersRoutes(fastify, opts) {
     async (req) => {
       const user = await repo.findById(req.user._id);
       if (!user) {
-        throw AppError.notFound(
-          ErrorCodes.USER_NOT_FOUND,
-          'Usuario no encontrado.'
-        );
+        throw new NotFoundError('Usuario');
       }
       return { user: sanitize(user) };
     }
@@ -42,10 +39,7 @@ export async function usersRoutes(fastify, opts) {
     async (req) => {
       const updated = await service.updateMe(req.user._id, req.body);
       if (!updated) {
-        throw AppError.notFound(
-          ErrorCodes.USER_NOT_FOUND,
-          'Usuario no encontrado.'
-        );
+        throw new NotFoundError('Usuario');
       }
       return { user: sanitize(updated) };
     }

@@ -43,46 +43,40 @@ export async function buildServer({ withDb = true } = {}) {
   await fastify.register(helmet, { contentSecurityPolicy: false });
 
   // ---- CORS ----
-  // Dev: permite cualquier localhost/127.0.0.1 y los orígenes configurados.
+  // Dev: permite localhost/127.0.0.1 y los orígenes configurados.
   // Prod: solo los orígenes de CORS_ORIGINS.
-  const isDev = env.NODE_ENV !== 'production';
-  const allowedOrigins = Array.isArray(env.CORS_ORIGINS)
-    ? env.CORS_ORIGINS
-    : String(env.CORS_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const isProd = env.NODE_ENV === 'production';
+  
+  // env.CORS_ORIGINS ya es un array por el transform de Zod en config/env.js
+  const corsOrigins = Array.isArray(env.CORS_ORIGINS) 
+    ? env.CORS_ORIGINS 
+    : (env.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+  
+  const allowedOrigins = isProd
+    ? corsOrigins
+    : [...corsOrigins, 'http://localhost:5173', 'http://127.0.0.1:5173'];
 
-  await fastify.register(cors, {
-    origin: (origin, callback) => {
-      // Sin Origin: PowerShell, curl, health checks, Postman
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      // Origen explícitamente permitido
-      if (allowedOrigins.includes('*')) {
-        return callback(null, true);
-      }
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      // En dev: permitir cualquier localhost/127.0.0.1 en cualquier puerto
-      if (isDev && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-        return callback(null, true);
-      }
-
-      // En dev: permitir cualquier IP de red local (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-      if (isDev && /^https?:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(origin)) {
-        return callback(null, true);
-      }
-
-      logger.warn({ origin, allowedOrigins }, 'CORS: origen no permitido');
-      return callback(new Error(`Not allowed by CORS: ${origin}`));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
-    exposedHeaders: ['x-request-id'],
-  });
+await fastify.register(cors, {
+  origin: (origin, callback) => {
+    // Sin Origin: curl, Postman, health checks
+    if (!origin) return callback(null, true);
+    
+    // Origen en lista permitida
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    
+    // En dev: cualquier localhost/127.0.0.1
+    if (!isProd && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return callback(null, true);
+    }
+    
+    logger.warn({ origin, allowedOrigins }, 'CORS: origen no permitido');
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
+  },
+  credentials: true,  // ← OBLIGATORIO para cookies
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
+  exposedHeaders: ['x-request-id'],
+});
 
   registerEdgeGuard(fastify, {
     secret: env.ORIGIN_SHARED_SECRET,

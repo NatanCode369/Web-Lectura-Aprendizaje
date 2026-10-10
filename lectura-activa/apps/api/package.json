@@ -10,13 +10,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "migrate": "node scripts/migrate.mjs",
-    "seed": "node scripts/seed.mjs"
+    "seed": "node scripts/seed.mjs",
+    "import:readings:storage": "node scripts/import-readings-from-storage.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^10.0.1",
     "@fastify/helmet": "^12.0.1",
-    "@fastify/multipart": "^8.3.1",
+    "@fastify/multipart": "^9.0.0",
     "@fastify/rate-limit": "^10.2.0",
     "@supabase/supabase-js": "^2.45.0",
     "dotenv": "^18.0.6",

@@ -103,10 +103,21 @@ export function activitiesToApi(editor = {}) {
     warnings.push("Mapa mental necesita al menos 2 parejas completas: no se guardó.");
   }
 
-  if (texto(editor.detective?.target)) {
-    warnings.push(
-      "Detective de palabras todavía no lo soporta el backend: no se guardó.",
-    );
+  const det = editor.detective || {};
+  if (texto(det.target) && (det.synonyms || []).length >= 1) {
+    activities.push({
+      id: "detective-1",
+      type: "detective",
+      prompt: det.target,
+      points: PUNTOS_POR_ACTIVIDAD,
+      config: {
+        target: det.target,
+        synonyms: (det.synonyms || []).map(texto).filter(Boolean),
+        distractors: (det.distractors || []).map(texto).filter(Boolean)
+      }
+    });
+  } else if (texto(det.target) || (det.synonyms || []).some(texto) || (det.distractors || []).some(texto)) {
+    warnings.push("Detective de palabras incompleto: necesita objetivo y al menos un sinónimo.");
   }
 
   return { activities, warnings };
@@ -144,6 +155,12 @@ export function activitiesFromApi(list = []) {
       editor.order = orden.map((i) => c.items[i]);
     } else if (a.type === "matching") {
       editor.mindMap = (c.pairs || []).map((p) => ({ a: p.left, b: p.right }));
+    } else if (a.type === "detective") {
+      editor.detective = {
+        target: c.target || "",
+        synonyms: c.synonyms || [],
+        distractors: c.distractors || []
+      };
     }
   }
 

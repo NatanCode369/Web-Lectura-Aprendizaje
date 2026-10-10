@@ -9,6 +9,7 @@ import {
 } from '../../shared/errors/index.js';
 import { logger } from '../../shared/logger.js';
 import { supabaseAdmin } from '../../config/supabase.js';
+import { getDb } from '../../shared/db.js';
 import {
   assertCanEdit,
   assertCanPublish,
@@ -16,9 +17,17 @@ import {
   buildReadingUpdate,
   validateReadingInput,
 } from './reading.domain.js';
+import {
+  getFolderByDifficulty,
+  generateSlug,
+  buildPdfPath,
+  calculateNextId,
+  validatePdfFile,
+  assertPdfMagicBytes,
+  PDF_BUCKET,
+  PDF_MAX_BYTES,
+} from './pdf.path.js';
 
-const PDF_BUCKET = 'readings';
-const PDF_MAX_BYTES = 20 * 1024 * 1024; // 20 MB
 const PDF_URL_TTL_SECONDS = 60 * 60;    // 1 hora
 const PDF_MAGIC_BYTES = '%PDF-';
 
@@ -30,56 +39,8 @@ function canManage(reading, user) {
   return user.role === 'admin' || (user.role === 'teacher' && reading.authorId.equals(user._id));
 }
 
-function validatePdfFile({ mimetype, filename, size }) {
-  if (mimetype !== 'application/pdf') {
-    throw new ValidationError(
-      ErrorCodes.INVALID_MIME,
-      `Tipo de archivo no permitido. Solo PDF (recibido: ${mimetype})`
-    );
-  }
-  if (!filename || filename.trim().length === 0) {
-    throw new ValidationError(
-      ErrorCodes.MISSING_FILENAME,
-      'El archivo no tiene nombre'
-    );
-  }
-  if (typeof size === 'number' && size > PDF_MAX_BYTES) {
-    throw new ValidationError(
-      ErrorCodes.FILE_TOO_LARGE,
-      'El PDF supera el límite de 20 MB'
-    );
-  }
-}
-
-function assertPdfMagicBytes(buffer) {
-  if (!buffer || buffer.length < PDF_MAGIC_BYTES.length) {
-    throw new ValidationError(
-      ErrorCodes.FILE_TOO_SMALL,
-      'El archivo es demasiado pequeño para ser un PDF'
-    );
-  }
-  const magic = buffer.subarray(0, PDF_MAGIC_BYTES.length).toString('ascii');
-  if (magic !== PDF_MAGIC_BYTES) {
-    throw new ValidationError(
-      ErrorCodes.INVALID_PDF,
-      'El archivo no es un PDF válido'
-    );
-  }
-}
-
-function sanitizeFilename(filename) {
-  const cleaned = filename
-    .trim()
-    .replace(/\.pdf$/i, '')
-    .replace(/[^a-zA-Z0-9._-]/g, '-')
-    .replace(/-+/g, '-')
-    .slice(0, 80);
-  return cleaned.length > 0 ? cleaned : 'documento';
-}
-
-function buildPdfPath(readingId, safeName, uuid) {
-  return `readings/${readingId}/${uuid}-${safeName}.pdf`;
-}
+// validatePdfFile is imported from pdf.path.js
+// assertPdfMagicBytes is imported from pdf.path.js
 
 function findPdfMedia(reading) {
   const media = Array.isArray(reading.media) ? reading.media : [];
@@ -228,9 +189,17 @@ export function buildReadingService({ readingRepository, auditRepository }) {
       });
       assertPdfMagicBytes(file.buffer);
 
-      const safeName = sanitizeFilename(file.filename);
-      const uuid = randomUUID();
-      const path = buildPdfPath(id, safeName, uuid);
+      // Calcular siguiente ID correlativo global (consulta MongoDB + Supabase Storage)
+      const nextId = await calculateNextId(reading.difficulty, supabaseAdmin);
+      
+      // Generar slug a partir del título
+      const slug = generateSlug(reading.title);
+      
+      // Determinar carpeta según dificultad
+      const folder = getFolderByDifficulty(reading.difficulty);
+      
+      // Construir ruta: <carpeta>/<id>-<slug>.pdf
+      const path = buildPdfPath(folder, nextId, slug);
 
       const { error: uploadError } = await supabaseAdmin.storage
         .from(PDF_BUCKET)
@@ -257,6 +226,53 @@ export function buildReadingService({ readingRepository, auditRepository }) {
       await auditRepository.record({
         actorId: user._id.toString(),
         action: 'reading.pdf.uploaded',
+        resourceId: id,
+        metadata: { path },
+      });
+
+      return toPublicReading(updated);
+    },
+
+    async deletePdf(id, user) {
+      const reading = await readingRepository.findById(id);
+      if (!reading) throw new NotFoundError('Lectura');
+      if (!sameInstitution(reading, user)) throw new ForbiddenError();
+      if (!canManage(reading, user)) throw new ForbiddenError();
+
+      const pdfMedia = findPdfMedia(reading);
+      if (!pdfMedia) {
+        throw new NotFoundError('PDF no encontrado en la lectura');
+      }
+
+      const path = pdfMedia.path;
+
+      // Eliminar de Supabase Storage
+      const { error: deleteError } = await supabaseAdmin.storage
+        .from(PDF_BUCKET)
+        .remove([path]);
+
+      if (deleteError) {
+        logger.error(
+          { err: deleteError, readingId: id, path },
+          '[pdf] delete failed'
+        );
+        throw new AppError(
+          500,
+          ErrorCodes.UPLOAD_FAILED,
+          'No se pudo eliminar el PDF'
+        );
+      }
+
+      // Eliminar de MongoDB (quitar del array media)
+      const updated = await readingRepository.updateById(
+        id,
+        { deletedAt: { $exists: false } },
+        { $pull: { media: { type: 'pdf' } }, $set: { updatedAt: new Date() } }
+      );
+
+      await auditRepository.record({
+        actorId: user._id.toString(),
+        action: 'reading.pdf.deleted',
         resourceId: id,
         metadata: { path },
       });

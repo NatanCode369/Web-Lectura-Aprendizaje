@@ -46,6 +46,7 @@ const radios = document.querySelectorAll('input[name="formato"]');
 const cajaTexto = document.getElementById('formato-texto');
 const cajaPdf = document.getElementById('formato-pdf');
 const $listaGrupos = document.getElementById('lista-grupos');
+const pdfInput = document.getElementById('pdf');
 
 // ============================================================
 // CARGAR GRUPOS DEL DOCENTE (GET /groups)
@@ -117,11 +118,11 @@ form.addEventListener('submit', async (e) => {
     alert('El título es obligatorio.');
     return;
   }
-  if (formato === 'pdf') {
-    alert('La carga de PDF todavía no está disponible. Pega el texto de la lectura.');
+  if (formato === 'pdf' && !pdfInput?.files?.[0]) {
+    alert('Selecciona un archivo PDF.');
     return;
   }
-  if (!contenido) {
+  if (formato === 'texto' && !contenido) {
     alert('Escribe el texto de la lectura.');
     return;
   }
@@ -142,6 +143,23 @@ form.addEventListener('submit', async (e) => {
       nivel,
       estimatedMinutes: minutos
     });
+
+    // Si se seleccionó PDF, subir el archivo
+    if (formato === 'pdf' && pdfInput?.files?.[0]) {
+      const file = pdfInput.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`/api/v1/readings/${lectura._id ?? lectura.id}/media`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+
+      if (!response.ok) {
+        console.warn('No se pudo subir el PDF:', await response.text());
+      }
+    }
 
     const destino = new URLSearchParams({ id: lectura._id ?? lectura.id });
     if (gruposSeleccionados.length) destino.set('grupos', gruposSeleccionados.join(','));

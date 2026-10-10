@@ -5,7 +5,8 @@ const ACTIVITY_TYPES = new Set([
   'true_false',
   'short_answer',
   'ordering',
-  'matching'
+  'matching',
+  'detective'
 ]);
 
 const LIMITS = Object.freeze({ maxActivities: 50, maxPromptLength: 2_000 });
@@ -62,6 +63,20 @@ function validateMatching(config) {
   });
 }
 
+function validateDetective(config) {
+  assertNonEmptyString(config.target, 'config.target', 200);
+  if (!Array.isArray(config.synonyms) || config.synonyms.length < 1 || config.synonyms.length > 20) {
+    throw AppError.badRequest('synonyms debe contener entre 1 y 20 elementos');
+  }
+  config.synonyms.forEach((s, i) => assertNonEmptyString(s, `config.synonyms[${i}]`, 200));
+  if (config.distractors) {
+    if (!Array.isArray(config.distractors) || config.distractors.length > 20) {
+      throw AppError.badRequest('distractors debe ser un array de máximo 20 elementos');
+    }
+    config.distractors.forEach((d, i) => assertNonEmptyString(d, `config.distractors[${i}]`, 200));
+  }
+}
+
 function validateConfig(type, config) {
   if (!config || typeof config !== 'object' || Array.isArray(config)) throw AppError.badRequest('config debe ser un objeto');
   if (type === 'multiple_choice') validateMultipleChoice(config);
@@ -69,6 +84,7 @@ function validateConfig(type, config) {
   if (type === 'short_answer') validateShortAnswer(config);
   if (type === 'ordering') validateOrdering(config);
   if (type === 'matching') validateMatching(config);
+  if (type === 'detective') validateDetective(config);
 }
 
 export function validateActivities(activities = []) {
