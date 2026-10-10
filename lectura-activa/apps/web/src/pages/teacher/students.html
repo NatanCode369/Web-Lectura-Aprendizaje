@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Panel docente | Lectura Activa</title>
+    <title>Mis estudiantes | Lectura Activa</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -11,6 +11,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="../../styles/dashboard.css" />
+    <link rel="stylesheet" href="./students.css" />
   </head>
   <body>
     <div class="layout">
@@ -25,14 +26,13 @@
         <div>
           <p class="sidebar__title">Panel docente</p>
           <nav class="nav">
-            <a href="./dashboard-teacher.html" class="nav__link is-active"
-              >Inicio</a
-            >
+            <a href="./dashboard-teacher.html" class="nav__link">Inicio</a>
             <a href="./reading-new.html" class="nav__link">Nueva lectura</a>
             <a href="./activities-edit.html" class="nav__link">Actividades</a>
             <a href="./groups.html" class="nav__link">Grupos</a>
-            <a href="./students.html" class="nav__link">Estudiantes</a>
-            <!-- ← NUEVO -->
+            <a href="./students.html" class="nav__link is-active"
+              >Estudiantes</a
+            >
             <a href="./stats.html" class="nav__link">Estadísticas</a>
           </nav>
         </div>
@@ -52,70 +52,49 @@
         <main class="content">
           <div class="page-header">
             <div>
-              <h1>Panel del docente</h1>
-              <p>Resumen de tus grupos y lecturas.</p>
+              <h1>Mis estudiantes</h1>
+              <p>Lista de estudiantes inscritos en tus grupos.</p>
             </div>
-            <a href="./reading-new.html" class="btn btn--orange"
-              >+ Nueva lectura</a
-            >
           </div>
-
-          <section class="stats" aria-label="Resumen">
-            <article class="stat">
-              <p class="stat__label">Grupos</p>
-              <p class="stat__value" id="stat-grupos">—</p>
-            </article>
-            <article class="stat">
-              <p class="stat__label">Lecturas activas</p>
-              <p class="stat__value" id="stat-lecturas">—</p>
-            </article>
-            <article class="stat">
-              <p class="stat__label">Estudiantes conectados</p>
-              <p class="stat__value" id="stat-conectados">—</p>
-            </article>
-          </section>
 
           <section class="panel">
             <div class="panel__header">
-              <h2 class="panel__title">Mis lecturas</h2>
-              <a href="./reading-new.html" class="btn btn--primary btn--sm"
-                >Agregar</a
-              >
+              <h2 class="panel__title">Estudiantes</h2>
+              <div class="panel__actions">
+                <label for="filter-group" class="visually-hidden"
+                  >Filtrar por grupo</label
+                >
+                <select id="filter-group" class="select">
+                  <option value="">Todos los grupos</option>
+                </select>
+              </div>
             </div>
 
             <div class="table-wrap">
               <table class="table">
                 <thead>
                   <tr>
-                    <th>Título</th>
-                    <th>Nivel</th>
-                    <th>Duración</th>
-                    <th>Estado</th>
-                    <th>Grupos</th>
-                    <th>Acciones</th>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Grupo</th>
+                    <th>Progreso</th>
+                    <th>Última actividad</th>
                   </tr>
                 </thead>
-                <tbody id="lecturas-body">
-                  <!-- Se rellena con JS -->
+                <tbody id="students-body">
+                  <tr>
+                    <td colspan="5" class="table__empty">
+                      Cargando estudiantes...
+                    </td>
+                  </tr>
                 </tbody>
               </table>
-            </div>
-          </section>
-
-          <section class="panel">
-            <div class="panel__header">
-              <h2 class="panel__title">Progreso de mis grupos</h2>
-              <span class="panel__hint">Estudiantes que van al día</span>
-            </div>
-
-            <div class="progress-list">
-              <!-- Se rellena con JS -->
             </div>
           </section>
         </main>
       </div>
     </div>
 
-    <script type="module" src="./dashboard-teacher.js"></script>
+    <script type="module" src="./students.js"></script>
   </body>
 </html>
