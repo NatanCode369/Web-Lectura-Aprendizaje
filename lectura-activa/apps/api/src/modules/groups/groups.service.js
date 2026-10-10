@@ -1,14 +1,17 @@
 import { ObjectId } from 'mongodb';
 import { groupsRepository } from './groups.repository.js';
 import { getDb } from '../../shared/db.js';
+import { auditService } from '../../shared/audit.service.js';
 import {
   assertGroupName,
   assertStudentsFit,
   assertCanArchive,
-  assertValidStudentIds
+  assertValidStudentIds,
 } from './groups.domain.js';
 import { NotFoundError, ValidationError } from '../../shared/errors/AppError.js';
 import { logger } from '../../shared/logger.js';
+
+const getAudit = () => auditService(getDb());
 
 export const groupsService = {
   async create(user, payload) {
@@ -18,9 +21,17 @@ export const groupsService = {
       institutionId: user.institutionId,
       name: payload.name,
       schoolYear: payload.schoolYear,
-      teacherId: user._id,              // ✅ arreglado
+      teacherId: user._id,
       studentIds: payload.studentIds ?? [],
-      status: 'active'
+      status: 'active',
+    });
+
+    await getAudit().log({
+      actorId: user._id,
+      action: 'group.created',
+      resourceType: 'group',
+      resourceId: group._id,
+      metadata: { name: group.name, schoolYear: group.schoolYear },
     });
 
     logger.info({ groupId: group._id, teacherId: user._id }, 'group created');
@@ -28,123 +39,197 @@ export const groupsService = {
   },
 
   async list(user, query) {
-    return groupsRepository.listByTeacher(user._id, query);   // ✅
+    return groupsRepository.listByTeacher(user._id, query);
   },
 
   async getById(user, id) {
-    const group = await groupsRepository.findByIdForTeacher(id, user._id);   // ✅
-    if (!group) throw AppError.notFound('NOT_FOUND', 'Grupo no encontrado');
+    const group = await groupsRepository.findByIdForTeacher(id, user._id);
+    if (!group) throw new NotFoundError('Grupo');
     return group;
   },
 
   async update(user, id, patch) {
-    const group = await groupsRepository.findByIdForTeacher(id, user._id);   // ✅
-    if (!group) throw AppError.notFound('NOT_FOUND', 'Grupo no encontrado');
-    return groupsRepository.update(id, patch);
+    const group = await groupsRepository.findByIdForTeacher(id, user._id);
+    if (!group) throw new NotFoundError('Grupo');
+
+    const updated = await groupsRepository.update(id, patch);
+
+    const isArchiving = patch.status === 'archived' && group.status !== 'archived';
+    const otherFields = Object.keys(patch).filter((k) => k !== 'status');
+
+    // Otros campos → group.updated
+    if (otherFields.length > 0) {
+      await getAudit().log({
+        actorId: user._id,
+        action: 'group.updated',
+        resourceType: 'group',
+        resourceId: group._id,
+        metadata: { fieldsChanged: otherFields },
+      });
+    }
+
+    // Archivando → group.archived
+    if (isArchiving) {
+      await getAudit().log({
+        actorId: user._id,
+        action: 'group.archived',
+        resourceType: 'group',
+        resourceId: group._id,
+        metadata: { name: group.name },
+      });
+    }
+
+    // Solo status pero no archive (ej: reactivar) → group.updated
+    if (otherFields.length === 0 && !isArchiving) {
+      await getAudit().log({
+        actorId: user._id,
+        action: 'group.updated',
+        resourceType: 'group',
+        resourceId: group._id,
+        metadata: { fieldsChanged: Object.keys(patch) },
+      });
+    }
+
+    return updated;
   },
 
   async archive(user, id) {
-    const group = await groupsRepository.findByIdForTeacher(id, user._id);   // ✅
-    if (!group) throw AppError.notFound('NOT_FOUND', 'Grupo no encontrado');
+    const group = await groupsRepository.findByIdForTeacher(id, user._id);
+    if (!group) throw new NotFoundError('Grupo');
     assertCanArchive(group);
-    return groupsRepository.update(id, { status: 'archived' });
+
+    const updated = await groupsRepository.update(id, { status: 'archived' });
+
+    await getAudit().log({
+      actorId: user._id,
+      action: 'group.archived',
+      resourceType: 'group',
+      resourceId: group._id,
+      metadata: { name: group.name },
+    });
+
+    return updated;
   },
 
   async remove(user, id) {
-    const group = await groupsRepository.findByIdForTeacher(id, user._id);   // ✅
-    if (!group) throw AppError.notFound('NOT_FOUND', 'Grupo no encontrado');
+    const group = await groupsRepository.findByIdForTeacher(id, user._id);
+    if (!group) throw new NotFoundError('Grupo');
+
     await groupsRepository.softDelete(id);
+
+    await getAudit().log({
+      actorId: user._id,
+      action: 'group.deleted',
+      resourceType: 'group',
+      resourceId: group._id,
+      metadata: { name: group.name },
+    });
+
     return { ok: true };
   },
 
   async addStudents(user, id, studentIds) {
-  const group = await groupsRepository.findByIdForTeacher(id, user._id);
-  if (!group) throw AppError.notFound('NOT_FOUND', 'Grupo no encontrado');
+    const group = await groupsRepository.findByIdForTeacher(id, user._id);
+    if (!group) throw new NotFoundError('Grupo');
 
-  assertValidStudentIds(studentIds);
+    assertValidStudentIds(studentIds);
 
-  const merged = assertStudentsFit(group.studentIds ?? [], studentIds);
-  if (merged.length === (group.studentIds ?? []).length) {
-    throw AppError.badRequest('VALIDATION_ERROR', 'Ningún estudiante nuevo para agregar');
-  }
+    const merged = assertStudentsFit(group.studentIds ?? [], studentIds);
+    if (merged.length === (group.studentIds ?? []).length) {
+      throw new ValidationError('Ningún estudiante nuevo para agregar');
+    }
 
-  const validStudents = await getDb()
-    .collection('users')
-    .find(
-      {
-        _id: { $in: studentIds.map((sid) => new ObjectId(sid)) },
-        role: 'student',
-        institutionId: new ObjectId(user.institutionId),
-        status: 'active',
-        deletedAt: null                     // ← CAMBIO: acepta null y ausente
+    const validStudents = await getDb()
+      .collection('users')
+      .find(
+        {
+          _id: { $in: studentIds.map((sid) => new ObjectId(sid)) },
+          role: 'student',
+          institutionId: new ObjectId(user.institutionId),
+          status: 'active',
+          deletedAt: null,
+        },
+        { projection: { _id: 1 } }
+      )
+      .toArray();
+
+    const validIds = new Set(validStudents.map((u) => u._id.toString()));
+    const rejected = studentIds.filter((sid) => !validIds.has(sid));
+
+    if (validIds.size === 0) {
+      throw new ValidationError('Ningún estudiante es válido para añadir');
+    }
+
+    const updated = await groupsRepository.addStudents(id, [...validIds]);
+
+    await getAudit().log({
+      actorId: user._id,
+      action: 'group.student.added',
+      resourceType: 'group',
+      resourceId: group._id,
+      metadata: {
+        addedCount: validIds.size,
+        rejectedCount: rejected.length,
       },
-      { projection: { _id: 1 } }
-    )
-    .toArray();
+    });
 
-  const validIds = new Set(validStudents.map((u) => u._id.toString()));
-  const rejected = studentIds.filter((sid) => !validIds.has(sid));
+    logger.info(
+      { groupId: id, added: validIds.size, rejected: rejected.length },
+      'group students added'
+    );
 
-  if (validIds.size === 0) {
-    throw AppError.badRequest('VALIDATION_ERROR', 'Ningún estudiante es válido para añadir');
-  }
-
-  const updated = await groupsRepository.addStudents(id, [...validIds]);
-
-  logger.info(
-    { groupId: id, added: validIds.size, rejected: rejected.length },
-    'group students added'
-  );
-
-  return {
-    group: updated,
-    added: [...validIds],
-    rejected
-  };
-},
-
-  async removeStudent(user, id, studentId) {
-    const group = await groupsRepository.findByIdForTeacher(id, user._id);   // ✅
-    if (!group) throw AppError.notFound('NOT_FOUND', 'Grupo no encontrado');
-    return groupsRepository.removeStudent(id, studentId);
+    return {
+      ...updated,
+      added: [...validIds],
+      rejected,
+    };
   },
 
-  /**
- * Lista los estudiantes del grupo. Solo docente dueño o admin.
- * Devuelve { items: [{ _id, fullName, email, progress, lastActivityAt }] }
- * según el contrato pedido por el frontend.
- *
- * progress y lastActivityAt son placeholder por ahora.
- * En Fase 2 se enriquecerán con datos de studentAssignments.
- */
-async listStudents(user, groupId) {
-  const group = await groupsRepository.findByIdForTeacher(groupId, user._id);
-  if (!group) throw AppError.notFound('NOT_FOUND', 'Grupo no encontrado');
+  async removeStudent(user, id, studentId) {
+    const group = await groupsRepository.findByIdForTeacher(id, user._id);
+    if (!group) throw new NotFoundError('Grupo');
 
-  const result = await groupsRepository.findMembers(groupId, user.institutionId);
-  if (!result) throw AppError.notFound('NOT_FOUND', 'Grupo no encontrado');
+    const result = await groupsRepository.removeStudent(id, studentId);
 
-  return {
-    items: result.members.map((m) => ({
-      _id: m._id,
-      fullName: m.fullName,
-      email: m.email,
-      progress: 0,           // placeholder Fase 2
-      lastActivityAt: null   // placeholder Fase 2
-    }))
-  };
-},
+    await getAudit().log({
+      actorId: user._id,
+      action: 'group.student.removed',
+      resourceType: 'group',
+      resourceId: group._id,
+      metadata: { studentId },
+    });
+
+    return result;
+  },
+
+  async listStudents(user, groupId) {
+    const group = await groupsRepository.findByIdForTeacher(groupId, user._id);
+    if (!group) throw new NotFoundError('Grupo');
+
+    const result = await groupsRepository.findMembers(groupId, user.institutionId);
+    if (!result) throw new NotFoundError('Grupo');
+
+    return {
+      items: result.members.map((m) => ({
+        _id: m._id,
+        fullName: m.fullName,
+        email: m.email,
+        progress: 0,
+        lastActivityAt: null,
+      })),
+    };
+  },
 
   async listMine(user) {
-    const groups = await groupsRepository.findByStudent(user._id);   // ✅
+    const groups = await groupsRepository.findByStudent(user._id);
 
     return {
       groups: groups.map((g) => ({
         _id: g._id,
         name: g.name,
-        schoolYear: g.schoolYear
+        schoolYear: g.schoolYear,
       })),
-      total: groups.length
+      total: groups.length,
     };
-  }
+  },
 };

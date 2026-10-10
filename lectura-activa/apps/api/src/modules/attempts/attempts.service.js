@@ -13,6 +13,9 @@ import { groupsRepository } from '../groups/groups.repository.js';
 import { getDb } from '../../shared/db.js';
 import { ForbiddenError, NotFoundError, ConflictError } from '../../shared/errors/AppError.js';
 import { logger } from '../../shared/logger.js';
+import { auditService } from '../../shared/audit.service.js';
+
+const getAudit = () => auditService(getDb());
 
 async function loadContext(user, assignmentId) {
   const assignment = await assignmentsRepository.findById(assignmentId);
@@ -54,6 +57,17 @@ export const attemptsService = {
         studentAssignment._id
       );
     }
+
+    await getAudit().log({
+      actorId: user._id,
+      action: 'attempt.started',
+      resourceType: 'attempt',
+      resourceId: studentAssignment._id,
+      metadata: {
+        assignmentId: assignment._id.toString(),
+        studentAssignmentId: studentAssignment._id.toString(),
+      },
+    });
 
     return {
       requestId,
@@ -114,6 +128,7 @@ export const attemptsService = {
 
     let savedAttempt;
     let updatedSA;
+    let completed = false;
 
     try {
       await session.withTransaction(async () => {
@@ -129,7 +144,7 @@ export const attemptsService = {
           sa.activityProgress ?? [],
           [progressEntry]
         );
-        const completed = isAssignmentCompleted(
+        completed = isAssignmentCompleted(
           mergedProgress,
           assignment.activitySnapshot
         );
@@ -147,6 +162,32 @@ export const attemptsService = {
       });
     } finally {
       await session.endSession();
+    }
+
+    await getAudit().log({
+      actorId: user._id,
+      action: 'attempt.submitted',
+      resourceType: 'attempt',
+      resourceId: savedAttempt._id,
+      metadata: {
+        assignmentId: assignment._id.toString(),
+        activityId: activity.activityId,
+        score,
+        attemptNumber,
+      },
+    });
+
+    if (completed) {
+      await getAudit().log({
+        actorId: user._id,
+        action: 'attempt.completed',
+        resourceType: 'attempt',
+        resourceId: savedAttempt._id,
+        metadata: {
+          assignmentId: assignment._id.toString(),
+          totalScore: updatedSA?.score ?? 0,
+        },
+      });
     }
 
     logger.info(

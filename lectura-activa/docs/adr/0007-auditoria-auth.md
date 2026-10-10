@@ -72,6 +72,27 @@ Se crea la colección `auditLogs` y el servicio `auditService` que registra **10
 - `validation_error` — otros 422 de Supabase.
 - `unknown_error` — error desconocido.
 
+### 2.3.1 Eventos de P4 (Fase 2)
+
+| # | Evento | Cuándo se dispara | `actorId` | `metadata` |
+|---|---|---|---|---|
+| 11 | `group.created` | Docente crea grupo | Docente | `{ name, schoolYear }` |
+| 12 | `group.updated` | Docente edita grupo | Docente | `{ fieldsChanged }` |
+| 13 | `group.archived` | Docente archiva grupo | Docente | `{ name }` |
+| 14 | `group.deleted` | Docente borra grupo (soft delete) | Docente | `{ name }` |
+| 15 | `group.student.added` | Docente añade estudiantes | Docente | `{ addedCount, rejectedCount }` |
+| 16 | `group.student.removed` | Docente quita estudiante | Docente | `{ studentId }` |
+| 17 | `assignment.created` | Docente asigna lectura a grupo | Docente | `{ groupId, readingId, dueAt }` |
+| 18 | `assignment.closed` | Docente cierra asignación | Docente | `{}` |
+| 19 | `attempt.started` | Estudiante inicia tarea | Estudiante | `{ assignmentId, studentAssignmentId }` |
+| 20 | `attempt.submitted` | Estudiante envía respuesta de una actividad | Estudiante | `{ assignmentId, activityId, score, attemptNumber }` |
+| 21 | `attempt.completed` | Estudiante completa todas las actividades | Estudiante | `{ assignmentId, totalScore }` |
+
+**Notas de privacidad:**
+- `metadata` NO incluye respuestas de actividades, ni contenido textual del estudiante.
+- `metadata` usa strings para ObjectIds (`groupId`, `readingId`, `studentId`).
+- `actorId` y `resourceId` son ObjectId nativos de MongoDB.
+
 ### 2.4 Reglas de seguridad
 
 1. **NUNCA rompe el flujo principal.** Si falla `audit.log()`, se loguea el error y sigue.
