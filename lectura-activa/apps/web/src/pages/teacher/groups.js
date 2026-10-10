@@ -3,6 +3,8 @@
 import { requireLogin } from "../../utils/authGuard.js";
 import { groupsService } from "../../services/groupsService.js";
 import { usersService } from "../../services/usersService.js";
+import { teacherAssignmentService } from "../../services/teacherAssignmentsService.js";
+import { teacherReadingService } from "../../services/teacherReadingsService.js";
 import { qs, escapeHtml, debounce } from "../../utils/dom.js";
 
 const state = {
@@ -29,6 +31,15 @@ const els = {
   studentsList: qs("#students-to-add"),
   btnAddStudents: qs("#btn-add-students"),
   sinGrupos: qs("#sin-grupos"),
+  // Modal: Asignar lectura
+  modalAssign: qs("#assign-reading-modal"),
+  assignGroupName: qs("#assign-group-name"),
+  assignReading: qs("#assign-reading"),
+  assignFrom: qs("#assign-from"),
+  assignDue: qs("#assign-due"),
+  assignError: qs("#assign-error"),
+  assignSuccess: qs("#assign-success"),
+  btnAssignReading: qs("#btn-assign-reading"),
 };
 
 /* ============================================================
@@ -56,6 +67,9 @@ function renderGroups() {
         <button type="button" class="btn btn--primary btn--sm btn-add" data-id="${escapeHtml(g._id)}" data-name="${escapeHtml(g.name)}">
           + Agregar
         </button>
+        <button type="button" class="btn btn--ghost btn--sm btn-assign" data-id="${escapeHtml(g._id)}" data-name="${escapeHtml(g.name)}">
+          📖 Asignar
+        </button>
         <button type="button" class="btn btn--ghost btn--sm btn-view" data-id="${escapeHtml(g._id)}" data-name="${escapeHtml(g.name)}">
           Ver
         </button>
@@ -75,6 +89,12 @@ function renderGroups() {
   els.grid.querySelectorAll(".btn-add").forEach((btn) => {
     btn.addEventListener("click", () =>
       openAddStudentsModal(btn.dataset.id, btn.dataset.name),
+    );
+  });
+
+  els.grid.querySelectorAll(".btn-assign").forEach((btn) => {
+    btn.addEventListener("click", () =>
+      openAssignReadingModal(btn.dataset.id, btn.dataset.name),
     );
   });
 
@@ -399,9 +419,128 @@ if (els.btnAddStudents) {
 }
 
 /* ============================================================
+   Modal: Asignar lectura al grupo
+   ============================================================ */
+async function openAssignReadingModal(groupId, groupName) {
+  state.currentGroupId = groupId;
+
+  if (els.assignGroupName) els.assignGroupName.textContent = groupName;
+  if (els.assignError) els.assignError.hidden = true;
+  if (els.assignSuccess) els.assignSuccess.hidden = true;
+
+  // Defaults de fechas: hoy y +7 días
+  const hoy = new Date();
+  const enUnaSemana = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  if (els.assignFrom) els.assignFrom.value = hoy.toISOString().slice(0, 10);
+  if (els.assignDue)
+    els.assignDue.value = enUnaSemana.toISOString().slice(0, 10);
+
+  // Cargar lecturas publicadas
+  if (els.assignReading) {
+    els.assignReading.innerHTML = `<option value="">Cargando...</option>`;
+    try {
+      const resp = await teacherReadingService.listPublished({ limit: 100 });
+      const lecturas = resp?.data || resp?.items || [];
+      if (lecturas.length === 0) {
+        els.assignReading.innerHTML = `<option value="">No hay lecturas publicadas</option>`;
+      } else {
+        els.assignReading.innerHTML = `
+          <option value="">Selecciona una lectura...</option>
+          ${lecturas
+            .map(
+              (l) => `
+            <option value="${escapeHtml(l.id || l._id)}">${escapeHtml(l.title)}</option>
+          `,
+            )
+            .join("")}
+        `;
+      }
+    } catch (error) {
+      console.error("[groups] Error al cargar lecturas:", error);
+      els.assignReading.innerHTML = `<option value="">Error al cargar lecturas</option>`;
+    }
+  }
+
+  if (els.modalAssign) els.modalAssign.hidden = false;
+}
+
+async function submitAssignReading() {
+  const readingId = els.assignReading?.value;
+  const availableFrom = els.assignFrom?.value;
+  const dueAt = els.assignDue?.value;
+
+  if (els.assignError) els.assignError.hidden = true;
+  if (els.assignSuccess) els.assignSuccess.hidden = true;
+
+  if (!readingId) {
+    if (els.assignError) {
+      els.assignError.textContent = "Selecciona una lectura.";
+      els.assignError.hidden = false;
+    }
+    return;
+  }
+
+  if (!availableFrom || !dueAt) {
+    if (els.assignError) {
+      els.assignError.textContent = "Completa las fechas de inicio y entrega.";
+      els.assignError.hidden = false;
+    }
+    return;
+  }
+
+  if (new Date(dueAt) <= new Date(availableFrom)) {
+    if (els.assignError) {
+      els.assignError.textContent =
+        "La fecha de entrega debe ser posterior a la de inicio.";
+      els.assignError.hidden = false;
+    }
+    return;
+  }
+
+  if (els.btnAssignReading) {
+    els.btnAssignReading.disabled = true;
+    els.btnAssignReading.textContent = "Asignando...";
+  }
+
+  try {
+    await teacherAssignmentService.create({
+      readingId,
+      groupId: state.currentGroupId,
+      availableFrom,
+      dueAt,
+    });
+
+    if (els.assignSuccess) {
+      els.assignSuccess.textContent = "✅ Lectura asignada correctamente.";
+      els.assignSuccess.hidden = false;
+    }
+
+    setTimeout(() => {
+      if (els.modalAssign) els.modalAssign.hidden = true;
+    }, 1500);
+  } catch (error) {
+    console.error("[groups] Error al asignar lectura:", error);
+    if (els.assignError) {
+      els.assignError.textContent =
+        error.message || "No se pudo asignar la lectura.";
+      els.assignError.hidden = false;
+    }
+  } finally {
+    if (els.btnAssignReading) {
+      els.btnAssignReading.disabled = false;
+      els.btnAssignReading.textContent = "Asignar lectura";
+    }
+  }
+}
+
+if (els.btnAssignReading) {
+  els.btnAssignReading.addEventListener("click", submitAssignReading);
+}
+
+/* ============================================================
    Cerrar modales
    ============================================================ */
-[els.modalNew, els.modalVer, els.modalAdd].forEach((modal) => {
+[els.modalNew, els.modalVer, els.modalAdd, els.modalAssign].forEach((modal) => {
   if (!modal) return;
   modal.querySelectorAll("[data-close]").forEach((el) => {
     el.addEventListener("click", () => {
@@ -412,9 +551,11 @@ if (els.btnAddStudents) {
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
-    [els.modalNew, els.modalVer, els.modalAdd].forEach((modal) => {
-      if (modal && !modal.hidden) modal.hidden = true;
-    });
+    [els.modalNew, els.modalVer, els.modalAdd, els.modalAssign].forEach(
+      (modal) => {
+        if (modal && !modal.hidden) modal.hidden = true;
+      },
+    );
   }
 });
 

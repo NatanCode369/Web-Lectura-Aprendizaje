@@ -355,3 +355,51 @@
   background: #fee2e2;
   color: #991b1b;
 }
+/* ============================================================
+   Modal: Asignar lectura
+   ============================================================ */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.field label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.field .input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.field .input:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+  border-color: #2563eb;
+}
+
+.form-error {
+  color: #dc2626;
+  font-size: 14px;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  background: #fee2e2;
+  border-radius: 6px;
+}
+
+.form-success {
+  color: #166534;
+  font-size: 14px;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  background: #dcfce7;
+  border-radius: 6px;
+}

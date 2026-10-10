@@ -1,4 +1,4 @@
-import '../../../utils/analytics.js';
+import "../../../utils/analytics.js";
 /* Pantalla: Detalle de lectura — Dueño: Omar */
 
 import { requireLogin } from "../../../utils/authGuard.js";
@@ -160,16 +160,22 @@ function renderSummary(reading) {
   }
 }
 
-/* Rellenar el CTA según el estado del estudiante */
+/* Rellenar el CTA según el estado del estudiante
+ *
+ * ⚠️ NOTA: El botón lleva a "Mis tareas" en vez de a reading-activity
+ * porque el estudiante SOLO puede hacer una lectura desde una tarea
+ * asignada por el profesor. reading-activity requiere un
+ * studentAssignmentId, no un readingId. Por eso no se puede ir directo.
+ */
 function renderCta(reading) {
-  const readingId = encodeURIComponent(reading.id);
-
   if (els.ctaPrimary) {
-    els.ctaPrimary.href = `../reading-activity/reading-activity.html?id=${readingId}`;
+    // En vez de ir a reading-activity (que requiere studentAssignmentId),
+    // llevamos al estudiante a "Mis tareas" para que vea la lectura asignada.
+    els.ctaPrimary.href = "../my-tasks/my-tasks.html";
   }
 
   if (els.ctaPrimaryText) {
-    els.ctaPrimaryText.textContent = "Empezar a leer";
+    els.ctaPrimaryText.textContent = "Ir a Mis tareas";
   }
 
   if (els.ctaTitle) {
@@ -178,7 +184,7 @@ function renderCta(reading) {
 
   if (els.ctaNote) {
     els.ctaNote.textContent =
-      "Una vez empieces, podrás pausar y continuar cuando quieras.";
+      "El profesor te asignará esta lectura. Ve a 'Mis tareas' para verla.";
   }
 
   if (els.progressBadge) {
