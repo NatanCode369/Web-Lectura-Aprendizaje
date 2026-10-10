@@ -83,5 +83,69 @@ export const groupsRepository = {
       { returnDocument: 'after' }
     );
     return result.value ?? result;
+  },
+
+  /**
+   * Devuelve los estudiantes del grupo con datos mínimos para la UI.
+   * Filtra por rol, institución y estado para no exponer usuarios ajenos.
+   */
+  async findMembers(groupId, institutionId) {
+  const _id = new ObjectId(groupId);
+
+  const group = await col().findOne(
+    { _id, deletedAt: null },
+    { projection: { studentIds: 1, name: 1 } }
+  );
+
+  if (!group) return null;
+
+  const studentIds = Array.isArray(group.studentIds) ? group.studentIds : [];
+  if (studentIds.length === 0) {
+    return { groupId: _id, name: group.name, members: [] };
+  }
+
+  const users = await getDb()
+    .collection('users')
+    .find(
+      {
+        _id: { $in: studentIds },
+        role: 'student',
+        institutionId: new ObjectId(institutionId),
+        status: 'active',
+        deletedAt: null                     // ← CAMBIO AQUÍ
+      },
+      { projection: { fullName: 1, email: 1 } }
+    )
+    .toArray();
+
+  return {
+    groupId: _id,
+    name: group.name,
+    members: users.map((u) => ({
+      _id: u._id,
+      fullName: u.fullName,
+      email: u.email
+    }))
+  };
+},
+
+  /**
+   * Devuelve los grupos activos en los que el estudiante es miembro.
+   * Proyección mínima: solo lo que el estudiante necesita ver.
+   */
+  async findByStudent(studentId) {
+    const _id = new ObjectId(studentId);
+
+    return col()
+      .find(
+        {
+          studentIds: _id,
+          status: 'active',
+          deletedAt: null
+        },
+        { projection: { name: 1, schoolYear: 1 } }
+      )
+      .sort({ updatedAt: -1 })
+      .toArray();
   }
 };

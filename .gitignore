@@ -10,3 +10,4 @@ build/
 .idea/
 coverage/
 /apps/web/nbproject/private/
+cookies-*.txt
