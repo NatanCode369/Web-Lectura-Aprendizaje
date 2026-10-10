@@ -12,7 +12,7 @@ import {
   NotFoundError,
   ValidationError,
 } from '../../shared/errors/AppError.js';
-import { logger } from '../../shared/logger/index.js';
+import { logger } from '../../shared/logger.js';
 
 export const groupsService = {
   async create(user, payload) {
