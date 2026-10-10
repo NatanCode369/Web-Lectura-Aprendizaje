@@ -87,11 +87,33 @@ function renderGroups() {
 
 /* ============================================================
    Cargar grupos
+   ------------------------------------------------------------
+   ⚠️ NOTA: GET /groups NO devuelve studentIds (por diseño del
+   backend). Por eso hacemos una llamada extra por grupo a
+   GET /groups/:id para traer el detalle y poder contar bien.
    ============================================================ */
 async function loadGroups() {
   try {
     const resp = await groupsService.list();
-    state.groups = resp.items || [];
+    const gruposBase = resp.items || [];
+
+    // Traer detalle (studentIds) para cada grupo
+    const gruposConDetalle = await Promise.all(
+      gruposBase.map(async (g) => {
+        try {
+          const detalle = await groupsService.getById(g._id);
+          return { ...g, studentIds: detalle.studentIds || [] };
+        } catch (err) {
+          console.warn(
+            `[groups] No se pudo cargar detalle del grupo ${g._id}:`,
+            err,
+          );
+          return { ...g, studentIds: [] };
+        }
+      }),
+    );
+
+    state.groups = gruposConDetalle;
     renderGroups();
   } catch (error) {
     console.error("[groups] Error:", error);
@@ -152,7 +174,7 @@ async function deleteGroup(id) {
 }
 
 /* ============================================================
-   Modal: Ver estudiantes
+   Modal: Ver estudiantes (con botón Quitar)
    ============================================================ */
 async function openViewStudentsModal(groupId, groupName) {
   if (els.modalVerTitle)
@@ -161,6 +183,9 @@ async function openViewStudentsModal(groupId, groupName) {
     els.modalVerList.innerHTML = `<li class="students-list__empty">Cargando...</li>`;
   }
   if (els.modalVer) els.modalVer.hidden = false;
+
+  // Guardamos el groupId para usarlo en el delete
+  state.currentGroupId = groupId;
 
   try {
     const resp = await groupsService.getStudents(groupId);
@@ -179,13 +204,57 @@ async function openViewStudentsModal(groupId, groupName) {
           <span class="students-list__name">${escapeHtml(s.fullName || "—")}</span>
           <span class="students-list__email">${escapeHtml(s.email || "")}</span>
         </div>
+        <button
+          type="button"
+          class="btn btn--ghost btn--sm btn-remove-student"
+          data-student-id="${escapeHtml(s._id)}"
+          data-student-name="${escapeHtml(s.fullName || s.email || "este estudiante")}"
+        >
+          Quitar
+        </button>
       </li>
     `,
       )
       .join("");
+
+    // Listeners de eliminar
+    els.modalVerList.querySelectorAll(".btn-remove-student").forEach((btn) => {
+      btn.addEventListener("click", () =>
+        removeStudentFromGroup(btn.dataset.studentId, btn.dataset.studentName),
+      );
+    });
   } catch (error) {
     console.error("[groups] Error al cargar estudiantes del grupo:", error);
     els.modalVerList.innerHTML = `<li class="students-list__empty">Error: ${escapeHtml(error.message)}</li>`;
+  }
+}
+
+/* ============================================================
+   Quitar un estudiante del grupo
+   ============================================================ */
+async function removeStudentFromGroup(studentId, studentName) {
+  if (
+    !confirm(
+      `¿Quitar a ${studentName} de este grupo? El estudiante seguirá existiendo, solo se quitará del grupo.`,
+    )
+  )
+    return;
+
+  try {
+    await groupsService.removeStudent(state.currentGroupId, studentId);
+    alert(`${studentName} fue quitado del grupo.`);
+
+    // Recargar el modal (por si quiere quitar otro)
+    const group = state.groups.find((g) => g._id === state.currentGroupId);
+    if (group) {
+      await openViewStudentsModal(state.currentGroupId, group.name);
+    }
+
+    // Recargar la lista de grupos (para actualizar el contador)
+    await loadGroups();
+  } catch (error) {
+    console.error("[groups] Error al quitar estudiante:", error);
+    alert("No se pudo quitar al estudiante: " + error.message);
   }
 }
 

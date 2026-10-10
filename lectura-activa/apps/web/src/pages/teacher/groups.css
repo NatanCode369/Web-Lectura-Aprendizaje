@@ -343,3 +343,15 @@
   padding: 16px 24px;
   border-top: 1px solid #e2e8f0;
 }
+/* Botón Quitar estudiante */
+.btn-remove-student {
+  margin-left: auto;
+  color: #dc2626;
+  border-color: #fca5a5;
+  flex-shrink: 0;
+}
+
+.btn-remove-student:hover {
+  background: #fee2e2;
+  color: #991b1b;
+}
