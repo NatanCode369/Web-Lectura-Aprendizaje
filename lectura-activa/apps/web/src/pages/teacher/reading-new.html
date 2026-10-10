@@ -1,193 +1,291 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nueva lectura | Lectura Activa</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../styles/dashboard.css">
-</head>
-<body>
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="sidebar__brand">
-        <img src="../../assets/logo-kinal.png" alt="Logo" onerror="this.style.display='none'">
-      </div>
-      <div>
-        <p class="sidebar__title">Panel docente</p>
-        <nav class="nav">
-          <a href="./dashboard-teacher.html" class="nav__link">Inicio</a>
-          <a href="./reading-new.html" class="nav__link is-active">Nueva lectura</a>
-          <a href="./activities-edit.html" class="nav__link">Actividades</a>
-          <a href="./groups.html" class="nav__link">Grupos</a>
-          <a href="./stats.html" class="nav__link">Estadísticas</a>
-        </nav>
-      </div>
-    </aside>
-
-    <div class="main">
-      <header class="topbar">
-        <span class="topbar__crumb">Lectura Activa</span>
-        <div class="topbar__user">
-          <span>Docente</span>
-          <a href="../auth/login.html" class="topbar__logout">Cerrar sesión</a>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nueva lectura | Lectura Activa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../styles/dashboard.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar__brand">
+          <img
+            src="../../assets/logo-kinal.png"
+            alt="Logo"
+            onerror="this.style.display = 'none'"
+          />
         </div>
-      </header>
-
-      <main class="content">
-        <div class="page-header">
-          <div>
-            <h1>Nueva lectura</h1>
-            <p>Sube una lectura corta, elige sus actividades y asígnala a un grupo.</p>
-          </div>
+        <div>
+          <p class="sidebar__title">Panel docente</p>
+          <nav class="nav">
+            <a href="./dashboard-teacher.html" class="nav__link">Inicio</a>
+            <a href="./reading-new.html" class="nav__link is-active"
+              >Nueva lectura</a
+            >
+            <a href="./activities-edit.html" class="nav__link">Actividades</a>
+            <a href="./groups.html" class="nav__link">Grupos</a>
+            <a href="./students.html" class="nav__link">Estudiantes</a>
+            <!-- ← NUEVO -->
+            <a href="./stats.html" class="nav__link">Estadísticas</a>
+          </nav>
         </div>
+      </aside>
 
-        <form id="reading-form" class="form">
-          <section class="panel">
-            <div class="panel__header">
-              <h2 class="panel__title">1. Datos de la lectura</h2>
-            </div>
-
-            <div class="form__grid">
-              <div class="field">
-                <label for="titulo">Título</label>
-                <input type="text" id="titulo" name="titulo" placeholder="Ej. La liebre y la tortuga" required>
-              </div>
-
-              <div class="field">
-                <label for="autor">Autor</label>
-                <input type="text" id="autor" name="autor" placeholder="Ej. Esopo">
-              </div>
-
-              <div class="field">
-                <label for="nivel">Dificultad</label>
-                <select id="nivel" name="nivel" required>
-                  <option value="">Selecciona un nivel</option>
-                  <option value="basico">Fácil</option>
-                  <option value="intermedio">Medio</option>
-                  <option value="avanzado">Avanzado</option>
-                </select>
-              </div>
-
-              <div class="field">
-                <label for="minutos">Tiempo estimado (minutos)</label>
-                <input type="number" id="minutos" name="minutos" min="1" max="30" placeholder="3">
-              </div>
-
-              <div class="field field--full">
-                <label for="resumen">Resumen</label>
-                <textarea id="resumen" name="resumen" placeholder="Una o dos frases que describan la lectura"></textarea>
-              </div>
-
-              <div class="field field--full">
-                <span class="field__label">Formato del contenido</span>
-                <div class="choice-group">
-                  <label class="choice"><input type="radio" name="formato" value="texto" checked> Texto en pantalla</label>
-                  <label class="choice"><input type="radio" name="formato" value="pdf"> Archivo PDF</label>
-                </div>
-              </div>
-
-              <div class="field field--full" id="formato-texto">
-                <label for="contenido">Contenido</label>
-                <textarea id="contenido" name="contenido" rows="8" placeholder="Pega aquí el texto de la lectura"></textarea>
-                <span class="field__hint">Recuerda que las lecturas deben ser muy cortas.</span>
-              </div>
-
-              <div class="field field--full" id="formato-pdf" hidden>
-                <label for="pdf">Archivo PDF</label>
-                <input type="file" id="pdf" name="pdf" accept="application/pdf">
-                <span class="field__hint">Solo archivos PDF.</span>
-              </div>
-            </div>
-          </section>
-
-          <section class="panel">
-            <div class="panel__header">
-              <h2 class="panel__title">2. Actividades</h2>
-              <span class="panel__hint">Vienen por defecto. Marca las que quieres usar.</span>
-            </div>
-
-            <div class="checklist">
-              <label class="check">
-                <input type="checkbox" name="actividades" value="trivia" checked>
-                <div>
-                  <p class="check__title">Preguntas tipo trivia</p>
-                  <p class="check__desc">Opción múltiple con puntaje.</p>
-                </div>
-              </label>
-
-              <label class="check">
-                <input type="checkbox" name="actividades" value="verdadero-falso" checked>
-                <div>
-                  <p class="check__title">Verdadero o falso rápido</p>
-                  <p class="check__desc">Afirmaciones sobre el texto.</p>
-                </div>
-              </label>
-
-              <label class="check">
-                <input type="checkbox" name="actividades" value="detective" checked>
-                <div>
-                  <p class="check__title">Detective de palabras</p>
-                  <p class="check__desc">Encontrar sinónimos en el texto.</p>
-                </div>
-              </label>
-
-              <label class="check">
-                <input type="checkbox" name="actividades" value="ordenar" checked>
-                <div>
-                  <p class="check__title">Ordena la historia</p>
-                  <p class="check__desc">Arrastrar los hechos al orden correcto.</p>
-                </div>
-              </label>
-
-              <label class="check">
-                <input type="checkbox" name="actividades" value="mapa" checked>
-                <div>
-                  <p class="check__title">Mapa mental</p>
-                  <p class="check__desc">Unir conceptos con líneas.</p>
-                </div>
-              </label>
-            </div>
-          </section>
-
-          <section class="panel">
-            <div class="panel__header">
-              <h2 class="panel__title">3. Asignación (opcional)</h2>
-              <span class="panel__hint">Puedes asignarla ahora o después.</span>
-            </div>
-
-            <div class="form__grid">
-              <div class="field field--full">
-                <span class="field__label">Grupos</span>
-                <div class="checklist" id="lista-grupos">
-                  <!-- Se rellena con JS -->
-                </div>
-              </div>
-
-              <div class="field">
-                <label for="fecha-inicio">Fecha de inicio</label>
-                <input type="date" id="fecha-inicio" name="fechaInicio">
-              </div>
-
-              <div class="field">
-                <label for="fecha-entrega">Fecha de entrega</label>
-                <input type="date" id="fecha-entrega" name="fechaEntrega">
-              </div>
-            </div>
-          </section>
-
-          <div class="form__actions">
-            <a href="./dashboard-teacher.html" class="btn btn--ghost">Cancelar</a>
-            <button type="button" class="btn btn--primary">Guardar borrador</button>
-            <button type="submit" class="btn btn--orange">Publicar lectura</button>
+      <div class="main">
+        <header class="topbar">
+          <span class="topbar__crumb">Lectura Activa</span>
+          <div class="topbar__user">
+            <span>Docente</span>
+            <a href="../auth/login.html" class="topbar__logout"
+              >Cerrar sesión</a
+            >
           </div>
-        </form>
-      </main>
+        </header>
+
+        <main class="content">
+          <div class="page-header">
+            <div>
+              <h1>Nueva lectura</h1>
+              <p>
+                Sube una lectura corta, elige sus actividades y asígnala a un
+                grupo.
+              </p>
+            </div>
+          </div>
+
+          <form id="reading-form" class="form">
+            <section class="panel">
+              <div class="panel__header">
+                <h2 class="panel__title">1. Datos de la lectura</h2>
+              </div>
+
+              <div class="form__grid">
+                <div class="field">
+                  <label for="titulo">Título</label>
+                  <input
+                    type="text"
+                    id="titulo"
+                    name="titulo"
+                    placeholder="Ej. La liebre y la tortuga"
+                    required
+                  />
+                </div>
+
+                <div class="field">
+                  <label for="autor">Autor</label>
+                  <input
+                    type="text"
+                    id="autor"
+                    name="autor"
+                    placeholder="Ej. Esopo"
+                  />
+                </div>
+
+                <div class="field">
+                  <label for="nivel">Dificultad</label>
+                  <select id="nivel" name="nivel" required>
+                    <option value="">Selecciona un nivel</option>
+                    <option value="basico">Fácil</option>
+                    <option value="intermedio">Medio</option>
+                    <option value="avanzado">Avanzado</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="minutos">Tiempo estimado (minutos)</label>
+                  <input
+                    type="number"
+                    id="minutos"
+                    name="minutos"
+                    min="1"
+                    max="30"
+                    placeholder="3"
+                  />
+                </div>
+
+                <div class="field field--full">
+                  <label for="resumen">Resumen</label>
+                  <textarea
+                    id="resumen"
+                    name="resumen"
+                    placeholder="Una o dos frases que describan la lectura"
+                  ></textarea>
+                </div>
+
+                <div class="field field--full">
+                  <span class="field__label">Formato del contenido</span>
+                  <div class="choice-group">
+                    <label class="choice"
+                      ><input
+                        type="radio"
+                        name="formato"
+                        value="texto"
+                        checked
+                      />
+                      Texto en pantalla</label
+                    >
+                    <label class="choice"
+                      ><input type="radio" name="formato" value="pdf" /> Archivo
+                      PDF</label
+                    >
+                  </div>
+                </div>
+
+                <div class="field field--full" id="formato-texto">
+                  <label for="contenido">Contenido</label>
+                  <textarea
+                    id="contenido"
+                    name="contenido"
+                    rows="8"
+                    placeholder="Pega aquí el texto de la lectura"
+                  ></textarea>
+                  <span class="field__hint"
+                    >Recuerda que las lecturas deben ser muy cortas.</span
+                  >
+                </div>
+
+                <div class="field field--full" id="formato-pdf" hidden>
+                  <label for="pdf">Archivo PDF</label>
+                  <input
+                    type="file"
+                    id="pdf"
+                    name="pdf"
+                    accept="application/pdf"
+                  />
+                  <span class="field__hint">Solo archivos PDF.</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel__header">
+                <h2 class="panel__title">2. Actividades</h2>
+                <span class="panel__hint"
+                  >Vienen por defecto. Marca las que quieres usar.</span
+                >
+              </div>
+
+              <div class="checklist">
+                <label class="check">
+                  <input
+                    type="checkbox"
+                    name="actividades"
+                    value="trivia"
+                    checked
+                  />
+                  <div>
+                    <p class="check__title">Preguntas tipo trivia</p>
+                    <p class="check__desc">Opción múltiple con puntaje.</p>
+                  </div>
+                </label>
+
+                <label class="check">
+                  <input
+                    type="checkbox"
+                    name="actividades"
+                    value="verdadero-falso"
+                    checked
+                  />
+                  <div>
+                    <p class="check__title">Verdadero o falso rápido</p>
+                    <p class="check__desc">Afirmaciones sobre el texto.</p>
+                  </div>
+                </label>
+
+                <label class="check">
+                  <input
+                    type="checkbox"
+                    name="actividades"
+                    value="detective"
+                    checked
+                  />
+                  <div>
+                    <p class="check__title">Detective de palabras</p>
+                    <p class="check__desc">Encontrar sinónimos en el texto.</p>
+                  </div>
+                </label>
+
+                <label class="check">
+                  <input
+                    type="checkbox"
+                    name="actividades"
+                    value="ordenar"
+                    checked
+                  />
+                  <div>
+                    <p class="check__title">Ordena la historia</p>
+                    <p class="check__desc">
+                      Arrastrar los hechos al orden correcto.
+                    </p>
+                  </div>
+                </label>
+
+                <label class="check">
+                  <input
+                    type="checkbox"
+                    name="actividades"
+                    value="mapa"
+                    checked
+                  />
+                  <div>
+                    <p class="check__title">Mapa mental</p>
+                    <p class="check__desc">Unir conceptos con líneas.</p>
+                  </div>
+                </label>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel__header">
+                <h2 class="panel__title">3. Asignación (opcional)</h2>
+                <span class="panel__hint"
+                  >Puedes asignarla ahora o después.</span
+                >
+              </div>
+
+              <div class="form__grid">
+                <div class="field field--full">
+                  <span class="field__label">Grupos</span>
+                  <div class="checklist" id="lista-grupos">
+                    <!-- Se rellena con JS -->
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label for="fecha-inicio">Fecha de inicio</label>
+                  <input type="date" id="fecha-inicio" name="fechaInicio" />
+                </div>
+
+                <div class="field">
+                  <label for="fecha-entrega">Fecha de entrega</label>
+                  <input type="date" id="fecha-entrega" name="fechaEntrega" />
+                </div>
+              </div>
+            </section>
+
+            <div class="form__actions">
+              <a href="./dashboard-teacher.html" class="btn btn--ghost"
+                >Cancelar</a
+              >
+              <button type="button" class="btn btn--primary">
+                Guardar borrador
+              </button>
+              <button type="submit" class="btn btn--orange">
+                Publicar lectura
+              </button>
+            </div>
+          </form>
+        </main>
+      </div>
     </div>
-  </div>
 
-  <script type="module" src="./reading-new.js"></script>
-</body>
+    <script type="module" src="./reading-new.js"></script>
+  </body>
 </html>

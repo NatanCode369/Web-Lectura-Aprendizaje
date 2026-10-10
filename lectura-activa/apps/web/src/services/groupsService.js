@@ -51,4 +51,14 @@ export const groupsService = {
   async removeStudent(id, studentId) {
     return api.delete(`${BASE}/${id}/students/${studentId}`);
   },
+
+  /**
+   * Lista de estudiantes de un grupo.
+   * GET /api/v1/groups/:id/students → { items: [{ _id, fullName, email, progress, lastActivityAt }] }
+   *
+   * ⚠️ `progress` y `lastActivityAt` son placeholders (0 y null) hasta Fase 2.
+   */
+  async getStudents(groupId) {
+    return api.get(`${BASE}/${groupId}/students`);
+  },
 };

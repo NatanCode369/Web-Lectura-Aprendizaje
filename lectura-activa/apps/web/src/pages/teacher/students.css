@@ -1,0 +1,36 @@
+/* Pantalla: Lista de estudiantes — Dueño: Omar */
+
+.panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress--sm {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+  width: 80px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.progress__bar {
+  height: 100%;
+  background: #2563eb;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress__label {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.table__empty {
+  text-align: center;
+  padding: 30px;
+  color: #64748b;
+}
