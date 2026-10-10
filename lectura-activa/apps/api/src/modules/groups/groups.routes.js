@@ -71,4 +71,17 @@ export async function groupsRoutes(fastify, opts) {
       );
     }
   );
+
+  /**
+ * GET /:id/students
+ * Lista los estudiantes del grupo. Solo docente dueño o admin.
+ * Respuesta: { items: [{ _id, fullName, email, progress, lastActivityAt }] }
+ */
+fastify.get(
+  '/:id/students',
+  { preHandler: requireRole('teacher', 'admin') },
+  async (request) => {
+    return groupsService.listStudents(request.user, request.params.id);
+  }
+);
 }

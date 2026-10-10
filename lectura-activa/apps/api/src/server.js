@@ -27,6 +27,8 @@ import { buildAuditRepository } from './modules/readings/audit.repository.js';
 import { buildReadingService } from './modules/readings/reading.service.js';
 import { authenticate } from './shared/middleware/authenticate.js';
 import { registerReadingRoutes } from './modules/readings/reading.routes.js';
+import { meGroupsRoutes } from './modules/groups/meGroups.routes.js';
+
 
 export async function buildServer({ withDb = true } = {}) {
   const fastify = Fastify({
@@ -154,16 +156,17 @@ export async function buildServer({ withDb = true } = {}) {
     return { status: 'ready', db: dbOk };
   });
 
-  // ---- Rutas de negocio ----
+    // ---- Rutas de negocio ----
   await fastify.register(authRoutes, { prefix: '/api/v1/auth', db });
   await fastify.register(usersRoutes, { prefix: '/api/v1', db });
 
   await fastify.register(groupsRoutes, { prefix: '/api/v1/groups', db });
+  await fastify.register(meGroupsRoutes, { prefix: '/api/v1', db });
+
   await fastify.register(assignmentsRoutes, { prefix: '/api/v1/assignments', db });
   await fastify.register(attemptsRoutes, { prefix: '/api/v1/assignments', db });
   await fastify.register(studentAssignmentsRoutes, { prefix: '/api/v1/student-assignments', db });
   await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics', db });
-
   // ---- Readings ----
   const readingRepository = buildReadingRepository();
   const auditRepository = buildAuditRepository();
