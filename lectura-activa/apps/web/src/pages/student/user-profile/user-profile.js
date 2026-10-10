@@ -1,10 +1,10 @@
-import '../../../utils/analytics.js';
+import "../../../utils/analytics.js";
 /* Pantalla: Mi perfil — Dueño: Omar */
 
 import { api } from "../../../services/apiClient.js";
 import { getCurrentUser, clearSession } from "../../../state/session.js";
 import { formatRole, getInitials } from "../../../utils/formatters.js";
-import { qs } from "../../../utils/dom.js";
+import { qs, qsa } from "../../../utils/dom.js";
 
 /* Estado */
 const state = {
@@ -19,9 +19,10 @@ const els = {
   content: qs("#profile-content"),
   headerName: qs('[data-field="headerName"]'),
   initials: qs('[data-field="initials"]'),
-  fullName: qs('[data-field="fullName"]'),
-  email: qs('[data-field="email"]'),
-  roleLabel: qs('[data-field="roleLabel"]'),
+  // ⚠️ Estos aparecen MÁS DE UNA VEZ en el HTML → usar qsa()
+  fullName: qsa('[data-field="fullName"]'),
+  email: qsa('[data-field="email"]'),
+  roleLabel: qsa('[data-field="roleLabel"]'),
   logoutButton: qs("#logout-button"),
 };
 
@@ -35,6 +36,14 @@ function showState(name) {
 function showError(message) {
   if (els.errorMessage) els.errorMessage.textContent = message;
   showState("error");
+}
+
+/* Helper: actualizar todos los elementos de un array */
+function setAll(elements, text) {
+  if (!elements) return;
+  elements.forEach((el) => {
+    el.textContent = text;
+  });
 }
 
 /* Render */
@@ -51,9 +60,11 @@ function renderProfile(user) {
 
   if (els.headerName) els.headerName.textContent = fullName;
   if (els.initials) els.initials.textContent = initials;
-  if (els.fullName) els.fullName.textContent = fullName;
-  if (els.email) els.email.textContent = email;
-  if (els.roleLabel) els.roleLabel.textContent = roleLabel;
+
+  // ⚠️ Actualizar TODOS los elementos con el mismo data-field
+  setAll(els.fullName, fullName);
+  setAll(els.email, email);
+  setAll(els.roleLabel, roleLabel);
 
   document.title = `${fullName} — Lectura Activa`;
 }
@@ -64,9 +75,6 @@ async function loadUser() {
 
   try {
     const response = await api.get("/me");
-
-    /* El backend devuelve { user: {...} }.
-       Aceptamos también { data: {...} } por si acaso. */
     const user = response?.user ?? response?.data ?? response;
 
     if (user && (user._id || user.email)) {

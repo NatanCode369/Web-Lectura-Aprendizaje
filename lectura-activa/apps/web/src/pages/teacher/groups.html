@@ -169,6 +169,61 @@
       </div>
     </div>
 
+    <!-- Modal: Asignar lectura al grupo -->
+    <div id="assign-reading-modal" class="modal" hidden>
+      <div class="modal__overlay" data-close></div>
+      <div class="modal__content">
+        <div class="modal__header">
+          <h2 class="modal__title">
+            Asignar lectura a: <span id="assign-group-name"></span>
+          </h2>
+          <button
+            type="button"
+            class="modal__close"
+            data-close
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
+        </div>
+
+        <div class="modal__body">
+          <div class="field">
+            <label for="assign-reading">Lectura</label>
+            <select id="assign-reading" class="input">
+              <option value="">Cargando lecturas...</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="assign-from">Disponible desde</label>
+            <input type="date" id="assign-from" class="input" />
+          </div>
+
+          <div class="field">
+            <label for="assign-due">Fecha de entrega</label>
+            <input type="date" id="assign-due" class="input" />
+          </div>
+
+          <p id="assign-error" class="form-error" role="alert" hidden></p>
+          <p id="assign-success" class="form-success" role="status" hidden></p>
+        </div>
+
+        <div class="modal__footer">
+          <button type="button" class="btn btn--ghost" data-close>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            id="btn-assign-reading"
+            class="btn btn--primary"
+          >
+            Asignar lectura
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script type="module" src="./groups.js"></script>
   </body>
 </html>
