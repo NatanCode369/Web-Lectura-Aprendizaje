@@ -84,6 +84,55 @@ async function main() {
     },
   ]);
 
+  // ---------- readings ----------
+  await ensureCollection(db, 'readings', {
+    $jsonSchema: {
+      bsonType: 'object',
+      required: ['title', 'difficulty', 'status', 'institutionId', 'authorId', 'createdAt', 'updatedAt'],
+      properties: {
+        _id: { bsonType: 'objectId' },
+        institutionId: { bsonType: 'objectId' },
+        authorId: { bsonType: 'objectId' },
+        title: { bsonType: 'string', minLength: 1, maxLength: 250 },
+        summary: { bsonType: ['string', 'null'], maxLength: 2000 },
+        content: { bsonType: ['string', 'null'] },
+        difficulty: { bsonType: 'string', enum: ['easy', 'medium', 'hard'] },
+        estimatedMinutes: { bsonType: ['int', 'long', 'double', 'null'] },
+        status: { bsonType: 'string', enum: ['draft', 'published', 'archived'] },
+        media: { bsonType: 'array' },
+        activities: { bsonType: 'array' },
+        version: { bsonType: ['int', 'long', 'double', 'null'] },
+        createdAt: { bsonType: 'date' },
+        updatedAt: { bsonType: 'date' },
+        deletedAt: { bsonType: ['date', 'null'] },
+      },
+      additionalProperties: true,
+    },
+  });
+
+  await ensureIndexes(db, 'readings', [
+    {
+      keys: { institutionId: 1, status: 1, updatedAt: -1 },
+      options: { name: 'readings_catalog' },
+    },
+    {
+      keys: { institutionId: 1, status: 1, difficulty: 1 },
+      options: { name: 'readings_by_difficulty' },
+    },
+    {
+      keys: { authorId: 1, updatedAt: -1 },
+      options: { name: 'readings_author_updated' },
+    },
+    {
+      keys: { 'media.path': 1 },
+      options: { name: 'readings_media_path' },
+    },
+    {
+      keys: { title: 'text', summary: 'text' },
+      options: { name: 'readings_text_search' },
+    },
+  ]);
+
   // ---------- users ----------
   // ---------- passwordResets ----------
   await ensureCollection(db, 'passwordResets', {
