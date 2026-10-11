@@ -5,15 +5,9 @@ import { buildReadingRepository } from '../readings/reading.repository.js';
 import { logger } from '../../shared/logger.js';
 import { NotFoundError } from '../../shared/errors/index.js';
 
-// El módulo de readings exporta una factory; el resto son singletons.
-// Construimos una instancia única local para no romper el patrón.
 const readingRepository = buildReadingRepository();
 
 export const studentAssignmentsService = {
-  /**
-   * ADR-0003: materializa studentAssignments para los estudiantes del grupo.
-   * Idempotente por el índice único { assignmentId, studentId }.
-   */
   async materializeForGroup(assignment, group) {
     const studentIds = Array.isArray(group.studentIds) ? group.studentIds : [];
     if (studentIds.length === 0) return [];
@@ -38,7 +32,6 @@ export const studentAssignmentsService = {
     const { items, total, page, limit } =
       await studentAssignmentsRepository.listByStudent(studentId, query);
 
-    // Enriquecer con datos de la asignación, lectura y grupo
     const assignmentIds = items.map((sa) => sa.assignmentId);
     const assignments = await Promise.all(
       assignmentIds.map((id) => assignmentsRepository.findById(id))
@@ -47,7 +40,6 @@ export const studentAssignmentsService = {
       assignments.filter(Boolean).map((a) => [a._id.toString(), a])
     );
 
-    // Obtener readingIds y groupIds únicos para fetch en batch
     const readingIds = [
       ...new Set(
         assignments
@@ -111,11 +103,12 @@ export const studentAssignmentsService = {
 
   async getMine(studentId, studentAssignmentId) {
     const sa = await studentAssignmentsRepository.findById(studentAssignmentId);
-    if (!sa || sa.studentId.toString() !== studentId) {
+
+    // ✅ FIX: comparar como strings (studentId puede llegar como ObjectId)
+    if (!sa || sa.studentId.toString() !== String(studentId)) {
       throw new NotFoundError('Tarea');
     }
 
-    // Enriquecer con assignment, readingTitle, groupName
     let assignment = null;
     let readingTitle = null;
     let groupName = null;
