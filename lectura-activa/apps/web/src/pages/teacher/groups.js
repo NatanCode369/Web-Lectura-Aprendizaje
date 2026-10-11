@@ -439,7 +439,8 @@ async function openAssignReadingModal(groupId, groupName) {
   if (els.assignReading) {
     els.assignReading.innerHTML = `<option value="">Cargando...</option>`;
     try {
-      const resp = await teacherReadingService.listPublished({ limit: 100 });
+      // ✅ FIX BUG 1: el schema del backend limita `limit` a máximo 50
+      const resp = await teacherReadingService.listPublished({ limit: 50 });
       const lecturas = resp?.data || resp?.items || [];
       if (lecturas.length === 0) {
         els.assignReading.innerHTML = `<option value="">No hay lecturas publicadas</option>`;

@@ -54,7 +54,7 @@ export const readingListQuery = {
     limit: {
       type: 'integer',
       minimum: 1,
-      maximum: 50,
+      maximum: 100,   // ✅ FIX BUG 1: cambiado de 50 a 100
       default: 20
     }
   }
