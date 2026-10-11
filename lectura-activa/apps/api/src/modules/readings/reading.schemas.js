@@ -4,7 +4,7 @@ const activitySchema = {
   required: ['id', 'type', 'prompt', 'points', 'config'],
   properties: {
     id: { type: 'string', minLength: 1, maxLength: 64, pattern: '^[a-zA-Z0-9_-]+$' },
-    type: { type: 'string', enum: ['multiple_choice', 'true_false', 'short_answer', 'ordering', 'matching'] },
+    type: { type: 'string', enum: ['multiple_choice', 'true_false', 'short_answer', 'ordering', 'matching', 'detective'] },
     prompt: { type: 'string', minLength: 1, maxLength: 2000 },
     points: { type: 'integer', minimum: 1, maximum: 100 },
     config: { type: 'object', additionalProperties: true }
@@ -54,7 +54,7 @@ export const readingListQuery = {
     limit: {
       type: 'integer',
       minimum: 1,
-      maximum: 100,   // ✅ FIX BUG 1: cambiado de 50 a 100
+      maximum: 100,
       default: 20
     }
   }
