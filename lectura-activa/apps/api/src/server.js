@@ -29,7 +29,6 @@ import { authenticate } from './shared/middleware/authenticate.js';
 import { registerReadingRoutes } from './modules/readings/reading.routes.js';
 import { meGroupsRoutes } from './modules/groups/meGroups.routes.js';
 
-
 export async function buildServer({ withDb = true } = {}) {
   const fastify = Fastify({
     loggerInstance: logger,
@@ -43,40 +42,34 @@ export async function buildServer({ withDb = true } = {}) {
   await fastify.register(helmet, { contentSecurityPolicy: false });
 
   // ---- CORS ----
-  // Dev: permite localhost/127.0.0.1 y los orígenes configurados.
-  // Prod: solo los orígenes de CORS_ORIGINS.
   const isProd = env.NODE_ENV === 'production';
-  
-  // env.CORS_ORIGINS ya es un array por el transform de Zod en config/env.js
-  const corsOrigins = Array.isArray(env.CORS_ORIGINS) 
-    ? env.CORS_ORIGINS 
+
+  const corsOrigins = Array.isArray(env.CORS_ORIGINS)
+    ? env.CORS_ORIGINS
     : (env.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
-  
+
   const allowedOrigins = isProd
     ? corsOrigins
     : [...corsOrigins, 'http://localhost:5173', 'http://127.0.0.1:5173'];
 
-await fastify.register(cors, {
-  origin: (origin, callback) => {
-    // Sin Origin: curl, Postman, health checks
-    if (!origin) return callback(null, true);
-    
-    // Origen en lista permitida
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    
-    // En dev: cualquier localhost/127.0.0.1
-    if (!isProd && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-      return callback(null, true);
-    }
-    
-    logger.warn({ origin, allowedOrigins }, 'CORS: origen no permitido');
-    return callback(new Error(`Not allowed by CORS: ${origin}`));
-  },
-  credentials: true,  // ← OBLIGATORIO para cookies
-  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
-  exposedHeaders: ['x-request-id'],
-});
+  await fastify.register(cors, {
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+
+      if (!isProd && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      logger.warn({ origin, allowedOrigins }, 'CORS: origen no permitido');
+      return callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
+    exposedHeaders: ['x-request-id'],
+  });
 
   registerEdgeGuard(fastify, {
     secret: env.ORIGIN_SHARED_SECRET,
@@ -150,7 +143,7 @@ await fastify.register(cors, {
     return { status: 'ready', db: dbOk };
   });
 
-    // ---- Rutas de negocio ----
+  // ---- Rutas de negocio ----
   await fastify.register(authRoutes, { prefix: '/api/v1/auth', db });
   await fastify.register(usersRoutes, { prefix: '/api/v1', db });
 
@@ -158,9 +151,11 @@ await fastify.register(cors, {
   await fastify.register(meGroupsRoutes, { prefix: '/api/v1', db });
 
   await fastify.register(assignmentsRoutes, { prefix: '/api/v1/assignments', db });
-  await fastify.register(attemptsRoutes, { prefix: '/api/v1/assignments', db });
+  // ✅ FIX: attemptsRoutes con su propio prefijo /api/v1/attempts
+  await fastify.register(attemptsRoutes, { prefix: '/api/v1/attempts', db });
   await fastify.register(studentAssignmentsRoutes, { prefix: '/api/v1/student-assignments', db });
   await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics', db });
+
   // ---- Readings ----
   const readingRepository = buildReadingRepository();
   const auditRepository = buildAuditRepository();
