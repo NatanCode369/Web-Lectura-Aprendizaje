@@ -1,6 +1,9 @@
 import '../../utils/analytics.js';
 /**
  * Editor de actividades — P6 (José)
+ *
+ * ✅ FIX: el botón "Guardar y publicar" solo se muestra si la lectura
+ *    está en estado `draft`. Si ya está publicada, se oculta.
  */
 
 import {
@@ -129,11 +132,11 @@ async function cambiarLectura() {
     lecturaDetalle = response?.data ?? response;
     actividades = activitiesFromApi(lecturaDetalle?.activities || []);
     renderTodo();
-    // ✅ FIX: mostrar SIEMPRE el botón "Guardar y publicar"
-    $publicar.hidden = false;
-    $publicar.textContent = lecturaDetalle?.status === 'published'
-      ? 'Guardar cambios'
-      : 'Guardar y publicar';
+
+    // ✅ FIX: mostrar el botón "Guardar y publicar" SOLO si la lectura es borrador
+    const esBorrador = lecturaDetalle?.status === 'draft';
+    $publicar.hidden = !esBorrador;
+    $publicar.textContent = 'Guardar y publicar';
   } catch (error) {
     mostrarMensaje(`⚠️ ${error.message}`, true);
   }
@@ -215,7 +218,12 @@ $publicar.addEventListener('click', async () => {
   $publicar.disabled = true;
   try {
     const avisos = await guardarActividades();
-    await teacherReadingService.publish(lecturaActual);
+
+    // ✅ FIX: solo publicar si todavía es borrador
+    if (lecturaDetalle?.status === 'draft') {
+      await teacherReadingService.publish(lecturaActual);
+      lecturaDetalle.status = 'published';
+    }
 
     const fallos = [];
     for (const groupId of gruposAsignar) {
@@ -231,11 +239,12 @@ $publicar.addEventListener('click', async () => {
       }
     }
 
-    // ✅ FIX: mostrar de nuevo el botón con el nuevo texto
-    $publicar.hidden = false;
-    $publicar.textContent = 'Guardar cambios';
+    // ✅ FIX: ocultar el botón después de publicar (ya no sirve)
+    $publicar.hidden = true;
 
-    let texto = '✅ Lectura publicada.';
+    let texto = lecturaDetalle?.status === 'published'
+      ? '✅ Lectura publicada.'
+      : '✅ Cambios guardados.';
     if (gruposAsignar.length) {
       texto += fallos.length
         ? ` ⚠️ No se pudo asignar a ${fallos.length} grupo(s): ${fallos[0]}`
