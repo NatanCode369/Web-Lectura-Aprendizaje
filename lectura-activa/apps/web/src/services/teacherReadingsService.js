@@ -1,45 +1,16 @@
-/* Service de lecturas del docente — Dueño: José
- *
- * Complementa a readingsService.js (Omar, solo lectura del estudiante).
- * Aquí viven las operaciones de escritura: crear, editar, publicar.
- *
- * Contrato del backend (apps/api/src/modules/readings):
- *   POST  /readings              → crea en estado 'draft'
- *   PATCH /readings/:id          → edita (todos los campos opcionales)
- *   POST  /readings/:id/publish  → draft → published (exige ≥ 1 actividad)
- *   GET   /readings/:id          → detalle (el autor ve sus borradores)
- *   GET   /readings              → SOLO lecturas publicadas de la institución
- */
+/* Service de lecturas del docente — Dueño: José */
 
 import { api } from "./apiClient.js";
 
-/* ------------------------------------------------------------
-   Dificultad: la interfaz del docente usa español, el API inglés
-   ------------------------------------------------------------ */
 const NIVEL_A_API = { basico: "easy", intermedio: "medium", avanzado: "hard" };
 const NIVEL_DE_API = { easy: "basico", medium: "intermedio", hard: "avanzado" };
 
 export const nivelToApi = (nivel) => NIVEL_A_API[nivel] || "easy";
 export const nivelFromApi = (difficulty) => NIVEL_DE_API[difficulty] || "basico";
 
-/* ------------------------------------------------------------
-   Actividades: formato del editor (activities-edit) ↔ formato API
-   ------------------------------------------------------------
-   Editor                       API (type)         config
-   trivia[]                     multiple_choice    { options, correctIndex }
-   verdaderoFalso[]             true_false         { correctAnswer }
-   order[]  (en orden correcto) ordering           { items, correctOrder }
-   mindMap[] ({a, b})           matching           { pairs: [{left, right}] }
-   detective                    — (el backend aún no lo soporta)
-   ------------------------------------------------------------ */
 const PUNTOS_POR_ACTIVIDAD = 10;
 const texto = (v) => String(v ?? "").trim();
 
-/**
- * Convierte las actividades del editor al arreglo que espera el API.
- * Ignora entradas incompletas y avisa de lo que no se pudo enviar.
- * @returns {{ activities: object[], warnings: string[] }}
- */
 export function activitiesToApi(editor = {}) {
   const activities = [];
   const warnings = [];
@@ -123,9 +94,6 @@ export function activitiesToApi(editor = {}) {
   return { activities, warnings };
 }
 
-/**
- * Convierte las actividades del API al formato del editor.
- */
 export function activitiesFromApi(list = []) {
   const editor = {
     trivia: [],
@@ -164,7 +132,6 @@ export function activitiesFromApi(list = []) {
     }
   }
 
-  /* El editor siempre necesita al menos una fila vacía por sección */
   if (!editor.trivia.length) editor.trivia.push({ pregunta: "", opciones: ["", "", "", ""], correcta: 0 });
   if (!editor.verdaderoFalso.length) editor.verdaderoFalso.push({ afirmacion: "", respuesta: true });
   if (!editor.order.length) editor.order = ["", "", "", ""];
@@ -172,14 +139,7 @@ export function activitiesFromApi(list = []) {
   return editor;
 }
 
-/* ------------------------------------------------------------
-   Llamadas al backend
-   ------------------------------------------------------------ */
 export const teacherReadingService = {
-  /**
-   * Crea una lectura (queda en 'draft').
-   * @param {{title, summary, content, nivel, estimatedMinutes, activities?}} data
-   */
   async create({ title, summary, content, nivel, estimatedMinutes, activities = [] }) {
     return api.post("/readings", {
       title,
@@ -191,9 +151,6 @@ export const teacherReadingService = {
     });
   },
 
-  /**
-   * Edita campos de una lectura. Solo se envían los que vienen definidos.
-   */
   async update(id, { title, summary, content, nivel, estimatedMinutes, activities }) {
     const body = {};
     if (title !== undefined) body.title = title;
@@ -207,19 +164,41 @@ export const teacherReadingService = {
     return api.patch(`/readings/${id}`, body);
   },
 
-  /** draft → published (el backend exige al menos una actividad). */
   async publish(id) {
     return api.post(`/readings/${id}/publish`);
   },
 
-  /** Detalle completo (incluye actividades). */
   async getById(id) {
     return api.get(`/readings/${id}`);
   },
 
-  /** Lecturas publicadas de la institución (el API no lista borradores). */
   async listPublished({ page = 1, limit = 50 } = {}) {
     const params = new URLSearchParams({ page, limit });
     return api.get(`/readings?${params.toString()}`);
+  },
+
+  /**
+   * ✅ FIX BUG 12: lee un borrador específico o devuelve un array con
+   * los borradores + publicadas del docente para poblar el <select>.
+   * Como el backend no lista borradores, hacemos fallback con getById.
+   */
+  async ensureInList(id, list) {
+    if (!id) return list;
+    if (list.some((l) => l.id === id || l._id === id)) return list;
+    try {
+      const detalle = await api.get(`/readings/${id}`);
+      const l = detalle?.data ?? detalle;
+      if (l) {
+        list.unshift({
+          id: l.id ?? l._id,
+          _id: l._id ?? l.id,
+          title: `${l.title} (borrador)`,
+          status: l.status,
+        });
+      }
+    } catch (e) {
+      // Si falla, simplemente no se agrega
+    }
+    return list;
   },
 };

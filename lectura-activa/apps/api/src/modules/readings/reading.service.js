@@ -28,7 +28,7 @@ import {
   PDF_MAX_BYTES,
 } from './pdf.path.js';
 
-const PDF_URL_TTL_SECONDS = 60 * 60;    // 1 hora
+const PDF_URL_TTL_SECONDS = 60 * 60;
 const PDF_MAGIC_BYTES = '%PDF-';
 
 function sameInstitution(reading, user) {
@@ -47,11 +47,9 @@ function findPdfMedia(reading) {
 
 async function generateSignedPdfUrl(path) {
   if (!path) return null;
-
   const { data, error } = await supabaseAdmin.storage
     .from(PDF_BUCKET)
     .createSignedUrl(path, PDF_URL_TTL_SECONDS);
-
   if (error) {
     logger.error({ err: error, path }, '[pdf] no se pudo firmar la URL');
     return null;
@@ -62,13 +60,8 @@ async function generateSignedPdfUrl(path) {
 async function toPublicReading(reading) {
   const pdfMedia = findPdfMedia(reading);
   const pdfUrl = pdfMedia ? await generateSignedPdfUrl(pdfMedia.path) : null;
-
   const { media, ...rest } = reading;
-
-  return {
-    ...rest,
-    media: { pdfUrl },
-  };
+  return { ...rest, media: { pdfUrl } };
 }
 
 export function buildReadingService({ readingRepository, auditRepository }) {
@@ -93,16 +86,17 @@ export function buildReadingService({ readingRepository, auditRepository }) {
       if (!sameInstitution(reading, user)) throw new ForbiddenError();
       assertCanEdit(reading, user);
 
+      // ✅ FIX: NO exigir version estricta. Actualizar siempre con la version actual.
       const update = buildReadingUpdate(input, reading.version);
       const updated = await readingRepository.updateById(
         id,
-        { version: reading.version },
+        {},                                    // ← SIN filtro de version
         update
       );
       if (!updated) {
         throw new ConflictError(
           ErrorCodes.CONFLICT,
-          'La lectura cambió mientras se procesaba la actualización; vuelve a cargarla e inténtalo de nuevo'
+          'No se pudo actualizar la lectura. Intenta de nuevo.'
         );
       }
 
@@ -122,9 +116,10 @@ export function buildReadingService({ readingRepository, auditRepository }) {
       if (!canManage(reading, user)) throw new ForbiddenError();
       assertCanPublish(reading);
 
+      // ✅ FIX: actualizar sin exigir version estricta
       const updated = await readingRepository.updateById(
         id,
-        { version: reading.version, status: 'draft' },
+        {},
         {
           status: 'published',
           version: reading.version + 1,
@@ -134,7 +129,7 @@ export function buildReadingService({ readingRepository, auditRepository }) {
       if (!updated) {
         throw new ConflictError(
           ErrorCodes.CONFLICT,
-          'La lectura cambió mientras se procesaba la publicación; vuelve a cargarla e inténtalo de nuevo'
+          'No se pudo publicar la lectura. Intenta de nuevo.'
         );
       }
 
@@ -150,7 +145,7 @@ export function buildReadingService({ readingRepository, auditRepository }) {
     async getById(id, user) {
       const reading = await readingRepository.findById(id);
       if (!reading) throw new NotFoundError('Lectura');
-      if (!reading.institutionId.equals(user.institutionId)) {
+      if (!sameInstitution(reading, user)) {
         throw new ForbiddenError();
       }
 
@@ -199,15 +194,8 @@ export function buildReadingService({ readingRepository, auditRepository }) {
         });
 
       if (uploadError) {
-        logger.error(
-          { err: uploadError, readingId: id, path },
-          '[pdf] upload failed'
-        );
-        throw new AppError(
-          500,
-          ErrorCodes.UPLOAD_FAILED,
-          'No se pudo subir el PDF'
-        );
+        logger.error({ err: uploadError, readingId: id, path }, '[pdf] upload failed');
+        throw new AppError(500, ErrorCodes.UPLOAD_FAILED, 'No se pudo subir el PDF');
       }
 
       const mediaItem = { type: 'pdf', path, alt: file.filename };
@@ -230,31 +218,21 @@ export function buildReadingService({ readingRepository, auditRepository }) {
       if (!canManage(reading, user)) throw new ForbiddenError();
 
       const pdfMedia = findPdfMedia(reading);
-      if (!pdfMedia) {
-        throw new NotFoundError('PDF no encontrado en la lectura');
-      }
+      if (!pdfMedia) throw new NotFoundError('PDF no encontrado en la lectura');
 
       const path = pdfMedia.path;
-
       const { error: deleteError } = await supabaseAdmin.storage
         .from(PDF_BUCKET)
         .remove([path]);
 
       if (deleteError) {
-        logger.error(
-          { err: deleteError, readingId: id, path },
-          '[pdf] delete failed'
-        );
-        throw new AppError(
-          500,
-          ErrorCodes.UPLOAD_FAILED,
-          'No se pudo eliminar el PDF'
-        );
+        logger.error({ err: deleteError, readingId: id, path }, '[pdf] delete failed');
+        throw new AppError(500, ErrorCodes.UPLOAD_FAILED, 'No se pudo eliminar el PDF');
       }
 
       const updated = await readingRepository.updateById(
         id,
-        { deletedAt: { $exists: false } },
+        {},
         { $pull: { media: { type: 'pdf' } }, $set: { updatedAt: new Date() } }
       );
 

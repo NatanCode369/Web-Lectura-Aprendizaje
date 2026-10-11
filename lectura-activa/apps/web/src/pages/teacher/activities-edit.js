@@ -1,29 +1,8 @@
 import '../../utils/analytics.js';
 /**
- * ============================================================
- * CONTRATO DE API — Editor de actividades
- * ============================================================
- * 
- * Endpoints usados (ya conectado, ver services/teacherReadingsService.js):
- *   GET   /api/v1/readings        → lecturas PUBLICADAS (el API no lista borradores)
- *   GET   /api/v1/readings/:id    → detalle con sus actividades (autor ve borradores)
- *   PATCH /api/v1/readings/:id    → guarda { activities: [...] }
- *   POST  /api/v1/readings/:id/publish → draft → published (≥ 1 actividad)
- *   POST  /api/v1/assignments     → una por cada grupo elegido en "Nueva lectura"
- *
- * Las actividades viajan EMBEBIDAS en la lectura (no existe /readings/:id/activities):
- *   trivia → multiple_choice · verdaderoFalso → true_false
- *   order → ordering · mindMap → matching · detective → aún no soportado
- *
- * Auth: Bearer token (Supabase) · Rol requerido: teacher (autor de la lectura)
- * ============================================================
+ * Editor de actividades — P6 (José)
  */
 
-// ============================================================
-// SERVICIOS Y PARÁMETROS DE LA URL
-// ============================================================
-// ?id=<lectura>            → lectura a editar (viene de "Nueva lectura")
-// ?grupos=a,b&desde=&entrega= → asignaciones que se crean al publicar
 import {
   teacherReadingService,
   activitiesToApi,
@@ -46,9 +25,6 @@ function escapeHtml(text) {
     .replaceAll("'", '&#39;');
 }
 
-// ============================================================
-// REFERENCIAS
-// ============================================================
 const $ = (id) => document.getElementById(id);
 const $lectura = $('lectura');
 const $listaTrivia = $('lista-trivia');
@@ -62,25 +38,18 @@ let actividades = activitiesFromApi([]);
 let lecturaActual = null;
 let lecturaDetalle = null;
 
-// ============================================================
-// CARGA Y GUARDADO
-// ============================================================
 function mostrarMensaje(texto, esError = false) {
   $mensaje.textContent = texto;
   $mensaje.hidden = false;
   if (!esError) setTimeout(() => ($mensaje.hidden = true), 4000);
 }
 
-/** Guarda las actividades en la lectura (PATCH). Devuelve los avisos. */
 async function guardarActividades() {
   const { activities, warnings } = activitiesToApi(actividades);
   lecturaDetalle = await teacherReadingService.update(lecturaActual, { activities });
   return warnings;
 }
 
-// ============================================================
-// RENDER
-// ============================================================
 function renderTrivia() {
   $listaTrivia.innerHTML = actividades.trivia.map((q, i) => `
     <div class="q-item">
@@ -88,11 +57,11 @@ function renderTrivia() {
         <span class="q-item__label">Pregunta ${i + 1}</span>
         <button type="button" class="q-item__remove" data-tipo="trivia" data-index="${i}">Quitar</button>
       </div>
-      <input class="q-item__input" type="text" value="${q.pregunta}" placeholder="Pregunta" data-tipo="trivia" data-index="${i}" data-field="pregunta">
+      <input class="q-item__input" type="text" value="${escapeHtml(q.pregunta)}" placeholder="Pregunta" data-tipo="trivia" data-index="${i}" data-field="pregunta">
       ${q.opciones.map((op, j) => `
         <div class="q-item__option">
           <input type="radio" name="trivia-${i}" ${q.correcta === j ? 'checked' : ''} data-tipo="trivia" data-index="${i}" data-opcion="${j}">
-          <input type="text" value="${op}" data-tipo="trivia" data-index="${i}" data-opcion="${j}" data-field="opcion" placeholder="Opción ${j + 1}">
+          <input type="text" value="${escapeHtml(op)}" data-tipo="trivia" data-index="${i}" data-opcion="${j}" data-field="opcion" placeholder="Opción ${j + 1}">
         </div>
       `).join('')}
     </div>
@@ -106,7 +75,7 @@ function renderVF() {
         <span class="q-item__label">Afirmación ${i + 1}</span>
         <button type="button" class="q-item__remove" data-tipo="vf" data-index="${i}">Quitar</button>
       </div>
-      <textarea class="q-item__input" data-tipo="vf" data-index="${i}" data-field="afirmacion" placeholder="Afirmación">${v.afirmacion}</textarea>
+      <textarea class="q-item__input" data-tipo="vf" data-index="${i}" data-field="afirmacion" placeholder="Afirmación">${escapeHtml(v.afirmacion)}</textarea>
       <div class="q-item__vf">
         <label><input type="radio" name="vf-${i}" ${v.respuesta === true ? 'checked' : ''} data-tipo="vf" data-index="${i}" data-respuesta="true"> Verdadero</label>
         <label><input type="radio" name="vf-${i}" ${v.respuesta === false ? 'checked' : ''} data-tipo="vf" data-index="${i}" data-respuesta="false"> Falso</label>
@@ -122,7 +91,7 @@ function renderEventos() {
         <span class="q-item__label">Evento ${i + 1}</span>
         <button type="button" class="q-item__remove" data-tipo="order" data-index="${i}">Quitar</button>
       </div>
-      <input class="q-item__input" type="text" value="${ev}" placeholder="Evento" data-tipo="order" data-index="${i}" data-field="evento">
+      <input class="q-item__input" type="text" value="${escapeHtml(ev)}" placeholder="Evento" data-tipo="order" data-index="${i}" data-field="evento">
     </div>
   `).join('');
 }
@@ -135,8 +104,8 @@ function renderParejas() {
         <button type="button" class="q-item__remove" data-tipo="mindmap" data-index="${i}">Quitar</button>
       </div>
       <div class="q-item__option">
-        <input type="text" value="${p.a}" placeholder="Concepto A" data-tipo="mindmap" data-index="${i}" data-field="a">
-        <input type="text" value="${p.b}" placeholder="Concepto B" data-tipo="mindmap" data-index="${i}" data-field="b">
+        <input type="text" value="${escapeHtml(p.a)}" placeholder="Concepto A" data-tipo="mindmap" data-index="${i}" data-field="a">
+        <input type="text" value="${escapeHtml(p.b)}" placeholder="Concepto B" data-tipo="mindmap" data-index="${i}" data-field="b">
       </div>
     </div>
   `).join('');
@@ -152,17 +121,16 @@ function renderTodo() {
   $('detective-distractors').value = (actividades.detective.distractors || []).join(', ');
 }
 
-// ============================================================
-// CAMBIO DE LECTURA
-// ============================================================
 async function cambiarLectura() {
   lecturaActual = $lectura.value;
   if (!lecturaActual) return;
   try {
-    lecturaDetalle = await teacherReadingService.getById(lecturaActual);
-    actividades = activitiesFromApi(lecturaDetalle.activities);
+    // ✅ FIX BUG 13: usar la respuesta directa y mapear actividades
+    const response = await teacherReadingService.getById(lecturaActual);
+    lecturaDetalle = response?.data ?? response;
+    actividades = activitiesFromApi(lecturaDetalle?.activities || []);
     renderTodo();
-    $publicar.hidden = lecturaDetalle.status !== 'draft';
+    $publicar.hidden = lecturaDetalle?.status !== 'draft';
   } catch (error) {
     mostrarMensaje(`⚠️ ${error.message}`, true);
   }
@@ -170,9 +138,6 @@ async function cambiarLectura() {
 
 $lectura.addEventListener('change', cambiarLectura);
 
-// ============================================================
-// EDICIÓN
-// ============================================================
 document.addEventListener('input', (e) => {
   const el = e.target;
   const tipo = el.dataset.tipo;
@@ -204,9 +169,6 @@ $('detective-target').addEventListener('input', (e) => actividades.detective.tar
 $('detective-synonyms').addEventListener('input', (e) => actividades.detective.synonyms = e.target.value.split(',').map(s => s.trim()).filter(Boolean));
 $('detective-distractors').addEventListener('input', (e) => actividades.detective.distractors = e.target.value.split(',').map(s => s.trim()).filter(Boolean));
 
-// ============================================================
-// AGREGAR / QUITAR
-// ============================================================
 $('add-trivia').addEventListener('click', () => {
   actividades.trivia.push({ pregunta: '', opciones: ['', '', '', ''], correcta: 0 });
   renderTrivia();
@@ -234,25 +196,17 @@ document.addEventListener('click', (e) => {
   if (tipo === 'mindmap') { actividades.mindMap.splice(index, 1); renderParejas(); }
 });
 
-// ============================================================
-// GUARDAR
-// ============================================================
 $('activities-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!lecturaActual) return mostrarMensaje('⚠️ Elige una lectura.', true);
   try {
     const avisos = await guardarActividades();
-    mostrarMensaje(
-      '✅ Actividades guardadas.' + (avisos.length ? ` ⚠️ ${avisos.join(' ')}` : '')
-    );
+    mostrarMensaje('✅ Actividades guardadas.' + (avisos.length ? ` ⚠️ ${avisos.join(' ')}` : ''));
   } catch (error) {
     mostrarMensaje(`⚠️ ${error.message}`, true);
   }
 });
 
-// ============================================================
-// PUBLICAR (draft → published) Y ASIGNAR A GRUPOS
-// ============================================================
 $publicar.addEventListener('click', async () => {
   if (!lecturaActual) return;
   $publicar.disabled = true;
@@ -290,39 +244,21 @@ $publicar.addEventListener('click', async () => {
   }
 });
 
-// ============================================================
-// INICIALIZAR
-// ============================================================
-// El API solo lista lecturas PUBLICADAS; un borrador recién creado se
-// agrega aparte usando el ?id= de la URL.
 async function init() {
   let lecturas = [];
   try {
     const respuesta = await teacherReadingService.listPublished({ limit: 50 });
-    lecturas = (respuesta.data || []).map((l) => ({ id: l.id, titulo: l.title }));
+    lecturas = (respuesta.data || []).map((l) => ({ id: l.id, _id: l.id, title: l.title, status: 'published' }));
   } catch (error) {
     mostrarMensaje(`⚠️ No se pudieron cargar las lecturas: ${error.message}`, true);
   }
 
-  if (lecturaIdUrl && !lecturas.some((l) => l.id === lecturaIdUrl)) {
+  // ✅ FIX BUG 12: si la lectura viene por URL y no está en el listado,
+  // la agregamos manualmente (sirve para borradores recién creados).
+  if (lecturaIdUrl && !lecturas.some((l) => l.id === lecturaIdUrl || l._id === lecturaIdUrl)) {
     try {
-      const borrador = await teacherReadingService.getById(lecturaIdUrl);
-      lecturas.unshift({ id: lecturaIdUrl, titulo: `${borrador.title} (borrador)` });
-    } catch (error) {
-      mostrarMensaje(`⚠️ ${error.message}`, true);
-    }
-  }
-
-  if (!lecturas.length) {
-    $lectura.innerHTML = '<option value="">Sin lecturas disponibles</option>';
-    return;
-  }
-
-  $lectura.innerHTML = lecturas
-    .map((l) => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.titulo)}</option>`)
-    .join('');
-  if (lecturaIdUrl) $lectura.value = lecturaIdUrl;
-  await cambiarLectura();
-}
-
-init();
+      const response = await teacherReadingService.getById(lecturaIdUrl);
+      const borrador = response?.data ?? response;
+      if (borrador) {
+        lecturas.unshift({
+         
