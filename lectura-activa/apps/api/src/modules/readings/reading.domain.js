@@ -56,7 +56,7 @@ export function assertCanEdit(reading, user) {
 
 export function assertCanPublish(reading) {
   if (reading.status !== 'draft') throw AppError.conflict('Solo se pueden publicar lecturas en estado draft');
-  if (!reading.activities?.length) throw AppError.conflict('La lectura debe tener al menos una actividad antes de publicarse');
+  // ✅ FIX: ya no se exige tener actividades para publicar
 }
 
 export function buildNewReading(input, user) {

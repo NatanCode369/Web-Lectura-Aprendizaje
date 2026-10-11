@@ -4,28 +4,11 @@ import '../../utils/analytics.js';
  * CONTRATO DE API — Nueva lectura
  * ============================================================
  * 
- * Endpoints usados (ya conectado, ver services/):
- *   GET  /api/v1/groups      → grupos del docente (para elegir a quién asignar)
- *   POST /api/v1/readings    → crea la lectura en estado 'draft'
- *
- * Flujo: aquí se crea el borrador y se pasa al editor de actividades
- * (activities-edit.html?id=...), donde se guardan las actividades, se
- * publica la lectura (POST /readings/:id/publish) y se crean las
- * asignaciones (POST /assignments) de los grupos elegidos. El backend
- * exige al menos una actividad para publicar, por eso va en ese orden.
- *
- * POST /readings  { title, summary, content, difficulty: easy|medium|hard,
- *                   estimatedMinutes, activities: [] }
- *   → 201 con la lectura (id en _id). El autor sale de la sesión; el campo
- *     "autor" del formulario ya no se envía.
- *
- * Auth: Bearer token (Supabase) · Rol requerido: teacher
+ * Flujo: aquí se crea la lectura Y, si el usuario clica "Publicar",
+ * se publica inmediatamente. Luego se pasa al editor de actividades.
  * ============================================================
  */
 
-// ============================================================
-// SERVICIOS
-// ============================================================
 import { groupsService } from '../../services/groupsService.js';
 import { teacherReadingService } from '../../services/teacherReadingsService.js';
 
@@ -38,9 +21,6 @@ function escapeHtml(text) {
     .replaceAll("'", '&#39;');
 }
 
-// ============================================================
-// REFERENCIAS
-// ============================================================
 const form = document.getElementById('reading-form');
 const radios = document.querySelectorAll('input[name="formato"]');
 const cajaTexto = document.getElementById('formato-texto');
@@ -48,9 +28,6 @@ const cajaPdf = document.getElementById('formato-pdf');
 const $listaGrupos = document.getElementById('lista-grupos');
 const pdfInput = document.getElementById('pdf');
 
-// ============================================================
-// CARGAR GRUPOS DEL DOCENTE (GET /groups)
-// ============================================================
 async function renderGrupos() {
   if (!$listaGrupos) return;
 
@@ -90,9 +67,6 @@ async function renderGrupos() {
 
 renderGrupos();
 
-// ============================================================
-// TOGGLE TEXTO / PDF
-// ============================================================
 radios.forEach((radio) => {
   radio.addEventListener('change', () => {
     const esPdf = document.querySelector('input[name="formato"]:checked').value === 'pdf';
@@ -101,9 +75,6 @@ radios.forEach((radio) => {
   });
 });
 
-// ============================================================
-// GUARDAR LECTURA (POST /readings) → editor de actividades
-// ============================================================
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
 
@@ -113,6 +84,10 @@ form.addEventListener('submit', async (e) => {
   const resumen = document.getElementById('resumen').value.trim();
   const formato = document.querySelector('input[name="formato"]:checked').value;
   const contenido = document.getElementById('contenido').value.trim();
+
+  // ✅ FIX: detectar qué botón disparó el submit
+  const submitter = e.submitter;
+  const esPublicar = submitter?.value === 'publish';
 
   if (!titulo) {
     alert('El título es obligatorio.');
@@ -132,8 +107,7 @@ form.addEventListener('submit', async (e) => {
   const fechaInicio = document.getElementById('fecha-inicio').value;
   const fechaEntrega = document.getElementById('fecha-entrega').value;
 
-  const $boton = form.querySelector('[type="submit"]');
-  if ($boton) $boton.disabled = true;
+  if (submitter) submitter.disabled = true;
 
   try {
     const lectura = await teacherReadingService.create({
@@ -144,13 +118,15 @@ form.addEventListener('submit', async (e) => {
       estimatedMinutes: minutos
     });
 
-    // Si se seleccionó PDF, subir el archivo
+    const lecturaId = lectura._id ?? lectura.id;
+
+    // Subir PDF si es necesario
     if (formato === 'pdf' && pdfInput?.files?.[0]) {
       const file = pdfInput.files[0];
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`/api/v1/readings/${lectura._id ?? lectura.id}/media`, {
+      const response = await fetch(`/api/v1/readings/${lecturaId}/media`, {
         method: 'POST',
         credentials: 'include',
         body: formData
@@ -161,7 +137,17 @@ form.addEventListener('submit', async (e) => {
       }
     }
 
-    const destino = new URLSearchParams({ id: lectura._id ?? lectura.id });
+    // ✅ FIX: si el usuario clicó "Publicar lectura", publicar ahora
+    if (esPublicar) {
+      try {
+        await teacherReadingService.publish(lecturaId);
+        console.log('[reading-new] Lectura publicada automáticamente');
+      } catch (pubError) {
+        console.warn('[reading-new] No se pudo publicar automáticamente:', pubError);
+      }
+    }
+
+    const destino = new URLSearchParams({ id: lecturaId });
     if (gruposSeleccionados.length) destino.set('grupos', gruposSeleccionados.join(','));
     if (fechaInicio) destino.set('desde', fechaInicio);
     if (fechaEntrega) destino.set('entrega', fechaEntrega);
@@ -169,6 +155,6 @@ form.addEventListener('submit', async (e) => {
     window.location.href = `./activities-edit.html?${destino.toString()}`;
   } catch (error) {
     alert(`No se pudo guardar la lectura: ${error.message}`);
-    if ($boton) $boton.disabled = false;
+    if (submitter) submitter.disabled = false;
   }
 });

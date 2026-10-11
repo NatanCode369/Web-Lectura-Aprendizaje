@@ -125,12 +125,15 @@ async function cambiarLectura() {
   lecturaActual = $lectura.value;
   if (!lecturaActual) return;
   try {
-    // ✅ FIX BUG 13: usar la respuesta directa y mapear actividades
     const response = await teacherReadingService.getById(lecturaActual);
     lecturaDetalle = response?.data ?? response;
     actividades = activitiesFromApi(lecturaDetalle?.activities || []);
     renderTodo();
-    $publicar.hidden = lecturaDetalle?.status !== 'draft';
+    // ✅ FIX: mostrar SIEMPRE el botón "Guardar y publicar"
+    $publicar.hidden = false;
+    $publicar.textContent = lecturaDetalle?.status === 'published'
+      ? 'Guardar cambios'
+      : 'Guardar y publicar';
   } catch (error) {
     mostrarMensaje(`⚠️ ${error.message}`, true);
   }
@@ -228,7 +231,10 @@ $publicar.addEventListener('click', async () => {
       }
     }
 
-    $publicar.hidden = true;
+    // ✅ FIX: mostrar de nuevo el botón con el nuevo texto
+    $publicar.hidden = false;
+    $publicar.textContent = 'Guardar cambios';
+
     let texto = '✅ Lectura publicada.';
     if (gruposAsignar.length) {
       texto += fallos.length
@@ -253,12 +259,33 @@ async function init() {
     mostrarMensaje(`⚠️ No se pudieron cargar las lecturas: ${error.message}`, true);
   }
 
-  // ✅ FIX BUG 12: si la lectura viene por URL y no está en el listado,
-  // la agregamos manualmente (sirve para borradores recién creados).
   if (lecturaIdUrl && !lecturas.some((l) => l.id === lecturaIdUrl || l._id === lecturaIdUrl)) {
     try {
       const response = await teacherReadingService.getById(lecturaIdUrl);
       const borrador = response?.data ?? response;
       if (borrador) {
         lecturas.unshift({
-         
+          id: lecturaIdUrl,
+          _id: lecturaIdUrl,
+          title: `${borrador.title} (borrador)`,
+          status: borrador.status || 'draft',
+        });
+      }
+    } catch (error) {
+      mostrarMensaje(`⚠️ ${error.message}`, true);
+    }
+  }
+
+  if (!lecturas.length) {
+    $lectura.innerHTML = '<option value="">Sin lecturas disponibles</option>';
+    return;
+  }
+
+  $lectura.innerHTML = lecturas
+    .map((l) => `<option value="${escapeHtml(l.id || l._id)}">${escapeHtml(l.title)}</option>`)
+    .join('');
+  if (lecturaIdUrl) $lectura.value = lecturaIdUrl;
+  await cambiarLectura();
+}
+
+init();
