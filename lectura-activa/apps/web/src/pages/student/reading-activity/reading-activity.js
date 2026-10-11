@@ -24,13 +24,13 @@ const ACTIVITY_SCREENS = {
 
 /* Iconos y títulos por tipo */
 const ACTIVITY_INFO = {
-  multiple_choice: { icon: "", title: "Preguntas de comprensión" },
-  true_false: { icon: "", title: "Verdadero o falso" },
-  ordering: { icon: "", title: "Ordena la historia" },
-  matching: { icon: "", title: "Relacionar conceptos" },
-  short_answer: { icon: "", title: "Respuesta corta" },
-  short_text: { icon: "", title: "Respuesta corta" },
-  detective: { icon: "", title: "Detective de palabras" },
+  multiple_choice: { icon: "📝", title: "Preguntas de comprensión" },
+  true_false: { icon: "✅", title: "Verdadero o falso" },
+  ordering: { icon: "🔢", title: "Ordena la historia" },
+  matching: { icon: "🔗", title: "Relacionar conceptos" },
+  short_answer: { icon: "✏️", title: "Respuesta corta" },
+  short_text: { icon: "✏️", title: "Respuesta corta" },
+  detective: { icon: "🔍", title: "Detective de palabras" },
 };
 
 /* ============================================================
@@ -88,10 +88,31 @@ function showError(message) {
 }
 
 /* ============================================================
-   PDF
+   PDF — ✅ FIX: ocultar mientras hay actividades pendientes
    ============================================================ */
+function hayActividadesPendientes() {
+  if (state.activities.length === 0) return false;
+  return state.activities.some(
+    (a) => !state.completedActivityIds.has(String(a.activityId))
+  );
+}
+
 function renderPdf(reading) {
-  if (!els.pdf) return;
+  if (!els.pdfWrapper) return;
+
+  // ✅ FIX: si hay actividades pendientes, ocultar el PDF
+  if (hayActividadesPendientes()) {
+    els.pdfWrapper.innerHTML = `
+      <div class="activity__pdf-empty">
+        <span class="activity__pdf-empty-icon" aria-hidden="true">📄</span>
+        <p class="activity__pdf-empty-text">
+          El contenido de la lectura está oculto mientras realizas las actividades.
+          Vuelve a verlo cuando termines todas las actividades.
+        </p>
+      </div>
+    `;
+    return;
+  }
 
   const pdfUrl =
     reading?.media?.pdfUrl ||
@@ -101,24 +122,31 @@ function renderPdf(reading) {
     null;
 
   if (!pdfUrl) {
-    if (els.pdfWrapper) {
-      els.pdfWrapper.innerHTML = `
-        <div class="activity__pdf-empty">
-          <span class="activity__pdf-empty-icon" aria-hidden="true">📄</span>
-          <p class="activity__pdf-empty-text">
-            El PDF de esta lectura aún no está disponible.
-          </p>
-        </div>
-      `;
-    }
+    els.pdfWrapper.innerHTML = `
+      <div class="activity__pdf-empty">
+        <span class="activity__pdf-empty-icon" aria-hidden="true">📄</span>
+        <p class="activity__pdf-empty-text">
+          El PDF de esta lectura aún no está disponible.
+        </p>
+      </div>
+    `;
     console.warn(
       "[reading-activity] El backend no devolvió URL del PDF. Revisar con Adrián."
     );
     return;
   }
 
-  els.pdf.src = pdfUrl;
-  els.pdf.title = reading.title || "Lectura";
+  // Renderizar el iframe del PDF
+  els.pdfWrapper.innerHTML = `
+    <iframe
+      id="reading-pdf"
+      src="${escapeHtml(pdfUrl)}"
+      title="Lectura"
+      class="activity__pdf"
+      data-field="pdf"
+    ></iframe>
+  `;
+  els.pdf = qs('[data-field="pdf"]');
 }
 
 /* ============================================================
@@ -299,7 +327,6 @@ async function loadActivity() {
   showState("loading");
 
   try {
-    /* 1. Cargar la tarea */
     const saResponse = await assignmentService.getMine(
       state.studentAssignmentId
     );
@@ -319,7 +346,6 @@ async function loadActivity() {
 
     state.studentAssignment = studentAssignment;
 
-    /* 2. Cargar la lectura (para el PDF) */
     const readingId = studentAssignment.assignment?.readingId;
     if (readingId) {
       try {
@@ -334,7 +360,6 @@ async function loadActivity() {
       }
     }
 
-    /* 3. Llamar a start para obtener activitySnapshot */
     const startResponse = await assignmentService.start(
       studentAssignment.assignmentId,
       generateRequestId()
@@ -342,7 +367,6 @@ async function loadActivity() {
 
     state.activities = startResponse?.activitySnapshot || [];
 
-    /* 4. Marcar actividades ya completadas */
     const progress = studentAssignment.activityProgress || [];
     progress.forEach((p) => {
       if (p.status === "completed" && p.activityId) {
@@ -350,7 +374,6 @@ async function loadActivity() {
       }
     });
 
-    /* 5. Rellenar el título */
     const title =
       studentAssignment.readingTitle ||
       state.reading?.title ||
@@ -359,10 +382,9 @@ async function loadActivity() {
     if (els.title) els.title.textContent = title;
     document.title = `${title} — Lectura Activa`;
 
-    /* 6. Renderizar el PDF */
+    // ✅ FIX: renderizar el PDF (o el mensaje de oculto si hay pendientes)
     renderPdf(state.reading);
 
-    /* 7. Contadores */
     if (els.activitiesCount) {
       els.activitiesCount.textContent = String(state.activities.length);
     }
@@ -373,7 +395,6 @@ async function loadActivity() {
       els.completedCount.textContent = String(state.completedActivityIds.size);
     }
 
-    /* 8. Temporizador */
     const timeLimitMinutes =
       studentAssignment.assignment?.timeLimitMinutes ?? 20;
     state.totalSeconds = timeLimitMinutes * 60;
@@ -381,10 +402,8 @@ async function loadActivity() {
     if (els.timer) els.timer.textContent = formatTimer(state.remainingSeconds);
     startTimer();
 
-    /* 9. Mostrar contenido */
     showState("content");
 
-    /* 10. Si todas están completas, abrir el panel */
     if (
       state.activities.length > 0 &&
       state.completedActivityIds.size === state.activities.length
@@ -421,7 +440,7 @@ function init() {
   if (els.toggle) els.toggle.addEventListener("click", togglePanel);
 
   requireLogin().then((user) => {
-    if (!user) return; // redirigido al login
+    if (!user) return;
     loadActivity();
   });
 }
