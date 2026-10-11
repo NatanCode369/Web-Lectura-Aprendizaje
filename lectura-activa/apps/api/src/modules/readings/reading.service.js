@@ -39,9 +39,6 @@ function canManage(reading, user) {
   return user.role === 'admin' || (user.role === 'teacher' && reading.authorId.equals(user._id));
 }
 
-// validatePdfFile is imported from pdf.path.js
-// assertPdfMagicBytes is imported from pdf.path.js
-
 function findPdfMedia(reading) {
   const media = Array.isArray(reading.media) ? reading.media : [];
   const pdfs = media.filter((m) => m.type === 'pdf' && m.path);
@@ -83,9 +80,9 @@ export function buildReadingService({ readingRepository, auditRepository }) {
       const document = buildNewReading(input, user);
       const created = await readingRepository.create(document);
       await auditRepository.record({
-        actorId: user._id.toString(),
+        actorId: user._id,
         action: 'reading.created',
-        resourceId: created._id.toString(),
+        resourceId: created._id,
       });
       return created;
     },
@@ -110,9 +107,9 @@ export function buildReadingService({ readingRepository, auditRepository }) {
       }
 
       await auditRepository.record({
-        actorId: user._id.toString(),
+        actorId: user._id,
         action: 'reading.updated',
-        resourceId: id,
+        resourceId: updated._id,
         metadata: { version: updated.version },
       });
       return updated;
@@ -142,9 +139,9 @@ export function buildReadingService({ readingRepository, auditRepository }) {
       }
 
       await auditRepository.record({
-        actorId: user._id.toString(),
+        actorId: user._id,
         action: 'reading.published',
-        resourceId: id,
+        resourceId: updated._id,
         metadata: { version: updated.version },
       });
       return updated;
@@ -189,16 +186,9 @@ export function buildReadingService({ readingRepository, auditRepository }) {
       });
       assertPdfMagicBytes(file.buffer);
 
-      // Calcular siguiente ID correlativo global (consulta MongoDB + Supabase Storage)
       const nextId = await calculateNextId(reading.difficulty, supabaseAdmin);
-      
-      // Generar slug a partir del título
       const slug = generateSlug(reading.title);
-      
-      // Determinar carpeta según dificultad
       const folder = getFolderByDifficulty(reading.difficulty);
-      
-      // Construir ruta: <carpeta>/<id>-<slug>.pdf
       const path = buildPdfPath(folder, nextId, slug);
 
       const { error: uploadError } = await supabaseAdmin.storage
@@ -224,9 +214,9 @@ export function buildReadingService({ readingRepository, auditRepository }) {
       const updated = await readingRepository.addMedia(id, mediaItem);
 
       await auditRepository.record({
-        actorId: user._id.toString(),
+        actorId: user._id,
         action: 'reading.pdf.uploaded',
-        resourceId: id,
+        resourceId: updated._id,
         metadata: { path },
       });
 
@@ -246,7 +236,6 @@ export function buildReadingService({ readingRepository, auditRepository }) {
 
       const path = pdfMedia.path;
 
-      // Eliminar de Supabase Storage
       const { error: deleteError } = await supabaseAdmin.storage
         .from(PDF_BUCKET)
         .remove([path]);
@@ -263,7 +252,6 @@ export function buildReadingService({ readingRepository, auditRepository }) {
         );
       }
 
-      // Eliminar de MongoDB (quitar del array media)
       const updated = await readingRepository.updateById(
         id,
         { deletedAt: { $exists: false } },
@@ -271,9 +259,9 @@ export function buildReadingService({ readingRepository, auditRepository }) {
       );
 
       await auditRepository.record({
-        actorId: user._id.toString(),
+        actorId: user._id,
         action: 'reading.pdf.deleted',
-        resourceId: id,
+        resourceId: updated._id,
         metadata: { path },
       });
 
