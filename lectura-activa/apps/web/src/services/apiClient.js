@@ -5,6 +5,10 @@
  * - Usa `credentials: 'include'` para enviar/recibir cookies de sesión.
  * - Lanza un error si la respuesta HTTP no es 2xx.
  * - Devuelve JSON o null (para respuestas 204).
+ *
+ * ✅ FIX: solo enviar Content-Type cuando realmente hay body.
+ *    Si DELETE lleva Content-Type: application/json sin body,
+ *    Fastify lanza 500 "Body cannot be empty".
  */
 
 const API_URL = import.meta.env.VITE_API_URL || "/api/v1";
@@ -68,18 +72,24 @@ function redirectToLogin() {
 export async function apiFetch(path, options = {}) {
   const { method = "GET", body, headers, ...rest } = options;
 
+  // ✅ FIX: solo enviar Content-Type cuando realmente hay body.
+  const methodsWithBody = ["POST", "PATCH", "PUT"];
+  const hasBody = methodsWithBody.includes(method) || body !== undefined;
+
+  const finalHeaders = { ...(headers ?? {}) };
+  if (hasBody) {
+    finalHeaders["Content-Type"] = "application/json";
+  }
+
   const finalOptions = {
     method,
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(headers ?? {}),
-    },
+    headers: finalHeaders,
     ...rest,
   };
 
   // POST/PATCH/PUT siempre llevan body (aunque sea {})
-  if (method !== "GET" && method !== "DELETE" && method !== "HEAD") {
+  if (methodsWithBody.includes(method)) {
     finalOptions.body = body !== undefined ? JSON.stringify(body) : "{}";
   }
 

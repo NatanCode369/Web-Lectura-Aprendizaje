@@ -19,33 +19,43 @@ export async function authRoutes(fastify, opts) {
   const service = authService(db);
 
   function setSessionCookies(reply, session) {
-  const accessTokenMaxAge =
-    Number.isInteger(session.expires_in) && session.expires_in > 0
-      ? session.expires_in
-      : 60 * 60;
+    const accessTokenMaxAge =
+      Number.isInteger(session.expires_in) && session.expires_in > 0
+        ? session.expires_in
+        : 60 * 60;
 
-  const isProd = env.NODE_ENV === 'production';
-  
-  reply.setCookie('sb-access-token', session.access_token, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'none' : 'lax',  // ← CAMBIO CLAVE
-    path: '/',
-    maxAge: accessTokenMaxAge,
-  });
+    const isProd = env.NODE_ENV === 'production';
 
-  reply.setCookie('sb-refresh-token', session.refresh_token, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'none' : 'lax',  // ← CAMBIO CLAVE
-    path: '/',
-    maxAge: 60 * 60 * 24 * 7,
-  });
-}
+    // ✅ FIX: en producción las cookies deben pertenecer a .kebryx.site,
+    // no al dominio del backend (onrender.com). Sin esto, el navegador
+    // guarda las cookies para onrender.com y no las envía a kebryx.site.
+    const cookieDomain = isProd ? '.kebryx.site' : undefined;
+
+    reply.setCookie('sb-access-token', session.access_token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      path: '/',
+      maxAge: accessTokenMaxAge,
+      domain: cookieDomain,
+    });
+
+    reply.setCookie('sb-refresh-token', session.refresh_token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
+      domain: cookieDomain,
+    });
+  }
 
   function clearSessionCookies(reply) {
-    reply.clearCookie('sb-access-token', { path: '/' });
-    reply.clearCookie('sb-refresh-token', { path: '/' });
+    const isProd = env.NODE_ENV === 'production';
+    const cookieDomain = isProd ? '.kebryx.site' : undefined;
+
+    reply.clearCookie('sb-access-token', { path: '/', domain: cookieDomain });
+    reply.clearCookie('sb-refresh-token', { path: '/', domain: cookieDomain });
   }
 
   // ============================================================
