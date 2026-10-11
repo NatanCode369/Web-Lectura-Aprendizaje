@@ -3,7 +3,6 @@ import { qs, getParam, generateRequestId } from "../../../utils/dom.js";
 
 /**
  * Carga la tarea + la actividad específica desde el backend.
- * @returns {Promise<{ studentAssignment, activity }>}
  */
 export async function loadActivityContext() {
   const studentAssignmentId = getParam("id");
@@ -20,7 +19,6 @@ export async function loadActivityContext() {
     throw new Error("No encontramos esta tarea.");
   }
 
-  /* Obtener activitySnapshot vía start (idempotente) */
   const startResponse = await assignmentService.start(
     studentAssignment.assignmentId,
     generateRequestId(),
@@ -56,12 +54,13 @@ export async function submitAttempt(
 }
 
 /**
- * Redirige de vuelta a la pantalla de lectura.
+ * Redirige a la pantalla de lectura indicando "from=activity" para
+ * que el flujo guiado continúe con la siguiente actividad pendiente.
  */
 export function goBackToReading(studentAssignmentId) {
   window.location.href = `../reading-activity/reading-activity.html?id=${encodeURIComponent(
     studentAssignmentId,
-  )}`;
+  )}&from=activity`;
 }
 
 /**
@@ -81,7 +80,7 @@ export function showActivityError(container, message) {
 }
 
 /**
- * Renderiza una pantalla de éxito.
+ * Renderiza una pantalla de éxito con botón "Siguiente actividad".
  */
 export function showActivitySuccess(
   container,
@@ -94,9 +93,14 @@ export function showActivitySuccess(
       <p class="activity__score">${score} / ${total}</p>
       <p class="activity__msg">${message}</p>
       <div class="activity__actions">
-        <a href="../reading-activity/reading-activity.html?id=${encodeURIComponent(
-          studentAssignmentId,
-        )}" class="btn btn--primary">Volver a la lectura</a>
+        <a
+          href="../reading-activity/reading-activity.html?id=${encodeURIComponent(
+            studentAssignmentId,
+          )}&from=activity"
+          class="btn btn--primary"
+        >
+          Siguiente actividad →
+        </a>
       </div>
     </div>
   `;

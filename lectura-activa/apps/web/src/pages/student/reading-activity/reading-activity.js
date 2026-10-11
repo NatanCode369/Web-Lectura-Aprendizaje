@@ -11,9 +11,6 @@ import {
   escapeHtml,
 } from "../../../utils/dom.js";
 
-/* ============================================================
-   Configuración: tipo backend → pantalla HTML
-   ============================================================ */
 const ACTIVITY_SCREENS = {
   multiple_choice: "multiple-choice.html",
   true_false: "true-false.html",
@@ -22,7 +19,6 @@ const ACTIVITY_SCREENS = {
   detective: "detective-words.html",
 };
 
-/* Iconos y títulos por tipo */
 const ACTIVITY_INFO = {
   multiple_choice: { icon: "📝", title: "Preguntas de comprensión" },
   true_false: { icon: "✅", title: "Verdadero o falso" },
@@ -33,9 +29,6 @@ const ACTIVITY_INFO = {
   detective: { icon: "🔍", title: "Detective de palabras" },
 };
 
-/* ============================================================
-   Estado
-   ============================================================ */
 const state = {
   studentAssignmentId: null,
   studentAssignment: null,
@@ -48,9 +41,6 @@ const state = {
   extraNoticeShown: false,
 };
 
-/* ============================================================
-   Referencias del DOM
-   ============================================================ */
 const els = {
   loading: qs("#loading-state"),
   error: qs("#error-state"),
@@ -73,9 +63,6 @@ const els = {
   goToFeedback: qs("#go-to-feedback"),
 };
 
-/* ============================================================
-   Estados de UI
-   ============================================================ */
 function showState(name) {
   if (els.loading) els.loading.hidden = name !== "loading";
   if (els.error) els.error.hidden = name !== "error";
@@ -88,7 +75,7 @@ function showError(message) {
 }
 
 /* ============================================================
-   PDF — ✅ FIX: ocultar mientras hay actividades pendientes
+   PDF
    ============================================================ */
 function hayActividadesPendientes() {
   if (state.activities.length === 0) return false;
@@ -100,7 +87,6 @@ function hayActividadesPendientes() {
 function renderPdf(reading) {
   if (!els.pdfWrapper) return;
 
-  // ✅ FIX: si hay actividades pendientes, ocultar el PDF
   if (hayActividadesPendientes()) {
     els.pdfWrapper.innerHTML = `
       <div class="activity__pdf-empty">
@@ -130,13 +116,9 @@ function renderPdf(reading) {
         </p>
       </div>
     `;
-    console.warn(
-      "[reading-activity] El backend no devolvió URL del PDF. Revisar con Adrián."
-    );
     return;
   }
 
-  // Renderizar el iframe del PDF
   els.pdfWrapper.innerHTML = `
     <iframe
       id="reading-pdf"
@@ -154,10 +136,7 @@ function renderPdf(reading) {
    ============================================================ */
 function updateTimer() {
   state.remainingSeconds -= 1;
-
-  if (els.timer) {
-    els.timer.textContent = formatTimer(state.remainingSeconds);
-  }
+  if (els.timer) els.timer.textContent = formatTimer(state.remainingSeconds);
 
   const pct =
     state.totalSeconds > 0 ? state.remainingSeconds / state.totalSeconds : 0;
@@ -173,7 +152,6 @@ function updateTimer() {
       els.timerContainer.classList.add("activity__timer--over");
     } else if (pct <= 0.1) {
       els.timerContainer.classList.add("activity__timer--danger");
-
       if (!state.extraNoticeShown && els.timeExtraNotice) {
         els.timeExtraNotice.hidden = false;
         state.extraNoticeShown = true;
@@ -197,7 +175,7 @@ function stopTimer() {
 }
 
 /* ============================================================
-   Render de la lista de actividades
+   Lista de actividades (sigue existiendo, pero oculta)
    ============================================================ */
 function renderActivitiesList() {
   if (!els.activitiesList) return;
@@ -214,24 +192,17 @@ function renderActivitiesList() {
 
   els.activitiesList.innerHTML = state.activities
     .map((activity) => {
-      const info = ACTIVITY_INFO[activity.type] || {
-        icon: "📝",
-        title: "Actividad",
-      };
+      const info = ACTIVITY_INFO[activity.type] || { icon: "📝", title: "Actividad" };
       const screen = ACTIVITY_SCREENS[activity.type];
-      const isCompleted = state.completedActivityIds.has(
-        String(activity.activityId)
-      );
+      const isCompleted = state.completedActivityIds.has(String(activity.activityId));
 
       if (!screen) {
         return `
           <li class="activity__list-item activity__list-item--disabled">
-            <span class="activity__list-icon" aria-hidden="true">${info.icon}</span>
+            <span class="activity__list-icon">${info.icon}</span>
             <div class="activity__list-content">
               <h3 class="activity__list-title">${escapeHtml(info.title)}</h3>
-              <p class="activity__list-text">
-                Este tipo de actividad (${escapeHtml(activity.type)}) aún no está disponible.
-              </p>
+              <p class="activity__list-text">Tipo no soportado: ${escapeHtml(activity.type)}</p>
             </div>
           </li>
         `;
@@ -241,7 +212,7 @@ function renderActivitiesList() {
       const statusText = isCompleted ? "Completada" : "Pendiente";
 
       const content = `
-        <span class="activity__list-icon" aria-hidden="true">${info.icon}</span>
+        <span class="activity__list-icon">${info.icon}</span>
         <div class="activity__list-content">
           <h3 class="activity__list-title">${escapeHtml(info.title)}</h3>
           <p class="activity__list-text">${escapeHtml(activity.prompt || "Completa esta actividad.")}</p>
@@ -252,11 +223,7 @@ function renderActivitiesList() {
       `;
 
       if (isCompleted) {
-        return `
-          <li class="activity__list-item activity__list-item--completed">
-            ${content}
-          </li>
-        `;
+        return `<li class="activity__list-item activity__list-item--completed">${content}</li>`;
       }
 
       const href = `../activities/${screen}?id=${encodeURIComponent(
@@ -265,9 +232,7 @@ function renderActivitiesList() {
 
       return `
         <li class="activity__list-item">
-          <a class="activity__list-link" href="${href}" aria-label="Abrir ${escapeHtml(info.title)}">
-            ${content}
-          </a>
+          <a class="activity__list-link" href="${href}">${content}</a>
         </li>
       `;
     })
@@ -276,7 +241,6 @@ function renderActivitiesList() {
   updateCompletionState();
 }
 
-/* Actualizar contadores y botón de feedback */
 function updateCompletionState() {
   const total = state.activities.length;
   const completed = state.completedActivityIds.size;
@@ -286,9 +250,7 @@ function updateCompletionState() {
 
   const allDone = total > 0 && completed === total;
 
-  if (els.feedbackWrapper) {
-    els.feedbackWrapper.hidden = !allDone;
-  }
+  if (els.feedbackWrapper) els.feedbackWrapper.hidden = !allDone;
 
   if (els.goToFeedback) {
     els.goToFeedback.href = `../feedback/feedback.html?id=${encodeURIComponent(
@@ -298,21 +260,35 @@ function updateCompletionState() {
 }
 
 /* ============================================================
-   Toggle del panel
+   ✅ NUEVO: flujo guiado
    ============================================================ */
-function togglePanel() {
-  const isExpanded = els.toggle?.getAttribute("aria-expanded") === "true";
+function irAProximaActividad() {
+  const pendiente = state.activities.find(
+    (a) => !state.completedActivityIds.has(String(a.activityId))
+  );
 
-  if (isExpanded) {
-    els.toggle.setAttribute("aria-expanded", "false");
-    if (els.panel) els.panel.hidden = true;
-    if (els.toggleText) els.toggleText.textContent = "Ver actividades";
-  } else {
-    els.toggle.setAttribute("aria-expanded", "true");
-    if (els.panel) els.panel.hidden = false;
-    if (els.toggleText) els.toggleText.textContent = "Ocultar actividades";
-    renderActivitiesList();
+  if (!pendiente) {
+    window.location.href = "../my-progress/my-progress.html";
+    return;
   }
+
+  const screen = ACTIVITY_SCREENS[pendiente.type];
+  if (!screen) {
+    alert(`Tipo de actividad no soportado: ${pendiente.type}`);
+    return;
+  }
+
+  window.location.href = `../activities/${screen}?id=${encodeURIComponent(
+    state.studentAssignmentId
+  )}&activityId=${encodeURIComponent(pendiente.activityId)}`;
+}
+
+function finalizarLectura() {
+  irAProximaActividad();
+}
+
+function irAMiProgreso() {
+  window.location.href = "../my-progress/my-progress.html";
 }
 
 /* ============================================================
@@ -382,7 +358,6 @@ async function loadActivity() {
     if (els.title) els.title.textContent = title;
     document.title = `${title} — Lectura Activa`;
 
-    // ✅ FIX: renderizar el PDF (o el mensaje de oculto si hay pendientes)
     renderPdf(state.reading);
 
     if (els.activitiesCount) {
@@ -404,11 +379,17 @@ async function loadActivity() {
 
     showState("content");
 
-    if (
-      state.activities.length > 0 &&
-      state.completedActivityIds.size === state.activities.length
-    ) {
-      togglePanel();
+    // ✅ Si ya terminó todas las actividades, cambiar el botón a "Ir a Mi progreso"
+    if (state.activities.length > 0 && !hayActividadesPendientes()) {
+      if (els.toggleText) els.toggleText.textContent = "Ir a Mi progreso";
+      if (els.toggle) {
+        els.toggle.addEventListener("click", irAMiProgreso);
+      }
+    } else {
+      if (els.toggleText) els.toggleText.textContent = "Finalizar lectura";
+      if (els.toggle) {
+        els.toggle.addEventListener("click", finalizarLectura);
+      }
     }
   } catch (error) {
     console.error("[reading-activity] Error al cargar:", error);
@@ -432,16 +413,31 @@ async function loadActivity() {
    ============================================================ */
 function init() {
   state.studentAssignmentId = getParam("id");
+  const vieneDeActividad = getParam("from") === "activity";
+
   console.info(
     "[reading-activity] Pantalla cargada. ID:",
-    state.studentAssignmentId
+    state.studentAssignmentId,
+    "vieneDeActividad:",
+    vieneDeActividad
   );
 
-  if (els.toggle) els.toggle.addEventListener("click", togglePanel);
-
-  requireLogin().then((user) => {
+  requireLogin().then(async (user) => {
     if (!user) return;
-    loadActivity();
+
+    if (vieneDeActividad) {
+      // ✅ Cargar la tarea y redirigir automáticamente a la siguiente pendiente
+      await loadActivity();
+
+      // Si loadActivity no encontró tarea, salir
+      if (!state.studentAssignment) return;
+
+      irAProximaActividad();
+      return;
+    }
+
+    // Flujo normal
+    await loadActivity();
   });
 }
 

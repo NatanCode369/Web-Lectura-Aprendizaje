@@ -58,7 +58,6 @@
     </header>
 
     <main id="main-content" class="activity">
-      <!-- Barra del lector -->
       <header class="activity__bar">
         <a href="../my-tasks/my-tasks.html" class="activity__back">
           <span aria-hidden="true">←</span>
@@ -79,7 +78,6 @@
         </div>
       </header>
 
-      <!-- Aviso de tiempo extra -->
       <div
         id="time-extra-notice"
         class="activity__notice activity__notice--warning"
@@ -92,12 +90,10 @@
         </span>
       </div>
 
-      <!-- Estado de carga -->
       <div id="loading-state" class="activity__state" hidden>
         <p class="activity__state-text">Cargando lectura...</p>
       </div>
 
-      <!-- Estado de error -->
       <div id="error-state" class="activity__state" hidden>
         <div class="activity__state-icon" aria-hidden="true">⚠️</div>
         <h2 class="activity__state-title">No pudimos cargar la lectura</h2>
@@ -109,22 +105,17 @@
         </a>
       </div>
 
-      <!-- Contenido principal -->
       <div id="activity-content">
-        <!-- PDF embebido (se inyecta dinámicamente desde JS) -->
         <div class="activity__pdf-wrapper"></div>
 
-        <!-- Barra de acciones -->
         <div class="activity__actions">
           <button
             type="button"
             class="activity__action activity__action--activities"
             id="activities-toggle"
-            aria-expanded="false"
-            aria-controls="activities-panel"
           >
             <span aria-hidden="true">📝</span>
-            <span data-field="toggleText">Ver actividades</span>
+            <span data-field="toggleText">Finalizar lectura</span>
             <span
               class="activity__action-count"
               data-field="activitiesCount"
@@ -134,43 +125,6 @@
           </button>
         </div>
       </div>
-
-      <!-- Panel de actividades -->
-      <section
-        id="activities-panel"
-        class="activity__panel"
-        aria-labelledby="activities-panel-title"
-        hidden
-      >
-        <header class="activity__panel-header">
-          <h2 class="activity__panel-title" id="activities-panel-title">
-            Actividades
-          </h2>
-          <p class="activity__panel-progress">
-            <span data-field="completedCount">0</span> de
-            <span data-field="totalCount">0</span> completadas
-          </p>
-        </header>
-
-        <ul
-          class="activity__list"
-          data-field="activitiesList"
-          aria-label="Lista de actividades"
-        >
-          <!-- El JS rellena esto -->
-        </ul>
-
-        <!-- Botón para ir a feedback (oculto hasta que todas estén completas) -->
-        <div
-          class="activity__submit-wrapper"
-          hidden
-          data-field="feedbackWrapper"
-        >
-          <a href="#" class="activity__submit" id="go-to-feedback">
-            Ver resultados
-          </a>
-        </div>
-      </section>
     </main>
 
     <script type="module" src="./reading-activity.js"></script>
