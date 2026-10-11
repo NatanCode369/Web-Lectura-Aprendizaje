@@ -1,204 +1,121 @@
-/* Service de lecturas del docente — Dueño: José */
+import { ObjectId } from 'mongodb';
+import { getDb } from '../../shared/db.js';
 
-import { api } from "./apiClient.js";
+const collection = () => getDb().collection('readings');
 
-const NIVEL_A_API = { basico: "easy", intermedio: "medium", avanzado: "hard" };
-const NIVEL_DE_API = { easy: "basico", medium: "intermedio", hard: "avanzado" };
-
-export const nivelToApi = (nivel) => NIVEL_A_API[nivel] || "easy";
-export const nivelFromApi = (difficulty) => NIVEL_DE_API[difficulty] || "basico";
-
-const PUNTOS_POR_ACTIVIDAD = 10;
-const texto = (v) => String(v ?? "").trim();
-
-export function activitiesToApi(editor = {}) {
-  const activities = [];
-  const warnings = [];
-
-  (editor.trivia || []).forEach((q, i) => {
-    const opciones = (q.opciones || []).map(texto);
-    const validas = opciones.filter(Boolean);
-    const correctaTexto = opciones[q.correcta];
-    if (!texto(q.pregunta) || validas.length < 2 || !correctaTexto) {
-      warnings.push(`Pregunta ${i + 1} incompleta: no se guardó.`);
-      return;
-    }
-    activities.push({
-      id: `trivia-${i + 1}`,
-      type: "multiple_choice",
-      prompt: texto(q.pregunta),
-      points: PUNTOS_POR_ACTIVIDAD,
-      config: { options: validas, correctIndex: validas.indexOf(correctaTexto) },
-    });
-  });
-
-  (editor.verdaderoFalso || []).forEach((v, i) => {
-    if (!texto(v.afirmacion)) {
-      warnings.push(`Afirmación ${i + 1} vacía: no se guardó.`);
-      return;
-    }
-    activities.push({
-      id: `vf-${i + 1}`,
-      type: "true_false",
-      prompt: texto(v.afirmacion),
-      points: PUNTOS_POR_ACTIVIDAD,
-      config: { correctAnswer: v.respuesta === true },
-    });
-  });
-
-  const eventos = (editor.order || []).map(texto).filter(Boolean);
-  if (eventos.length >= 2) {
-    activities.push({
-      id: "order-1",
-      type: "ordering",
-      prompt: "Ordena los hechos de la historia.",
-      points: PUNTOS_POR_ACTIVIDAD,
-      config: { items: eventos, correctOrder: eventos.map((_, i) => i) },
-    });
-  } else if ((editor.order || []).some((e) => texto(e))) {
-    warnings.push("Ordena la historia necesita al menos 2 eventos: no se guardó.");
-  }
-
-  const parejas = (editor.mindMap || [])
-    .map((p) => ({ left: texto(p.a), right: texto(p.b) }))
-    .filter((p) => p.left && p.right);
-  if (parejas.length >= 2) {
-    activities.push({
-      id: "matching-1",
-      type: "matching",
-      prompt: "Relaciona cada concepto con su pareja.",
-      points: PUNTOS_POR_ACTIVIDAD,
-      config: { pairs: parejas },
-    });
-  } else if ((editor.mindMap || []).some((p) => texto(p.a) || texto(p.b))) {
-    warnings.push("Mapa mental necesita al menos 2 parejas completas: no se guardó.");
-  }
-
-  const det = editor.detective || {};
-  if (texto(det.target) && (det.synonyms || []).length >= 1) {
-    activities.push({
-      id: "detective-1",
-      type: "detective",
-      prompt: det.target,
-      points: PUNTOS_POR_ACTIVIDAD,
-      config: {
-        target: det.target,
-        synonyms: (det.synonyms || []).map(texto).filter(Boolean),
-        distractors: (det.distractors || []).map(texto).filter(Boolean)
-      }
-    });
-  } else if (texto(det.target) || (det.synonyms || []).some(texto) || (det.distractors || []).some(texto)) {
-    warnings.push("Detective de palabras incompleto: necesita objetivo y al menos un sinónimo.");
-  }
-
-  return { activities, warnings };
+function toObjectId(id) {
+  return ObjectId.isValid(id) ? new ObjectId(id) : null;
 }
 
-export function activitiesFromApi(list = []) {
-  const editor = {
-    trivia: [],
-    verdaderoFalso: [],
-    detective: { target: "", synonyms: [], distractors: [] },
-    order: [],
-    mindMap: [],
-  };
+export function buildReadingRepository() {
+  return {
+    async create(document) {
+      const result = await collection().insertOne(document);
+      return { _id: result.insertedId, ...document };
+    },
 
-  for (const a of list) {
-    const c = a.config || {};
-    if (a.type === "multiple_choice") {
-      const opciones = [...(c.options || [])];
-      while (opciones.length < 4) opciones.push("");
-      editor.trivia.push({
-        pregunta: a.prompt,
-        opciones,
-        correcta: c.correctIndex ?? 0,
+    async findById(id) {
+      const _id = toObjectId(id);
+      if (!_id) return null;
+      return collection().findOne({ _id, deletedAt: { $exists: false } });
+    },
+
+    async findByMediaPath(path) {
+      if (!path || typeof path !== 'string') return null;
+      const normalized = path.trim();
+      if (!normalized) return null;
+      return collection().findOne({
+        deletedAt: { $exists: false },
+        'media.path': normalized,
       });
-    } else if (a.type === "true_false") {
-      editor.verdaderoFalso.push({
-        afirmacion: a.prompt,
-        respuesta: c.correctAnswer === true,
-      });
-    } else if (a.type === "ordering") {
-      const orden = c.correctOrder || (c.items || []).map((_, i) => i);
-      editor.order = orden.map((i) => c.items[i]);
-    } else if (a.type === "matching") {
-      editor.mindMap = (c.pairs || []).map((p) => ({ a: p.left, b: p.right }));
-    } else if (a.type === "detective") {
-      editor.detective = {
-        target: c.target || "",
-        synonyms: c.synonyms || [],
-        distractors: c.distractors || []
+    },
+
+    async updateById(id, filter, update) {
+      const _id = toObjectId(id);
+      if (!_id) return null;
+
+      const query = { _id, deletedAt: { $exists: false } };
+      if (filter && Object.keys(filter).length > 0) {
+        Object.assign(query, filter);
+      }
+
+      const updateDoc = update.$set ? update : { $set: update };
+
+      const result = await collection().findOneAndUpdate(
+        query,
+        updateDoc,
+        { returnDocument: 'after' }
+      );
+      return result?.value ?? result ?? null;
+    },
+
+    async list({ institutionId, search, difficulty, maxMinutes, page, limit }) {
+      const filter = {
+        institutionId: new ObjectId(institutionId),
+        status: 'published',
+        deletedAt: { $exists: false },
       };
-    }
-  }
 
-  if (!editor.trivia.length) editor.trivia.push({ pregunta: "", opciones: ["", "", "", ""], correcta: 0 });
-  if (!editor.verdaderoFalso.length) editor.verdaderoFalso.push({ afirmacion: "", respuesta: true });
-  if (!editor.order.length) editor.order = ["", "", "", ""];
-  if (!editor.mindMap.length) editor.mindMap.push({ a: "", b: "" });
-  return editor;
-}
+      if (difficulty) filter.difficulty = difficulty;
+      if (maxMinutes !== undefined) filter.estimatedMinutes = { $lte: maxMinutes };
 
-export const teacherReadingService = {
-  async create({ title, summary, content, nivel, estimatedMinutes, activities = [] }) {
-    return api.post("/readings", {
-      title,
-      summary,
-      content,
-      difficulty: nivelToApi(nivel),
-      estimatedMinutes: Math.max(1, Math.round(Number(estimatedMinutes) || 1)),
-      activities,
-    });
-  },
-
-  async update(id, { title, summary, content, nivel, estimatedMinutes, activities }) {
-    const body = {};
-    if (title !== undefined) body.title = title;
-    if (summary !== undefined) body.summary = summary;
-    if (content !== undefined) body.content = content;
-    if (nivel !== undefined) body.difficulty = nivelToApi(nivel);
-    if (estimatedMinutes !== undefined) {
-      body.estimatedMinutes = Math.max(1, Math.round(Number(estimatedMinutes) || 1));
-    }
-    if (activities !== undefined) body.activities = activities;
-    return api.patch(`/readings/${id}`, body);
-  },
-
-  async publish(id) {
-    return api.post(`/readings/${id}/publish`);
-  },
-
-  async getById(id) {
-    return api.get(`/readings/${id}`);
-  },
-
-  async listPublished({ page = 1, limit = 50 } = {}) {
-    const params = new URLSearchParams({ page, limit });
-    return api.get(`/readings?${params.toString()}`);
-  },
-
-  /**
-   * ✅ FIX BUG 12: lee un borrador específico o devuelve un array con
-   * los borradores + publicadas del docente para poblar el <select>.
-   * Como el backend no lista borradores, hacemos fallback con getById.
-   */
-  async ensureInList(id, list) {
-    if (!id) return list;
-    if (list.some((l) => l.id === id || l._id === id)) return list;
-    try {
-      const detalle = await api.get(`/readings/${id}`);
-      const l = detalle?.data ?? detalle;
-      if (l) {
-        list.unshift({
-          id: l.id ?? l._id,
-          _id: l._id ?? l.id,
-          title: `${l.title} (borrador)`,
-          status: l.status,
-        });
+      if (search) {
+        filter.$or = [
+          { title: new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
+          { summary: new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
+        ];
       }
-    } catch (e) {
-      // Si falla, simplemente no se agrega
-    }
-    return list;
-  },
-};
+
+      const [data, total] = await Promise.all([
+        collection().aggregate([
+          { $match: filter },
+          { $sort: { updatedAt: -1, _id: -1 } },
+          { $skip: (page - 1) * limit },
+          { $limit: limit },
+          {
+            $project: {
+              _id: 0,
+              id: { $toString: '$_id' },
+              title: 1,
+              summary: 1,
+              difficulty: 1,
+              estimatedMinutes: 1,
+              createdAt: 1,
+              updatedAt: 1,
+              authorName: 1,
+            },
+          },
+        ]).toArray(),
+        collection().countDocuments(filter),
+      ]);
+
+      return {
+        data,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    },
+
+    async addMedia(id, mediaItem) {
+      const _id = toObjectId(id);
+      if (!_id) return null;
+
+      const now = new Date();
+      await collection().updateOne(
+        { _id, deletedAt: { $exists: false } },
+        { $pull: { media: { type: 'pdf' } } }
+      );
+
+      const result = await collection().findOneAndUpdate(
+        { _id, deletedAt: { $exists: false } },
+        { $push: { media: mediaItem }, $set: { updatedAt: now } },
+        { returnDocument: 'after' }
+      );
+      return result?.value ?? result ?? null;
+    },
+  };
+}
