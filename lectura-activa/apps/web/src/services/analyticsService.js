@@ -1,9 +1,4 @@
-/* Service de analítica del docente — Dueño: José
- *
- * Contrato (CONTEXTO_TECNICO §7). El docente solo ve sus propios grupos.
- * Igual que en grupos: si el backend publica la ruta duplicada, se ajusta
- * únicamente la constante BASE.
- */
+/* Service de analítica del docente — Dueño: José */
 
 import { api } from "./apiClient.js";
 
@@ -19,16 +14,19 @@ function rango(from, to) {
 
 export const analyticsService = {
   /**
-   * Métricas diarias de un grupo → { groupId, from, to, rows }.
-   * Cada fila: { date, assignmentId, completedCount, assignedCount,
-   * averageScore, averageTimeSeconds }. from/to (ISO) son opcionales.
+   * Métricas de un grupo → { groupId, from, to, summary, rows }.
    */
   async byGroup(groupId, { from, to } = {}) {
     return api.get(`${BASE}/groups/${groupId}${rango(from, to)}`);
   },
 
-  /** Métricas diarias de una lectura → { readingId, from, to, rows }. */
+  /** Métricas de una lectura → { readingId, from, to, summary, rows }. */
   async byReading(readingId, { from, to } = {}) {
     return api.get(`${BASE}/readings/${readingId}${rango(from, to)}`);
+  },
+
+  /** Resumen agregado de todos los estudiantes del docente. */
+  async summaryByTeacher() {
+    return api.get(`${BASE}/summary`);
   },
 };

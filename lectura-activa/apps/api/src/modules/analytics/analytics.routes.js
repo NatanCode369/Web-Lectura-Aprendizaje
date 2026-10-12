@@ -35,6 +35,18 @@ export async function analyticsRoutes(fastify, opts) {
     }
   );
 
+  /**
+   * ✅ NUEVO: resumen agregado de todos los estudiantes del docente.
+   * GET /api/v1/analytics/summary
+   */
+  fastify.get(
+    '/summary',
+    { preHandler: [authMiddleware, requireRole('teacher', 'admin')] },
+    async (request) => {
+      return analyticsService.getTeacherSummary(request.user);
+    }
+  );
+
   // Job interno: NO usa auth. Valida con x-job-secret.
   fastify.post('/jobs/daily', async (request, reply) => {
     const secret = request.headers['x-job-secret'];

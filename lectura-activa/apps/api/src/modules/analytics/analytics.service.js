@@ -29,6 +29,72 @@ function aggregate(rows) {
   };
 }
 
+/**
+ * ✅ NUEVO: agrega métricas en tiempo real desde studentAssignments.
+ * No depende del job diario.
+ */
+async function computeGroupSummary(groupId) {
+  const db = (await import('../../shared/db.js')).getDb();
+  const { ObjectId } = await import('mongodb');
+
+  const sa = await db
+    .collection('studentAssignments')
+    .find({ assignmentId: { $in: [] } }) // placeholder
+    .toArray();
+
+  // Buscar assignments del grupo
+  const assignments = await db
+    .collection('assignments')
+    .find({ groupId: new ObjectId(groupId) })
+    .toArray();
+
+  if (assignments.length === 0) {
+    return {
+      assignedCount: 0,
+      completedCount: 0,
+      completionRate: 0,
+      averageScore: 0,
+      averageTimeSeconds: 0
+    };
+  }
+
+  const assignmentIds = assignments.map((a) => a._id);
+
+  const studentAssignments = await db
+    .collection('studentAssignments')
+    .find({ assignmentId: { $in: assignmentIds } })
+    .toArray();
+
+  if (studentAssignments.length === 0) {
+    return {
+      assignedCount: 0,
+      completedCount: 0,
+      completionRate: 0,
+      averageScore: 0,
+      averageTimeSeconds: 0
+    };
+  }
+
+  const completed = studentAssignments.filter((s) => s.status === 'completed');
+  const totalScore = completed.reduce((acc, s) => acc + (s.score ?? 0), 0);
+  const totalTime = completed.reduce((acc, s) => acc + (s.timeSpentSeconds ?? 0), 0);
+
+  return {
+    assignedCount: studentAssignments.length,
+    completedCount: completed.length,
+    completionRate:
+      studentAssignments.length > 0
+        ? Math.round((completed.length / studentAssignments.length) * 100) / 100
+        : 0,
+    averageScore:
+      completed.length > 0
+        ? Math.round((totalScore / completed.length) * 100) / 100
+        : 0,
+    averageTimeSeconds:
+      completed.length > 0 ? Math.round(totalTime / completed.length) : 0
+  };
+}
+
 export const analyticsService = {
   async getGroupAnalytics(user, groupId, { from, to }) {
     const group = await groupsRepository.findByIdForTeacher(groupId, user._id);
@@ -42,20 +108,18 @@ export const analyticsService = {
       }
     }
 
-    const rows = await analyticsRepository.findByGroup(groupId, { from, to });
+    // ✅ FIX: calcular en tiempo real
+    const summary = await computeGroupSummary(groupId);
     return {
       groupId,
       from: from ?? null,
       to: to ?? null,
-      summary: aggregate(rows),
-      rows
+      summary,
+      rows: []
     };
   },
 
   async getReadingAnalytics(user, readingId, { from, to }) {
-    // Sólo el docente dueño de las asignaciones de esa lectura ve la analítica.
-    // La verificación se delega al repositorio de assignments en la capa de servicio
-    // que llama; aquí asumimos que ya fue validado por requireRole + control de dueño.
     const rows = await analyticsRepository.findByAssignment(readingId, { from, to });
     return {
       readingId,
@@ -64,5 +128,13 @@ export const analyticsService = {
       summary: aggregate(rows),
       rows
     };
-  }
+  },
+
+  /**
+   * ✅ NUEVO: resumen agregado de todos los estudiantes del docente.
+   */
+  async getTeacherSummary(user) {
+    const items = await analyticsRepository.summaryByTeacher(user._id);
+    return { items };
+  },
 };

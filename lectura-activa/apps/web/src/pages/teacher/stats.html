@@ -30,7 +30,6 @@
             <a href="./activities-edit.html" class="nav__link">Actividades</a>
             <a href="./groups.html" class="nav__link">Grupos</a>
             <a href="./students.html" class="nav__link">Estudiantes</a>
-            <!-- ← NUEVO -->
             <a href="./stats.html" class="nav__link is-active">Estadísticas</a>
           </nav>
         </div>
@@ -51,10 +50,7 @@
           <div class="page-header">
             <div>
               <h1>Estadísticas</h1>
-              <p>
-                Progreso de tus grupos y resultados por lectura. Los datos son
-                de ejemplo.
-              </p>
+              <p>Progreso de tus grupos y resultados por lectura.</p>
             </div>
           </div>
 
@@ -62,15 +58,14 @@
             <div class="filters">
               <div class="field">
                 <label for="filtro-lectura">Lectura</label>
-                <select id="filtro-lectura"></select>
+                <select id="filtro-lectura">
+                  <option value="">Todas las lecturas</option>
+                </select>
               </div>
               <div class="field">
                 <label for="filtro-grupo">Grupo</label>
                 <select id="filtro-grupo">
                   <option value="todos">Todos los grupos</option>
-                  <option value="4to A">4to A</option>
-                  <option value="4to B">4to B</option>
-                  <option value="4to C">4to C</option>
                 </select>
               </div>
             </div>
@@ -121,17 +116,15 @@
                     <th>Tiempo</th>
                   </tr>
                 </thead>
-                <tbody id="estudiantes-body"></tbody>
+                <tbody id="estudiantes-body">
+                  <tr>
+                    <td colspan="5" style="text-align: center; padding: 30px; color: #64748b;">
+                      Cargando...
+                    </td>
+                  </tr>
+                </tbody>
               </table>
             </div>
-          </section>
-
-          <section class="panel">
-            <div class="panel__header">
-              <h2 class="panel__title">Preguntas más falladas</h2>
-              <span class="panel__hint">Calculado con todos los grupos</span>
-            </div>
-            <div class="bar-list" id="preguntas-list"></div>
           </section>
         </main>
       </div>
