@@ -30,40 +30,53 @@ export function assertAssignmentIsOpen(assignment, now = new Date()) {
  * ADR-0003: copiar sólo lo necesario para calificar sin depender de la lectura viva.
  * Incluye campos específicos por tipo: items (ordering), pairs (matching).
  * correctAnswer se incluye aquí para el backend; se filtra en attemptsService.start() para el frontend.
+ *
+ * ✅ FIX: las actividades guardan su configuración en `a.config`, NO en `a.options`
+ *         ni en `a.correctAnswer`. Hay que copiar los campos específicos según el tipo.
  */
 export function buildActivitySnapshot(reading) {
   const activities = Array.isArray(reading.activities) ? reading.activities : [];
   return activities.map((a) => {
+    const config = a.config || {};
+
     const base = {
-      activityId: String(a.activityId ?? a._id ?? a.id),
+      activityId: String(a.activityId ?? a._id ?? a.id ?? a.id),
       type: a.type,
       prompt: a.prompt ?? null,
-      options: a.options ?? null,
-      correctAnswer: a.correctAnswer ?? null,
+      options: null,
+      correctAnswer: null,
       points: Number(a.points ?? 1),
       order: Number(a.order ?? 0)
     };
 
-    // Campos específicos por tipo de actividad
-    if (a.type === 'ordering' && Array.isArray(a.items)) {
-      base.items = a.items.map(String);
-    }
-    if (a.type === 'matching' && Array.isArray(a.pairs)) {
-      base.pairs = a.pairs.map((p) => ({
-        left: String(p.left ?? ''),
-        right: String(p.right ?? '')
-      }));
-    }
-    if (a.type === 'detective' && a.config) {
+    // ✅ FIX: copiar la configuración específica según el tipo
+    if (a.type === 'multiple_choice') {
+      base.options = Array.isArray(config.options) ? config.options.map(String) : null;
+      base.correctAnswer = { correctIndex: config.correctIndex ?? null };
+    } else if (a.type === 'true_false') {
+      base.correctAnswer = { correctAnswer: config.correctAnswer ?? null };
+    } else if (a.type === 'ordering') {
+      base.items = Array.isArray(config.items) ? config.items.map(String) : null;
+      base.correctOrder = Array.isArray(config.correctOrder)
+        ? config.correctOrder
+        : null;
+    } else if (a.type === 'matching') {
+      base.pairs = Array.isArray(config.pairs)
+        ? config.pairs.map((p) => ({
+            left: String(p.left ?? ''),
+            right: String(p.right ?? '')
+          }))
+        : null;
+    } else if (a.type === 'detective') {
       // correctAnswer para detective: totalSynonyms para scoring
       base.correctAnswer = {
-        totalSynonyms: Array.isArray(a.config.synonyms) ? a.config.synonyms.length : 0
+        totalSynonyms: Array.isArray(config.synonyms) ? config.synonyms.length : 0
       };
       // Pasar config al snapshot para el frontend
       base.config = {
-        target: a.config.target,
-        synonyms: a.config.synonyms,
-        distractors: a.config.distractors
+        target: config.target,
+        synonyms: config.synonyms,
+        distractors: config.distractors
       };
     }
 
