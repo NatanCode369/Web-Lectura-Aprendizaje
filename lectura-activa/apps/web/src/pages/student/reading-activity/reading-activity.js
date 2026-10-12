@@ -75,30 +75,13 @@ function showError(message) {
 }
 
 /* ============================================================
-   PDF
+   PDF — ✅ FIX: SIEMPRE visible en esta pantalla.
+   El PDF solo se oculta en las pantallas de actividad
+   (multiple-choice.html, true-false.html, etc.), que son
+   páginas separadas y no tienen el iframe.
    ============================================================ */
-function hayActividadesPendientes() {
-  if (state.activities.length === 0) return false;
-  return state.activities.some(
-    (a) => !state.completedActivityIds.has(String(a.activityId))
-  );
-}
-
 function renderPdf(reading) {
   if (!els.pdfWrapper) return;
-
-  if (hayActividadesPendientes()) {
-    els.pdfWrapper.innerHTML = `
-      <div class="activity__pdf-empty">
-        <span class="activity__pdf-empty-icon" aria-hidden="true">📄</span>
-        <p class="activity__pdf-empty-text">
-          El contenido de la lectura está oculto mientras realizas las actividades.
-          Vuelve a verlo cuando termines todas las actividades.
-        </p>
-      </div>
-    `;
-    return;
-  }
 
   const pdfUrl =
     reading?.media?.pdfUrl ||
@@ -175,7 +158,7 @@ function stopTimer() {
 }
 
 /* ============================================================
-   Lista de actividades (sigue existiendo, pero oculta)
+   Lista de actividades (oculta, ya no se usa pero se queda por si acaso)
    ============================================================ */
 function renderActivitiesList() {
   if (!els.activitiesList) return;
@@ -260,8 +243,15 @@ function updateCompletionState() {
 }
 
 /* ============================================================
-   ✅ NUEVO: flujo guiado
+   Flujo guiado
    ============================================================ */
+function hayActividadesPendientes() {
+  if (state.activities.length === 0) return false;
+  return state.activities.some(
+    (a) => !state.completedActivityIds.has(String(a.activityId))
+  );
+}
+
 function irAProximaActividad() {
   const pendiente = state.activities.find(
     (a) => !state.completedActivityIds.has(String(a.activityId))
@@ -281,10 +271,6 @@ function irAProximaActividad() {
   window.location.href = `../activities/${screen}?id=${encodeURIComponent(
     state.studentAssignmentId
   )}&activityId=${encodeURIComponent(pendiente.activityId)}`;
-}
-
-function finalizarLectura() {
-  irAProximaActividad();
 }
 
 function irAMiProgreso() {
@@ -358,6 +344,7 @@ async function loadActivity() {
     if (els.title) els.title.textContent = title;
     document.title = `${title} — Lectura Activa`;
 
+    // ✅ FIX: renderizar el PDF SIEMPRE en esta pantalla
     renderPdf(state.reading);
 
     if (els.activitiesCount) {
@@ -379,16 +366,18 @@ async function loadActivity() {
 
     showState("content");
 
-    // ✅ Si ya terminó todas las actividades, cambiar el botón a "Ir a Mi progreso"
+    // ✅ El botón:
+    // - Si HAY actividades pendientes → "Ir a actividades"
+    // - Si NO hay pendientes → "Ir a Mi progreso"
     if (state.activities.length > 0 && !hayActividadesPendientes()) {
       if (els.toggleText) els.toggleText.textContent = "Ir a Mi progreso";
       if (els.toggle) {
         els.toggle.addEventListener("click", irAMiProgreso);
       }
     } else {
-      if (els.toggleText) els.toggleText.textContent = "Finalizar lectura";
+      if (els.toggleText) els.toggleText.textContent = "Ir a actividades";
       if (els.toggle) {
-        els.toggle.addEventListener("click", finalizarLectura);
+        els.toggle.addEventListener("click", irAProximaActividad);
       }
     }
   } catch (error) {
@@ -426,12 +415,9 @@ function init() {
     if (!user) return;
 
     if (vieneDeActividad) {
-      // ✅ Cargar la tarea y redirigir automáticamente a la siguiente pendiente
+      // Si viene de una actividad, cargar la tarea y redirigir a la siguiente
       await loadActivity();
-
-      // Si loadActivity no encontró tarea, salir
       if (!state.studentAssignment) return;
-
       irAProximaActividad();
       return;
     }
