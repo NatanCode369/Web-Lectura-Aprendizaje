@@ -61,12 +61,10 @@
     </header>
 
     <main id="main-content" class="feedback">
-      <!-- Estado de carga -->
       <div id="loading-state" class="feedback__state" hidden>
         <p class="feedback__state-text">Cargando resultados...</p>
       </div>
 
-      <!-- Estado de error -->
       <div id="error-state" class="feedback__state" hidden>
         <div class="feedback__state-icon" aria-hidden="true">⚠️</div>
         <h2 class="feedback__state-title">No pudimos cargar los resultados</h2>
@@ -81,9 +79,7 @@
         </a>
       </div>
 
-      <!-- Contenido -->
       <div id="feedback-content">
-        <!-- Hero -->
         <header class="feedback__hero">
           <div class="feedback__hero-icon" aria-hidden="true">🎉</div>
           <h1 class="feedback__hero-title">¡Completaste la lectura!</h1>
@@ -92,12 +88,11 @@
           </p>
         </header>
 
-        <!-- Resumen -->
         <section class="feedback__summary" aria-label="Resumen de resultados">
           <div class="feedback__score-card">
             <span class="feedback__score-label">Puntaje</span>
             <span class="feedback__score-value" data-field="score">—</span>
-            <span class="feedback__score-max">/ 100</span>
+            <span class="feedback__score-max">/ <span data-field="scoreMax">100</span></span>
           </div>
 
           <div class="feedback__meta-card">
@@ -113,7 +108,6 @@
           </div>
         </section>
 
-        <!-- Barra de progreso del puntaje -->
         <section class="feedback__progress-section" aria-label="Nivel de logro">
           <div
             class="feedback__progress-bar"
@@ -133,7 +127,6 @@
           <p class="feedback__motivation" data-field="motivation">—</p>
         </section>
 
-        <!-- Actividades completadas -->
         <section class="feedback__section" aria-labelledby="details-title">
           <header class="feedback__section-header">
             <h2 class="feedback__section-title" id="details-title">
@@ -146,7 +139,6 @@
           </header>
         </section>
 
-        <!-- Acciones -->
         <section class="feedback__actions" aria-label="Acciones disponibles">
           <a
             href="../my-tasks/my-tasks.html"
